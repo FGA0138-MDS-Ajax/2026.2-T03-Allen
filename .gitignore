@@ -1,0 +1,44 @@
+# ---------- Ambiente virtual ----------
+venv/
+.venv/
+env/
+ENV/
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+dist/
+*.egg-info/
+
+# ---------- Segredos: NUNCA commitar ----------
+.env
+.env.local
+.env.*
+!.env.example
+
+# ---------- Django ----------
+*.log
+db.sqlite3
+db.sqlite3-journal
+/media/
+/staticfiles/
+local_settings.py
+
+# ---------- Testes / lint ----------
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# ---------- Editores ----------
+.vscode/
+.idea/
+*.swp
+
+# ---------- Sistema ----------
+.DS_Store
+Thumbs.db
