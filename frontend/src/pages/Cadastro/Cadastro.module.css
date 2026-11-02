@@ -1,0 +1,197 @@
+.pageContainer {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px 16px 48px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0 24px;
+}
+
+.brandLogo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-titulo);
+  font-weight: 900;
+  font-size: 30px;
+  color: var(--violeta-vero);
+  text-decoration: none;
+}
+
+.layoutGrid {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Coluna lateral visível em desktop (>= 900px) */
+.heroAside {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .layoutGrid {
+    display: grid;
+    grid-template-columns: 1.1fr 500px;
+    gap: 56px;
+    align-items: center;
+    padding-top: 24px;
+  }
+
+  .heroAside {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding-right: 20px;
+  }
+}
+
+.heroBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  background-color: var(--lavanda);
+  color: var(--violeta-profundo);
+  font-weight: 700;
+  font-size: 16px;
+  padding: 8px 18px;
+  border-radius: 999px;
+}
+
+.heroTitle {
+  font-family: var(--font-titulo);
+  font-weight: 900;
+  font-size: clamp(30px, 4vw, 44px);
+  line-height: 1.18;
+  color: var(--grafite-noturno);
+}
+
+.heroDescription {
+  font-size: 19px;
+  color: var(--ardosia);
+  line-height: 1.5;
+}
+
+.heroPillars {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.pillarItem {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background-color: var(--branco);
+  padding: 18px 22px;
+  border-radius: 20px;
+  border: 2px solid #e9e4f8;
+}
+
+.pillarIcon {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background-color: var(--lavanda);
+  color: var(--violeta-vero);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pillarText strong {
+  display: block;
+  font-size: 18px;
+  color: var(--grafite-noturno);
+  margin-bottom: 2px;
+}
+
+.pillarText span {
+  font-size: 16px;
+  color: var(--ardosia);
+}
+
+/* Card interativo (100% anti-vazamento no mobile) */
+.card {
+  background-color: var(--branco);
+  border-radius: 24px;
+  padding: clamp(18px, 4.5vw, 32px);
+  box-shadow: 0 12px 36px rgba(26, 26, 46, 0.08);
+  border: 2px solid #e9e4f8;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.etapaIndicador {
+  display: inline-block;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ardosia);
+  margin-bottom: 8px;
+}
+
+.titulo {
+  font-family: var(--font-titulo);
+  font-weight: 900;
+  font-size: clamp(24px, 5vw, 28px);
+  line-height: 1.25;
+  color: var(--grafite-noturno);
+  margin-bottom: 8px;
+}
+
+.subtitulo {
+  font-size: clamp(16px, 4vw, 18px);
+  color: var(--ardosia);
+  margin-bottom: 20px;
+}
+
+.pinDisplay {
+  display: flex;
+  justify-content: center;
+  gap: clamp(8px, 2.5vw, 14px);
+  margin-bottom: 22px;
+  width: 100%;
+}
+
+.pinDigito {
+  width: clamp(52px, 14vw, 66px);
+  height: clamp(60px, 16vw, 72px);
+  border-radius: 16px;
+  background-color: var(--nevoa);
+  border: 3px solid var(--ardosia);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(28px, 7vw, 34px);
+  font-weight: 800;
+  color: var(--grafite-noturno);
+  transition: all 0.15s ease;
+}
+
+.pinDigitoPreenchido {
+  border-color: var(--violeta-vero);
+  background-color: var(--lavanda);
+  color: var(--violeta-profundo);
+}
+
+.botoesAcao {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
