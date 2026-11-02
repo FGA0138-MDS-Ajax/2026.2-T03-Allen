@@ -1,0 +1,363 @@
+.pageContainer {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--nevoa);
+  padding: 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .pageContainer {
+    padding: 24px 32px;
+  }
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  gap: 16px;
+}
+
+.brandLogo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: var(--violeta-vero);
+  font-family: var(--font-titulo);
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.navAcoes {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tituloPrincipal {
+  font-family: var(--font-titulo);
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--grafite-noturno);
+  margin-bottom: 6px;
+}
+
+.subtituloPrincipal {
+  font-size: 18px;
+  color: var(--ardosia);
+  margin-bottom: 24px;
+}
+
+/* Resumo de Contas no Topo */
+.gridResumo {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (min-width: 640px) {
+  .gridResumo {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.cardResumo {
+  background: var(--branco);
+  border-radius: 16px;
+  padding: 18px 20px;
+  border: 2px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rotuloResumo {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ardosia);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.valorResumo {
+  font-family: var(--font-titulo);
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--grafite-noturno);
+}
+
+.destaqueAtraso {
+  color: var(--erro-texto);
+}
+
+.destaqueAVencer {
+  color: var(--violeta-profundo);
+}
+
+.destaquePaga {
+  color: var(--sucesso-texto);
+}
+
+/* Barra de Ações & Filtros */
+.barraControles {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (min-width: 768px) {
+  .barraControles {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.filtrosContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.btnFiltro {
+  border: 2px solid #cbd5e1;
+  background: var(--branco);
+  color: var(--ardosia);
+  font-family: var(--font-corpo);
+  font-size: 16px;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 30px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--toque-minimo);
+  transition: all 0.2s ease;
+}
+
+.btnFiltro:hover {
+  border-color: var(--violeta-vero);
+  color: var(--violeta-vero);
+}
+
+.btnFiltroAtivo {
+  background: var(--violeta-vero);
+  border-color: var(--violeta-vero);
+  color: var(--branco);
+}
+
+.btnFiltroAtivo:hover {
+  background: var(--violeta-profundo);
+  border-color: var(--violeta-profundo);
+  color: var(--branco);
+}
+
+/* Lista de Contas */
+.listaContas {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.cardConta {
+  background: var(--branco);
+  border-radius: 20px;
+  padding: 20px;
+  border: 2px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+@media (min-width: 640px) {
+  .cardConta {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.cardConta:hover {
+  border-color: var(--violeta-claro);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.08);
+}
+
+.infoPrincipal {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.iconeContainer {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--lavanda);
+  color: var(--violeta-profundo);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.detalhesTexto {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nomeConta {
+  font-family: var(--font-titulo);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--grafite-noturno);
+}
+
+.dataVencimento {
+  font-size: 16px;
+  color: var(--ardosia);
+}
+
+.valoresEStatus {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+@media (min-width: 640px) {
+  .valoresEStatus {
+    justify-content: flex-end;
+  }
+}
+
+.valorConta {
+  font-family: var(--font-titulo);
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--grafite-noturno);
+}
+
+/* Badges Triplos WCAG (Cor + Ícone + Texto) */
+.badgeStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 24px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+.badgeAVencer {
+  background-color: var(--aviso-fundo);
+  color: var(--aviso-texto);
+  border: 1.5px solid #fde68a;
+}
+
+.badgeEmAtraso {
+  background-color: var(--erro-fundo);
+  color: var(--erro-texto);
+  border: 1.5px solid #fca5a5;
+}
+
+.badgePaga {
+  background-color: var(--sucesso-fundo);
+  color: var(--sucesso-texto);
+  border: 1.5px solid #86efac;
+}
+
+/* Painel de Cadastro de Conta */
+.painelCadastro {
+  background: var(--branco);
+  border-radius: 24px;
+  padding: 24px;
+  border: 2px solid var(--violeta-claro);
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.1);
+  margin-bottom: 32px;
+}
+
+.formGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.displayValorCadastro {
+  font-family: var(--font-titulo);
+  font-size: 36px;
+  font-weight: 900;
+  color: var(--violeta-profundo);
+  background: var(--lavanda);
+  padding: 16px;
+  border-radius: 16px;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.campoData {
+  font-family: var(--font-corpo);
+  font-size: 18px;
+  padding: 14px 16px;
+  border: 2px solid #cbd5e1;
+  border-radius: 12px;
+  min-height: var(--toque-minimo);
+  width: 100%;
+}
+
+.campoData:focus {
+  outline: none;
+  border-color: var(--violeta-vero);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+}
+
+.sugestoesRapidas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.btnSugestao {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 16px;
+  padding: 4px 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ardosia);
+  cursor: pointer;
+}
+
+.btnSugestao:hover {
+  background: var(--lavanda);
+  color: var(--violeta-profundo);
+}
+
+.estadoVazio {
+  text-align: center;
+  padding: 48px 20px;
+  background: var(--branco);
+  border-radius: 20px;
+  border: 2px dashed #cbd5e1;
+  color: var(--ardosia);
+}
+
+.estadoVazioTitulo {
+  font-family: var(--font-titulo);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--grafite-noturno);
+  margin-bottom: 8px;
+}
