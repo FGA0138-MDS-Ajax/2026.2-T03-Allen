@@ -44,7 +44,9 @@ def publicar(usuario_id: uuid.UUID, tipo: TipoEvento, dados: dict) -> None:
 
 async def ouvir(usuario_id: uuid.UUID) -> AsyncIterator[str]:
     """Entrega, em texto JSON, cada evento publicado no canal do usuário."""
-    conexao = valkey_async.Valkey.from_url(settings.VALKEY_URL, decode_responses=True)
+    conexao = valkey_async.Valkey.from_url(
+        settings.VALKEY_URL, decode_responses=True, socket_timeout=None
+    )
     assinatura = conexao.pubsub(ignore_subscribe_messages=True)
     await assinatura.subscribe(canal_do_usuario(usuario_id))
     try:
