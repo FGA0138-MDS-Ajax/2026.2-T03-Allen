@@ -7,3 +7,4 @@ alembic>=1.20
 psycopg[binary]>=3.2
 bcrypt>=5.0
 pyjwt>=2.15
+valkey>=6.1
