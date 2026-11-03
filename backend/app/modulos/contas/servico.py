@@ -59,11 +59,9 @@ def definir_pagamento(
     paga: bool,
 ) -> Conta:
     """
-    Marca a conta como paga ou desfaz o pagamento (RF30).
-
-    repetir 'paga=True' mantém a data do primeiro pagamento e repetir 'paga=False'
-    mantém a conta pendente. O filtro do usuario_id impede alterar a conta de outra
-    pessoa.
+    Marca a conta como paga ou desfaz o pagamento. Repetir 'paga=True' mantém a
+    data do primeiro pagamento e repetir 'paga=False' mantém a conta pendente. O filtro
+    do usuario_id impede alterar a conta de outra pessoa.
     """
     comando = (
         select(Conta)
