@@ -1,10 +1,16 @@
-"""Rotas de contas a pagar (RF25)."""
+"""Rotas de contas a pagar (RF25, RF30)."""
+
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.modulos.contas import servico
-from app.modulos.contas.esquemas import ContaCadastroEntrada, ContaSaida
+from app.modulos.contas.esquemas import (
+    ContaCadastroEntrada,
+    ContaPagamentoEntrada,
+    ContaSaida,
+)
 from app.modulos.contas.mensagens import Message
 from app.modulos.contas.modelos import Conta
 from app.modulos.identidade.modelos import Usuario
@@ -35,3 +41,19 @@ def listar(
     sessao: Session = Depends(obter_sessao),
 ) -> list[Conta]:
     return servico.listar(sessao, usuario.id)
+
+
+@router.patch("/{conta_id}/pagamento", response_model=ContaSaida)
+def definir_pagamento(
+    conta_id: UUID,
+    dados: ContaPagamentoEntrada,
+    usuario: Usuario = Depends(usuario_atual),
+    sessao: Session = Depends(obter_sessao),
+) -> Conta:
+    try:
+        return servico.definir_pagamento(sessao, usuario.id, conta_id, dados.paga)
+    except servico.ContaNaoEncontrada:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            Message.CONTA_NAO_ENCONTRADA.message,
+        ) from None
