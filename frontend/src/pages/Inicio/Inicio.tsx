@@ -335,7 +335,7 @@ export const Inicio: React.FC = () => {
 
                 <div className={styles.destaqueMeta}>
                   {saldoDisponivelCentavos >= estado.meta
-                    ? '🎉 Seu saldo disponível está acima da meta do mês!'
+                    ? 'Seu saldo disponível está acima da meta do mês.'
                     : `Faltam ${formatarMoeda(
                         estado.meta - saldoDisponivelCentavos
                       )} para você alcançar sua meta.`}
