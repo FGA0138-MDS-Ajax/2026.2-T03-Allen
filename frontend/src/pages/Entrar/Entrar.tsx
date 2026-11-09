@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Botao,
   CampoTexto,
@@ -17,6 +17,7 @@ export const Entrar = () => {
   const [pin, setPin] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
+  const campoCelularRef = useRef<HTMLInputElement>(null);
 
   const digitarPin = (digito: string) => {
     if (pin.length < 4 && !carregando) {
@@ -60,6 +61,42 @@ export const Entrar = () => {
     }
   };
 
+  // Suporte à digitação pelo teclado físico do computador
+  useEffect(() => {
+    const tratarTeclaPressionada = (evento: KeyboardEvent) => {
+      // Se o usuário estiver focado no campo de celular, o input nativo cuida da digitação
+      const elementoAtivo = document.activeElement;
+      const estaNoInputCelular =
+        elementoAtivo && elementoAtivo.tagName === 'INPUT' && elementoAtivo !== document.body;
+
+      if (evento.key === 'Enter') {
+        evento.preventDefault();
+        if (pin.length === 4) {
+          entrar();
+        } else if (estaNoInputCelular && validarCelular(celular)) {
+          // Desfoca do celular para permitir digitar o PIN
+          (elementoAtivo as HTMLElement).blur();
+        }
+        return;
+      }
+
+      if (estaNoInputCelular) {
+        return;
+      }
+
+      if (/^[0-9]$/.test(evento.key)) {
+        evento.preventDefault();
+        digitarPin(evento.key);
+      } else if (evento.key === 'Backspace') {
+        evento.preventDefault();
+        apagarPin();
+      }
+    };
+
+    window.addEventListener('keydown', tratarTeclaPressionada);
+    return () => window.removeEventListener('keydown', tratarTeclaPressionada);
+  }, [celular, pin, carregando]);
+
   return (
     <div className={styles.pageContainer}>
       <header className={styles.navbar}>
@@ -88,7 +125,7 @@ export const Entrar = () => {
         <section className={styles.card} aria-live="polite">
           <h1 className={styles.titulo}>Entrar no Vero</h1>
           <p className={styles.subtitulo}>
-            Digite seu celular e seu PIN de <strong>4 números</strong> para acessar suas contas e gastos.
+            Digite seu celular e seu PIN de <strong>4 números</strong> usando seu teclado físico ou o teclado na tela.
           </p>
 
           {erro && (
@@ -99,6 +136,7 @@ export const Entrar = () => {
 
           <div style={{ marginBottom: 24 }}>
             <CampoTexto
+              ref={campoCelularRef}
               rotulo="Número de celular"
               placeholder="(61) 99999-8888"
               type="tel"
@@ -108,6 +146,12 @@ export const Entrar = () => {
               onChange={(e) => {
                 setCelular(formatarCelular(e.target.value));
                 if (erro) setErro(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && validarCelular(celular)) {
+                  e.preventDefault();
+                  campoCelularRef.current?.blur();
+                }
               }}
             />
           </div>
@@ -127,7 +171,15 @@ export const Entrar = () => {
 
             <div
               className={styles.pinDisplay}
-              aria-label={`PIN: ${pin.length} de 4 dígitos digitados`}
+              tabIndex={0}
+              role="textbox"
+              aria-label={`PIN: ${pin.length} de 4 dígitos preenchidos. Digite os 4 números no teclado.`}
+              onClick={() => {
+                // Ao clicar no PIN, garante que o campo de celular perca o foco
+                if (document.activeElement instanceof HTMLElement) {
+                  document.activeElement.blur();
+                }
+              }}
             >
               {[0, 1, 2, 3].map((i) => (
                 <div

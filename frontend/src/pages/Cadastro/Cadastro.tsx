@@ -275,6 +275,7 @@ export const Cadastro = () => {
               <TecladoNumerico
                 onDigito={digitarPin}
                 onApagar={apagarPin}
+                capturarTeclado={true}
               />
 
               <div className={styles.botoesAcao}>
@@ -317,6 +318,7 @@ export const Cadastro = () => {
               <TecladoNumerico
                 onDigito={digitarPin}
                 onApagar={apagarPin}
+                capturarTeclado={true}
               />
 
               <div className={styles.botoesAcao}>

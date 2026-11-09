@@ -1,0 +1,143 @@
+.navbar {
+  width: 100%;
+  background-color: var(--branco);
+  border-bottom: 2px solid var(--lavanda);
+  padding: 12px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(26, 26, 46, 0.04);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.brandLogo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-titulo);
+  font-weight: 900;
+  font-size: 26px;
+  color: var(--violeta-vero);
+  text-decoration: none;
+  border-radius: 8px;
+  outline: none;
+}
+
+.brandLogo:focus-visible {
+  outline: 3px solid var(--violeta-vero);
+  outline-offset: 3px;
+}
+
+.linksNavegacao {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.navItem {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  background: transparent;
+  color: var(--ardosia);
+  font-family: var(--font-corpo);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.navItem:hover {
+  background-color: var(--nevoa);
+  color: var(--violeta-vero);
+}
+
+.navItem:focus-visible {
+  outline: 3px solid var(--violeta-vero);
+  outline-offset: 2px;
+}
+
+.navItemAtivo {
+  background-color: var(--lavanda);
+  color: var(--violeta-profundo);
+  border-color: #D8D4E8;
+}
+
+.btnSair {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: 2px solid var(--ardosia);
+  background: transparent;
+  color: var(--grafite-noturno);
+  font-family: var(--font-corpo);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnSair:hover {
+  background-color: #FEE2E2;
+  border-color: #B91C1C;
+  color: #B91C1C;
+}
+
+.btnSair:focus-visible {
+  outline: 3px solid var(--violeta-vero);
+  outline-offset: 2px;
+}
+
+@media (max-width: 680px) {
+  .navbar {
+    padding: 10px 12px;
+  }
+
+  .container {
+    gap: 8px;
+  }
+
+  .brandLogo {
+    font-size: 22px;
+  }
+
+  .linksNavegacao {
+    width: 100%;
+    order: 3;
+    justify-content: space-between;
+    padding-top: 8px;
+    border-top: 1px solid var(--lavanda);
+  }
+
+  .navItem {
+    flex: 1;
+    min-height: 44px;
+    padding: 6px 8px;
+    font-size: 14px;
+    text-align: center;
+  }
+
+  .btnSair {
+    min-height: 38px;
+    padding: 6px 12px;
+    font-size: 14px;
+  }
+}

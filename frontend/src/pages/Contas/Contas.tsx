@@ -5,14 +5,17 @@ import {
   TecladoNumerico,
   AlertaStatus,
   BotaoAudio,
-  IconVero,
+  BarraNavegacao,
   IconBills,
   IconClock,
   IconAlert,
   IconCheck,
   IconPlus,
   IconArrowLeft,
-  IconLogout,
+  IconMarket,
+  IconPharmacy,
+  IconTransport,
+  IconHome,
 } from '../../components';
 import { useNavegacao } from '../../router';
 import {
@@ -20,7 +23,6 @@ import {
   listarContas,
   cadastrarConta,
   definirPagamentoConta,
-  limparSessao,
   estaAutenticado,
   ErroApi,
 } from '../../servicos';
@@ -29,6 +31,50 @@ import styles from './Contas.module.css';
 type FiltroStatus = 'todas' | 'a_vencer' | 'em_atraso' | 'paga';
 
 const SUGESTOES = ['Luz', 'Água', 'Aluguel', 'Internet', 'Telefone', 'Cartão'];
+
+const obterIconeConta = (descricao?: string | null) => {
+  const d = (descricao || '').toLowerCase();
+  if (
+    d.includes('mercado') ||
+    d.includes('supermercado') ||
+    d.includes('feira') ||
+    d.includes('alimento') ||
+    d.includes('comida')
+  ) {
+    return <IconMarket size={26} />;
+  }
+  if (
+    d.includes('farm') ||
+    d.includes('remed') ||
+    d.includes('reméd') ||
+    d.includes('saude') ||
+    d.includes('saúde') ||
+    d.includes('medic')
+  ) {
+    return <IconPharmacy size={26} />;
+  }
+  if (
+    d.includes('aluguel') ||
+    d.includes('condom') ||
+    d.includes('casa') ||
+    d.includes('iptu') ||
+    d.includes('moradia')
+  ) {
+    return <IconHome size={26} />;
+  }
+  if (
+    d.includes('transporte') ||
+    d.includes('onibus') ||
+    d.includes('ônibus') ||
+    d.includes('uber') ||
+    d.includes('combust') ||
+    d.includes('gasolina') ||
+    d.includes('carro')
+  ) {
+    return <IconTransport size={26} />;
+  }
+  return <IconBills size={26} />;
+};
 
 export const Contas: React.FC = () => {
   const { navegar } = useNavegacao();
@@ -184,39 +230,14 @@ export const Contas: React.FC = () => {
 
   return (
     <div className={styles.pageContainer}>
-      <header className={styles.navbar}>
-        <a
-          href="/"
-          className={styles.brandLogo}
-          onClick={(e) => {
-            e.preventDefault();
-            navegar('/');
-          }}
-          aria-label="Vero - Início"
-        >
-          <IconVero size={34} />
-          <span>Vero</span>
-        </a>
-
-        <div className={styles.navAcoes}>
-          <BotaoAudio textoParaLer={textoResumoAudio} rotuloAcessivel="Ouvir resumo de contas" />
-          <Botao
-            variant="secondary"
-            onClick={() => {
-              limparSessao();
-              navegar('/entrar');
-            }}
-            aria-label="Sair do Vero"
-            icone={<IconLogout size={20} />}
-          >
-            Sair
-          </Botao>
-        </div>
-      </header>
+      <BarraNavegacao rotaAtiva="/contas" />
 
       <main>
         <div className={styles.cabecalhoSecao}>
-          <h1 className={styles.tituloPrincipal}>Minhas Contas a Pagar</h1>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
+            <h1 className={styles.tituloPrincipal} style={{ margin: 0 }}>Minhas Contas a Pagar</h1>
+            <BotaoAudio textoParaLer={textoResumoAudio} rotuloAcessivel="Ouvir resumo de contas" />
+          </div>
           <p className={styles.subtituloPrincipal}>
             Acompanhe o que já pagou e o que ainda precisa separar dinheiro este mês.
           </p>
@@ -275,7 +296,7 @@ export const Contas: React.FC = () => {
                 {formatarMoeda(centavosAtuais / 100)}
               </div>
 
-              <TecladoNumerico onDigito={digitar} onApagar={apagar} />
+              <TecladoNumerico onDigito={digitar} onApagar={apagar} capturarTeclado={modoCadastro} />
 
               <div>
                 <CampoTexto
@@ -424,7 +445,7 @@ export const Contas: React.FC = () => {
                   <div key={conta.id} className={styles.cardConta}>
                     <div className={styles.infoPrincipal}>
                       <div className={styles.iconeContainer} aria-hidden="true">
-                        <IconBills size={26} />
+                        {obterIconeConta(conta.descricao)}
                       </div>
                       <div className={styles.detalhesTexto}>
                         <span className={styles.nomeConta}>

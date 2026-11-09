@@ -6,3 +6,4 @@ export * from './BotaoAudio/BotaoAudio';
 export * from './SeletorCategoria/SeletorCategoria';
 export * from './SeletorCategoria/tipos';
 export * from './Icones/Icones';
+export * from './BarraNavegacao/BarraNavegacao';

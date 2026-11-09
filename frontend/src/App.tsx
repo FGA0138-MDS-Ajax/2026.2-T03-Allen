@@ -3,6 +3,8 @@ import { BoasVindas } from './pages/BoasVindas/BoasVindas';
 import { Cadastro } from './pages/Cadastro/Cadastro';
 import { Entrar } from './pages/Entrar/Entrar';
 import { Contas } from './pages/Contas/Contas';
+import { Inicio } from './pages/Inicio/Inicio';
+import { AnotarGasto } from './pages/AnotarGasto/AnotarGasto';
 import { estaAutenticado } from './servicos';
 
 function ConteudoRotas() {
@@ -17,6 +19,12 @@ function ConteudoRotas() {
     case '/login':
     case '/entrar':
       return <Entrar />;
+    case '/inicio':
+    case '/dashboard':
+      return estaAutenticado() ? <Inicio /> : <BoasVindas />;
+    case '/anotar-gasto':
+    case '/novo-gasto':
+      return estaAutenticado() ? <AnotarGasto /> : <BoasVindas />;
     case '/contas':
     case '/':
     default:

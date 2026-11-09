@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import styles from './TecladoNumerico.module.css';
 import { IconBackspace } from '../Icones/Icones';
 
@@ -7,6 +7,7 @@ export interface TecladoNumericoProps {
   onApagar: () => void;
   onLimpar?: () => void;
   desabilitado?: boolean;
+  capturarTeclado?: boolean;
 }
 
 export const TecladoNumerico: React.FC<TecladoNumericoProps> = ({
@@ -14,8 +15,36 @@ export const TecladoNumerico: React.FC<TecladoNumericoProps> = ({
   onApagar,
   onLimpar,
   desabilitado = false,
+  capturarTeclado = false,
 }) => {
   const digitos = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+
+  useEffect(() => {
+    if (!capturarTeclado || desabilitado) return;
+
+    const tratarKeyDown = (evento: KeyboardEvent) => {
+      const elementoAtivo = document.activeElement;
+      const estaNoInput =
+        elementoAtivo &&
+        (elementoAtivo.tagName === 'INPUT' || elementoAtivo.tagName === 'TEXTAREA');
+
+      if (estaNoInput) return;
+
+      if (/^[0-9]$/.test(evento.key)) {
+        evento.preventDefault();
+        onDigito(evento.key);
+      } else if (evento.key === 'Backspace') {
+        evento.preventDefault();
+        onApagar();
+      } else if ((evento.key === 'Escape' || evento.key === 'Delete') && onLimpar) {
+        evento.preventDefault();
+        onLimpar();
+      }
+    };
+
+    window.addEventListener('keydown', tratarKeyDown);
+    return () => window.removeEventListener('keydown', tratarKeyDown);
+  }, [capturarTeclado, desabilitado, onDigito, onApagar, onLimpar]);
 
   return (
     <div role="group" aria-label="Teclado numérico" className={styles.grid}>

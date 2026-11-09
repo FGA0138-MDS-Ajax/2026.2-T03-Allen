@@ -1,0 +1,42 @@
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { AnotarGasto } from './AnotarGasto';
+
+const mockNavegar = vi.fn();
+
+vi.mock('../../router', () => ({
+  useNavegacao: () => ({
+    navegar: mockNavegar,
+    rota: '/anotar-gasto',
+  }),
+}));
+
+describe('Página AnotarGasto', () => {
+  it('renderiza o formulário com display monetário e seletor de categorias com ícones', () => {
+    render(<AnotarGasto />);
+
+    expect(screen.getByText('Anotar novo gasto')).toBeInTheDocument();
+    expect(screen.getByText('Escolha a categoria:')).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /mercado/i })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /farmácia/i })).toBeInTheDocument();
+  });
+
+  it('permite digitar valor e salvar novo gasto exibindo mensagem de sucesso', () => {
+    render(<AnotarGasto />);
+
+    // Digita 2, 5, 0, 0 -> R$ 25,00
+    fireEvent.click(screen.getByRole('button', { name: '2' }));
+    fireEvent.click(screen.getByRole('button', { name: '5' }));
+    fireEvent.click(screen.getByRole('button', { name: '0' }));
+    fireEvent.click(screen.getByRole('button', { name: '0' }));
+
+    // Seleciona Farmácia
+    fireEvent.click(screen.getByRole('radio', { name: /farmácia/i }));
+
+    // Clica em Salvar gasto
+    const btnSalvar = screen.getByRole('button', { name: /salvar gasto/i });
+    fireEvent.click(btnSalvar);
+
+    expect(screen.getByText(/gasto de r\$\s*25,00 registrado com sucesso no vero!/i)).toBeInTheDocument();
+  });
+});
