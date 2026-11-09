@@ -9,9 +9,20 @@ import {
   IconCheck,
 } from '../../components';
 import { useNavegacao } from '../../router';
+import { useDadosDoMes } from '../../servicos/dadosDoMes';
+
+const NOMES_CATEGORIAS: Record<string, string> = {
+  mercado: 'Mercado',
+  farmacia: 'Farmácia',
+  contas: 'Contas',
+  transporte: 'Transporte',
+  casa: 'Casa',
+  outros: 'Outros',
+};
 
 export const AnotarGasto: React.FC = () => {
   const { navegar } = useNavegacao();
+  const { adicionarLancamento } = useDadosDoMes();
   const [valorStr, setValorStr] = useState<string>(''); // dígitos em centavos
   const [categoria, setCategoria] = useState<string>('mercado');
   const [sucesso, setSucesso] = useState<boolean>(false);
@@ -45,6 +56,9 @@ export const AnotarGasto: React.FC = () => {
       setErro('Digite um valor maior que zero para o gasto.');
       return;
     }
+
+    const nomeCat = NOMES_CATEGORIAS[categoria] || 'Gasto Geral';
+    adicionarLancamento('gasto', centavos, nomeCat);
 
     setSucesso(true);
     setErro(null);

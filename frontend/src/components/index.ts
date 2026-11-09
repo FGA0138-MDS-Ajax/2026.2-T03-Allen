@@ -7,3 +7,4 @@ export * from './SeletorCategoria/SeletorCategoria';
 export * from './SeletorCategoria/tipos';
 export * from './Icones/Icones';
 export * from './BarraNavegacao/BarraNavegacao';
+export * from './GraficoSaldo/GraficoSaldo';
