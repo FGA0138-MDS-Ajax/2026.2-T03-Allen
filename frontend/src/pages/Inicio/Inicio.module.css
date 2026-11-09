@@ -389,3 +389,22 @@
   font-size: 17px;
   font-weight: 800;
 }
+
+.btnApagarGasto {
+  background: transparent;
+  border: none;
+  color: var(--ardosia);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.btnApagarGasto:hover {
+  background-color: #FEE2E2;
+  color: var(--erro-texto);
+}
+

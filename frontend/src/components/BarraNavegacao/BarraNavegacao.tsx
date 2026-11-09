@@ -6,6 +6,7 @@ import {
   IconVero,
   IconBills,
   IconPlus,
+  IconClock,
   IconLogout,
 } from '../Icones/Icones';
 
@@ -48,6 +49,20 @@ export const BarraNavegacao: React.FC<BarraNavegacaoProps> = ({ rotaAtiva }) => 
             aria-current={rotaAtual === '/inicio' ? 'page' : undefined}
           >
             <span>Início</span>
+          </button>
+
+          <button
+            type="button"
+            className={`${styles.navItem} ${
+              rotaAtual === '/extrato' ? styles.navItemAtivo : ''
+            }`}
+            onClick={() => navegar('/extrato')}
+            aria-current={rotaAtual === '/extrato' ? 'page' : undefined}
+          >
+            <span aria-hidden="true" style={{ display: 'inline-flex', marginRight: 4 }}>
+              <IconClock size={18} />
+            </span>
+            <span>Extrato</span>
           </button>
 
           <button

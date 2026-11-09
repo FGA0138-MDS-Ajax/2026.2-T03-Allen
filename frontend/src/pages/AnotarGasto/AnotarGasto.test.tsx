@@ -37,6 +37,7 @@ describe('Página AnotarGasto', () => {
     const btnSalvar = screen.getByRole('button', { name: /salvar gasto/i });
     fireEvent.click(btnSalvar);
 
-    expect(screen.getByText(/gasto de r\$\s*25,00 registrado com sucesso no vero!/i)).toBeInTheDocument();
+    expect(screen.getByText('Tudo certo!')).toBeInTheDocument();
+    expect(screen.getByText(/gasto de r\$\s*25,00 registrado com sucesso no vero/i)).toBeInTheDocument();
   });
 });

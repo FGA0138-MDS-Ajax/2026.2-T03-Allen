@@ -196,10 +196,21 @@ export function useDadosDoMes() {
     [atualizar]
   );
 
+  const removerLancamento = useCallback(
+    (id: number) => {
+      atualizar((atual) => ({
+        ...atual,
+        itens: atual.itens.filter((i) => i.id !== id),
+      }));
+    },
+    [atualizar]
+  );
+
   return {
     hoje,
     estado,
     adicionarLancamento,
+    removerLancamento,
     definirMeta,
     definirRenda,
   };

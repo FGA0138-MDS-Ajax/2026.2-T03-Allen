@@ -14,6 +14,7 @@ import {
   IconOther,
   IconClock,
   IconAlert,
+  IconTrash,
 } from '../../components';
 import { useNavegacao } from '../../router';
 import { listarContas, ContaSaida } from '../../servicos';
@@ -28,7 +29,7 @@ import {
 
 export const Inicio: React.FC = () => {
   const { navegar } = useNavegacao();
-  const { hoje, estado, definirMeta } = useDadosDoMes();
+  const { hoje, estado, definirMeta, removerLancamento } = useDadosDoMes();
 
   const [contas, setContas] = useState<ContaSaida[]>([]);
   const [carregandoContas, setCarregandoContas] = useState(true);
@@ -391,16 +392,29 @@ export const Inicio: React.FC = () => {
                           <div className={styles.dataGasto}>{quando}</div>
                         </div>
                       </div>
-                      <strong
-                        className={styles.valorGasto}
-                        style={{
-                          color: ehEntrada
-                            ? 'var(--sucesso-texto)'
-                            : 'var(--erro-texto)',
-                        }}
-                      >
-                        {ehEntrada ? '+' : '−'} {formatarMoeda(item.centavos)}
-                      </strong>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <strong
+                          className={styles.valorGasto}
+                          style={{
+                            color: ehEntrada
+                              ? 'var(--sucesso-texto)'
+                              : 'var(--erro-texto)',
+                          }}
+                        >
+                          {ehEntrada ? '+' : '−'} {formatarMoeda(item.centavos)}
+                        </strong>
+                        {!ehEntrada && (
+                          <button
+                            type="button"
+                            className={styles.btnApagarGasto}
+                            onClick={() => removerLancamento(item.id)}
+                            aria-label={`Apagar gasto de ${item.categoria}`}
+                            title="Apagar este gasto"
+                          >
+                            <IconTrash size={18} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })}

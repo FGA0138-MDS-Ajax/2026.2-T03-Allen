@@ -5,6 +5,7 @@ import { Entrar } from './pages/Entrar/Entrar';
 import { Contas } from './pages/Contas/Contas';
 import { Inicio } from './pages/Inicio/Inicio';
 import { AnotarGasto } from './pages/AnotarGasto/AnotarGasto';
+import { Extrato } from './pages/Extrato/Extrato';
 import { estaAutenticado } from './servicos';
 
 function ConteudoRotas() {
@@ -22,6 +23,9 @@ function ConteudoRotas() {
     case '/inicio':
     case '/dashboard':
       return estaAutenticado() ? <Inicio /> : <BoasVindas />;
+    case '/extrato':
+    case '/movimentacoes':
+      return estaAutenticado() ? <Extrato /> : <BoasVindas />;
     case '/anotar-gasto':
     case '/novo-gasto':
       return estaAutenticado() ? <AnotarGasto /> : <BoasVindas />;

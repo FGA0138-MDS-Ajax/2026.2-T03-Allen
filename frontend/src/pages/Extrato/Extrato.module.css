@@ -1,0 +1,245 @@
+.pageContainer {
+  width: 100%;
+  min-height: 100vh;
+  background-color: var(--nevoa);
+  display: flex;
+  flex-direction: column;
+}
+
+.conteudo {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+.cabecalhoSecao {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.tituloPrincipal {
+  font-family: var(--font-titulo);
+  font-size: clamp(26px, 5vw, 32px);
+  font-weight: 900;
+  color: var(--grafite-noturno);
+  margin-bottom: 6px;
+}
+
+.subtituloPrincipal {
+  font-size: 16px;
+  color: var(--ardosia);
+}
+
+.gridResumo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.cardResumo {
+  background-color: var(--branco);
+  border-radius: 18px;
+  padding: 16px 20px;
+  border: 2px solid #E9E4F8;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rotuloResumo {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ardosia);
+}
+
+.valorResumo {
+  font-family: var(--font-titulo);
+  font-size: clamp(20px, 4vw, 24px);
+  font-weight: 900;
+}
+
+.valorPositivo {
+  color: var(--sucesso-texto);
+}
+
+.valorNegativo {
+  color: var(--erro-texto);
+}
+
+.valorAviso {
+  color: var(--aviso-texto);
+}
+
+.valorDestaque {
+  color: var(--violeta-profundo);
+}
+
+/* Filtros */
+.filtrosContainer {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.btnFiltro {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 2px solid #D8D4E8;
+  background-color: var(--branco);
+  color: var(--ardosia);
+  font-family: var(--font-corpo);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnFiltro:hover {
+  background-color: var(--nevoa);
+  border-color: var(--violeta-vero);
+}
+
+.btnFiltroAtivo {
+  background-color: var(--lavanda);
+  color: var(--violeta-profundo);
+  border-color: var(--violeta-vero);
+}
+
+/* Lista de Movimentações */
+.listaMovimentacoes {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cardItem {
+  background-color: var(--branco);
+  border-radius: 18px;
+  padding: 16px 20px;
+  border: 1px solid #E9E4F8;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  box-shadow: 0 4px 12px rgba(26, 26, 46, 0.03);
+  transition: border-color 0.15s ease;
+}
+
+.cardItem:hover {
+  border-color: #D8D4E8;
+}
+
+.infoEsquerda {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.iconeContainer {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background-color: var(--lavanda);
+  color: var(--violeta-profundo);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.descricaoItem {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--grafite-noturno);
+  display: block;
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--ardosia);
+}
+
+.badgeTipo {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.badgeGasto {
+  background-color: #FEE2E2;
+  color: var(--erro-texto);
+}
+
+.badgeConta {
+  background-color: #FEF3C7;
+  color: var(--aviso-texto);
+}
+
+.badgeContaPaga {
+  background-color: #DCFCE7;
+  color: var(--sucesso-texto);
+}
+
+.badgeEntrada {
+  background-color: #DCFCE7;
+  color: var(--sucesso-texto);
+}
+
+.infoDireita {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.valorItem {
+  font-family: var(--font-titulo);
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.btnApagar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background-color: transparent;
+  color: var(--ardosia);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnApagar:hover {
+  background-color: #FEE2E2;
+  color: var(--erro-texto);
+  border-color: #FCA5A5;
+}
+
+.estadoVazio {
+  background-color: var(--branco);
+  border-radius: 20px;
+  padding: 40px 20px;
+  text-align: center;
+  border: 2px dashed #D8D4E8;
+  color: var(--ardosia);
+}

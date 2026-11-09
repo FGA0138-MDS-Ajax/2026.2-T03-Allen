@@ -1,0 +1,126 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(26, 26, 46, 0.65);
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.modal {
+  width: 100%;
+  max-width: 520px;
+  background-color: var(--violeta-vero);
+  color: var(--branco);
+  border-radius: 28px;
+  padding: clamp(32px, 7vw, 48px) 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+}
+
+.iconeCirculo {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  color: var(--branco);
+}
+
+.titulo {
+  font-family: var(--font-titulo);
+  font-size: clamp(28px, 6vw, 36px);
+  font-weight: 900;
+  margin-bottom: 12px;
+  color: var(--branco);
+  outline: none;
+}
+
+.mensagem {
+  font-size: clamp(17px, 4vw, 20px);
+  color: #EDE9FE;
+  margin-bottom: 28px;
+  line-height: 1.4;
+}
+
+.acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 360px;
+}
+
+.btnInicio {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 54px;
+  padding: 12px 20px;
+  border-radius: 16px;
+  background-color: var(--branco);
+  color: var(--violeta-profundo);
+  font-family: var(--font-corpo);
+  font-size: 18px;
+  font-weight: 800;
+  cursor: pointer;
+  border: 2px solid var(--branco);
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.btnInicio:hover {
+  background-color: var(--nevoa);
+  transform: translateY(-1px);
+}
+
+.btnDesfazer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50px;
+  padding: 10px 20px;
+  border-radius: 16px;
+  background-color: transparent;
+  color: var(--branco);
+  font-family: var(--font-corpo);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  transition: all 0.15s ease;
+}
+
+.btnDesfazer:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: var(--branco);
+}
+
+.btnSecundario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 8px 16px;
+  border-radius: 14px;
+  background-color: transparent;
+  color: #DDD6FE;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+}
+
+.btnSecundario:hover {
+  color: var(--branco);
+  text-decoration: underline;
+}
