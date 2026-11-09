@@ -28,7 +28,7 @@ import styles from './Contas.module.css';
 
 type FiltroStatus = 'todas' | 'a_vencer' | 'em_atraso' | 'paga';
 
-const SUGESTOES_CONTAS = ['Luz', 'Água', 'Aluguel', 'Internet', 'Telefone', 'Cartão'];
+const SUGESTOES = ['Luz', 'Água', 'Aluguel', 'Internet', 'Telefone', 'Cartão'];
 
 export const Contas: React.FC = () => {
   const { navegar } = useNavegacao();
@@ -37,16 +37,15 @@ export const Contas: React.FC = () => {
   const [filtro, setFiltro] = useState<FiltroStatus>('todas');
   const [mensagemSucesso, setMensagemSucesso] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
-  const [acaoPendenteId, setAcaoPendenteId] = useState<string | null>(null);
+  const [pendenteId, setPendenteId] = useState<string | null>(null);
 
-  // Estado do formulário de cadastro de nova conta (RF25)
   const [modoCadastro, setModoCadastro] = useState(false);
-  const [valorDigitado, setValorDigitado] = useState(''); // Centavos
+  const [valorDigitado, setValorDigitado] = useState('');
   const [descricao, setDescricao] = useState('');
   const [dataVencimento, setDataVencimento] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 7);
-    return d.toISOString().split('T')[0];
+    const data = new Date();
+    data.setDate(data.getDate() + 7);
+    return data.toISOString().split('T')[0];
   });
   const [salvando, setSalvando] = useState(false);
 
@@ -89,23 +88,23 @@ export const Contas: React.FC = () => {
     });
   };
 
-  const handleDigito = (d: string) => {
+  const digitar = (digito: string) => {
     if (valorDigitado.length < 8) {
-      setValorDigitado((prev) => prev + d);
+      setValorDigitado((anterior) => anterior + digito);
     }
   };
 
-  const handleApagar = () => {
-    setValorDigitado((prev) => prev.slice(0, -1));
+  const apagar = () => {
+    setValorDigitado((anterior) => anterior.slice(0, -1));
   };
 
-  const handleSalvarConta = async () => {
+  const salvarConta = async () => {
     if (centavosAtuais <= 0) {
-      setErro('Informe um valor válido maior que zero para a conta.');
+      setErro('Informe um valor válido maior que zero.');
       return;
     }
     if (!dataVencimento) {
-      setErro('Selecione a data de vencimento da conta.');
+      setErro('Selecione o dia do vencimento da conta.');
       return;
     }
 
@@ -113,10 +112,9 @@ export const Contas: React.FC = () => {
     setErro(null);
 
     try {
-      const valorEmReais = centavosAtuais / 100;
       await cadastrarConta({
         vencimento_em: dataVencimento,
-        valor: valorEmReais,
+        valor: centavosAtuais / 100,
         descricao: descricao.trim() || undefined,
       });
 
@@ -129,39 +127,35 @@ export const Contas: React.FC = () => {
       if (e instanceof ErroApi) {
         setErro(e.detalhe);
       } else {
-        setErro('Erro ao salvar a conta. Verifique os dados e tente novamente.');
+        setErro('Não foi possível salvar a conta. Tente novamente.');
       }
     } finally {
       setSalvando(false);
     }
   };
 
-  // RF30: Marcar como paga ou desfazer pagamento
-  const handleAlternarPagamento = async (id: string, paga: boolean) => {
+  const alternarPagamento = async (id: string, paga: boolean) => {
     try {
-      setAcaoPendenteId(id);
+      setPendenteId(id);
       setErro(null);
-      const contaAtualizada = await definirPagamentoConta(id, paga);
-      setContas((prev) =>
-        prev.map((c) => (c.id === id ? contaAtualizada : c))
-      );
+      const atualizada = await definirPagamentoConta(id, paga);
+      setContas((lista) => lista.map((c) => (c.id === id ? atualizada : c)));
       setMensagemSucesso(
         paga
-          ? `Conta "${contaAtualizada.descricao || 'sem descrição'}" marcada como paga!`
-          : `Pagamento da conta "${contaAtualizada.descricao || 'sem descrição'}" desfeito.`
+          ? `Conta "${atualizada.descricao || 'sem descrição'}" marcada como paga!`
+          : `Pagamento da conta "${atualizada.descricao || 'sem descrição'}" desfeito.`
       );
     } catch (e) {
       if (e instanceof ErroApi) {
         setErro(e.detalhe);
       } else {
-        setErro('Não foi possível alterar o status de pagamento da conta.');
+        setErro('Não foi possível atualizar o pagamento da conta.');
       }
     } finally {
-      setAcaoPendenteId(null);
+      setPendenteId(null);
     }
   };
 
-  // Cálculos de resumo
   const resumo = useMemo(() => {
     let totalAVencer = 0;
     let totalAtraso = 0;
@@ -177,7 +171,6 @@ export const Contas: React.FC = () => {
     return { totalAVencer, totalAtraso, totalPago };
   }, [contas]);
 
-  // Contas filtradas
   const contasFiltradas = useMemo(() => {
     if (filtro === 'todas') return contas;
     return contas.filter((c) => c.status === filtro);
@@ -186,7 +179,7 @@ export const Contas: React.FC = () => {
   const textoResumoAudio = useMemo(() => {
     return `Você tem ${formatarMoeda(resumo.totalAVencer)} a vencer este mês, ${
       resumo.totalAtraso > 0 ? `${formatarMoeda(resumo.totalAtraso)} em atraso` : 'nenhuma conta em atraso'
-    }, e ${formatarMoeda(resumo.totalPago)} já pagos.`;
+    }, e ${formatarMoeda(resumo.totalPago)} já pagos no Vero.`;
   }, [resumo]);
 
   return (
@@ -206,14 +199,14 @@ export const Contas: React.FC = () => {
         </a>
 
         <div className={styles.navAcoes}>
-          <BotaoAudio textoParaLer={textoResumoAudio} rotuloAcessivel="Ouvir resumo de contas a pagar" />
+          <BotaoAudio textoParaLer={textoResumoAudio} rotuloAcessivel="Ouvir resumo de contas" />
           <Botao
             variant="secondary"
             onClick={() => {
               limparSessao();
               navegar('/entrar');
             }}
-            aria-label="Sair da conta"
+            aria-label="Sair do Vero"
             icone={<IconLogout size={20} />}
           >
             Sair
@@ -241,7 +234,6 @@ export const Contas: React.FC = () => {
           </div>
         )}
 
-        {/* Resumo Triplo de Contas */}
         <section className={styles.gridResumo} aria-label="Resumo geral das contas">
           <div className={styles.cardResumo}>
             <span className={styles.rotuloResumo}>A Vencer</span>
@@ -265,7 +257,6 @@ export const Contas: React.FC = () => {
           </div>
         </section>
 
-        {/* Painel de Cadastro de Nova Conta (RF25) */}
         {modoCadastro && (
           <section className={styles.painelCadastro} aria-label="Cadastrar nova conta a pagar">
             <h2 className={styles.tituloPrincipal} style={{ fontSize: 24 }}>
@@ -284,7 +275,7 @@ export const Contas: React.FC = () => {
                 {formatarMoeda(centavosAtuais / 100)}
               </div>
 
-              <TecladoNumerico onDigito={handleDigito} onApagar={handleApagar} />
+              <TecladoNumerico onDigito={digitar} onApagar={apagar} />
 
               <div>
                 <CampoTexto
@@ -294,7 +285,7 @@ export const Contas: React.FC = () => {
                   onChange={(e) => setDescricao(e.target.value)}
                 />
                 <div className={styles.sugestoesRapidas}>
-                  {SUGESTOES_CONTAS.map((item) => (
+                  {SUGESTOES.map((item) => (
                     <button
                       key={item}
                       type="button"
@@ -308,7 +299,11 @@ export const Contas: React.FC = () => {
               </div>
 
               <div>
-                <label htmlFor="data-vencimento" className={styles.rotuloResumo} style={{ display: 'block', marginBottom: 6 }}>
+                <label
+                  htmlFor="data-vencimento"
+                  className={styles.rotuloResumo}
+                  style={{ display: 'block', marginBottom: 6 }}
+                >
                   Data de Vencimento
                 </label>
                 <input
@@ -323,7 +318,7 @@ export const Contas: React.FC = () => {
               <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
                 <Botao
                   variant="primary"
-                  onClick={handleSalvarConta}
+                  onClick={salvarConta}
                   disabled={salvando || centavosAtuais <= 0}
                   fullWidth
                 >
@@ -346,7 +341,6 @@ export const Contas: React.FC = () => {
           </section>
         )}
 
-        {/* Barra de Controles e Filtros de Contas (RF33) */}
         {!modoCadastro && (
           <div className={styles.barraControles}>
             <div className={styles.filtrosContainer} role="tablist" aria-label="Filtros de situação das contas">
@@ -401,7 +395,6 @@ export const Contas: React.FC = () => {
           </div>
         )}
 
-        {/* Lista de Contas (RF30, RF32) */}
         <section aria-label="Lista de contas a pagar">
           {carregando ? (
             <div className={styles.estadoVazio}>
@@ -412,14 +405,14 @@ export const Contas: React.FC = () => {
               <p className={styles.estadoVazioTitulo}>Nenhuma conta encontrada</p>
               <p>
                 {filtro === 'todas'
-                  ? 'Você ainda não cadastrou nenhuma conta a pagar.'
+                  ? 'Você ainda não cadastrou nenhuma conta a pagar no Vero.'
                   : 'Não há contas nesta situação no momento.'}
               </p>
             </div>
           ) : (
             <div className={styles.listaContas}>
               {contasFiltradas.map((conta) => {
-                const valorNum = Number(conta.valor);
+                const valorNumerico = Number(conta.valor);
                 const dataObj = new Date(conta.vencimento_em + 'T12:00:00');
                 const dataFormatada = dataObj.toLocaleDateString('pt-BR', {
                   day: '2-digit',
@@ -446,10 +439,9 @@ export const Contas: React.FC = () => {
                     <div className={styles.valoresEStatus}>
                       <div className={styles.blocoValorEBadge}>
                         <strong className={styles.valorConta}>
-                          {formatarMoeda(valorNum)}
+                          {formatarMoeda(valorNumerico)}
                         </strong>
 
-                        {/* Badge Triplo de Status WCAG (Cor + Ícone + Texto) */}
                         {conta.status === 'a_vencer' && (
                           <span className={`${styles.badgeStatus} ${styles.badgeAVencer}`}>
                             <IconClock size={16} aria-hidden="true" />
@@ -472,29 +464,28 @@ export const Contas: React.FC = () => {
                         )}
                       </div>
 
-                      {/* Botões de Ação de Pagamento (RF30 / US10) */}
                       <div className={styles.acoesPagamento}>
                         {conta.status !== 'paga' ? (
                           <button
                             type="button"
                             className={styles.btnMarcarPaga}
-                            onClick={() => handleAlternarPagamento(conta.id, true)}
-                            disabled={acaoPendenteId === conta.id}
+                            onClick={() => alternarPagamento(conta.id, true)}
+                            disabled={pendenteId === conta.id}
                             aria-label={`Marcar a conta ${conta.descricao || 'sem descrição'} como paga`}
                           >
                             <IconCheck size={18} aria-hidden="true" />
-                            <span>{acaoPendenteId === conta.id ? 'Salvando...' : 'Marcar como paga'}</span>
+                            <span>{pendenteId === conta.id ? 'Salvando...' : 'Marcar como paga'}</span>
                           </button>
                         ) : (
                           <button
                             type="button"
                             className={styles.btnDesfazerPaga}
-                            onClick={() => handleAlternarPagamento(conta.id, false)}
-                            disabled={acaoPendenteId === conta.id}
+                            onClick={() => alternarPagamento(conta.id, false)}
+                            disabled={pendenteId === conta.id}
                             aria-label={`Desfazer pagamento da conta ${conta.descricao || 'sem descrição'}`}
                           >
                             <IconArrowLeft size={16} aria-hidden="true" />
-                            <span>{acaoPendenteId === conta.id ? 'Salvando...' : 'Desfazer pagamento'}</span>
+                            <span>{pendenteId === conta.id ? 'Salvando...' : 'Desfazer pagamento'}</span>
                           </button>
                         )}
                       </div>

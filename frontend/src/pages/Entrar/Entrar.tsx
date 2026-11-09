@@ -18,28 +18,21 @@ export const Entrar = () => {
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
 
-  const handleDigitoPin = (d: string) => {
+  const digitarPin = (digito: string) => {
     if (pin.length < 4 && !carregando) {
-      setPin((prev) => prev + d);
+      setPin((anterior) => anterior + digito);
       if (erro) setErro(null);
     }
   };
 
-  const handleApagarPin = () => {
+  const apagarPin = () => {
     if (!carregando) {
-      setPin((prev) => prev.slice(0, -1));
+      setPin((anterior) => anterior.slice(0, -1));
       if (erro) setErro(null);
     }
   };
 
-  const handleLimparPin = () => {
-    if (!carregando) {
-      setPin('');
-      if (erro) setErro(null);
-    }
-  };
-
-  const realizarLogin = async () => {
+  const entrar = async () => {
     if (!celular.trim() || !validarCelular(celular)) {
       setErro('Digite um número de celular válido com DDD.');
       return;
@@ -60,7 +53,7 @@ export const Entrar = () => {
       if (e instanceof ErroApi) {
         setErro(e.detalhe);
       } else {
-        setErro('Não foi possível entrar. Verifique os dados e tente novamente.');
+        setErro('Não foi possível entrar no Vero. Verifique os dados e tente novamente.');
       }
     } finally {
       setCarregando(false);
@@ -95,18 +88,18 @@ export const Entrar = () => {
         <section className={styles.card} aria-live="polite">
           <h1 className={styles.titulo}>Entrar no Vero</h1>
           <p className={styles.subtitulo}>
-            Digite seu celular e sua senha de <strong>4 números</strong> para conferir o saldo disponível e anotar gastos.
+            Digite seu celular e seu PIN de <strong>4 números</strong> para acessar suas contas e gastos.
           </p>
 
           {erro && (
-            <AlertaStatus tipo="erro" role="alert">
-              {erro}
-            </AlertaStatus>
+            <div style={{ marginBottom: 20 }}>
+              <AlertaStatus tipo="erro">{erro}</AlertaStatus>
+            </div>
           )}
 
-          <div style={{ marginBottom: '18px' }}>
+          <div style={{ marginBottom: 24 }}>
             <CampoTexto
-              rotulo="Celular com DDD"
+              rotulo="Número de celular"
               placeholder="(61) 99999-8888"
               type="tel"
               inputMode="numeric"
@@ -119,17 +112,17 @@ export const Entrar = () => {
             />
           </div>
 
-          <div style={{ marginBottom: '16px' }}>
+          <div style={{ marginBottom: 16 }}>
             <span
               style={{
                 display: 'block',
-                fontSize: '16px',
+                fontSize: 16,
                 fontWeight: 700,
                 color: 'var(--ardosia)',
-                marginBottom: '8px',
+                marginBottom: 8,
               }}
             >
-              Senha de 4 números (PIN)
+              Seu PIN de 4 números
             </span>
 
             <div
@@ -143,44 +136,26 @@ export const Entrar = () => {
                     pin.length > i ? styles.pinDigitoPreenchido : ''
                   }`}
                 >
-                  {pin.length > i ? '•' : ''}
+                  {pin.length > i ? '●' : ''}
                 </div>
               ))}
             </div>
           </div>
 
           <TecladoNumerico
-            onDigito={handleDigitoPin}
-            onApagar={handleApagarPin}
-            onLimpar={handleLimparPin}
+            onDigito={digitarPin}
+            onApagar={apagarPin}
           />
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+          <div style={{ marginTop: 24 }}>
             <Botao
               variant="primary"
               fullWidth
               disabled={pin.length !== 4 || carregando}
-              onClick={realizarLogin}
+              onClick={entrar}
             >
-              {carregando ? 'Entrando...' : 'Entrar'}
+              {carregando ? 'Entrando no Vero...' : 'Entrar'}
             </Botao>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              <Botao
-                variant="secondary"
-                fullWidth
-                onClick={() => navegar('/cadastro')}
-              >
-                Criar nova conta
-              </Botao>
-              <Botao
-                variant="secondary"
-                fullWidth
-                onClick={() => setErro('Para redefinir o PIN, entre em contato com o suporte ou refaça o cadastro.')}
-              >
-                Esqueci meu PIN
-              </Botao>
-            </div>
           </div>
         </section>
       </div>

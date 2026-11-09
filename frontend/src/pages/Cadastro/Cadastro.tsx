@@ -53,7 +53,7 @@ export const Cadastro = () => {
     setPasso(3);
   };
 
-  const handleDigitoPin = (d: string) => {
+  const digitarPin = (d: string) => {
     if (passo === 3) {
       if (primeiroPin.length < 4) {
         setPrimeiroPin((prev) => prev + d);
@@ -65,7 +65,7 @@ export const Cadastro = () => {
     }
   };
 
-  const handleApagarPin = () => {
+  const apagarPin = () => {
     if (passo === 3) {
       setPrimeiroPin((prev) => prev.slice(0, -1));
     } else if (passo === 4) {
@@ -273,8 +273,8 @@ export const Cadastro = () => {
               </div>
 
               <TecladoNumerico
-                onDigito={handleDigitoPin}
-                onApagar={handleApagarPin}
+                onDigito={digitarPin}
+                onApagar={apagarPin}
               />
 
               <div className={styles.botoesAcao}>
@@ -315,8 +315,8 @@ export const Cadastro = () => {
               </div>
 
               <TecladoNumerico
-                onDigito={handleDigitoPin}
-                onApagar={handleApagarPin}
+                onDigito={digitarPin}
+                onApagar={apagarPin}
               />
 
               <div className={styles.botoesAcao}>
