@@ -10,6 +10,9 @@ class Message(Enum):
         "A data de vencimento não está correta, verifique e tente novamente."
     )
     CATEGORIA_INEXISTENTE = "Essa categoria não existe. Escolha outra."
+    CONTA_NAO_ENCONTRADA = (
+        "Não encontramos essa conta. Atualize a lista e tente de novo."
+    )
 
     def __init__(self, message: str):
         self.message = message
