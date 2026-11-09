@@ -19,6 +19,7 @@ import {
   ContaSaida,
   listarContas,
   cadastrarConta,
+  definirPagamentoConta,
   limparSessao,
   estaAutenticado,
   ErroApi,
@@ -36,6 +37,7 @@ export const Contas: React.FC = () => {
   const [filtro, setFiltro] = useState<FiltroStatus>('todas');
   const [mensagemSucesso, setMensagemSucesso] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [acaoPendenteId, setAcaoPendenteId] = useState<string | null>(null);
 
   // Estado do formulário de cadastro de nova conta (RF25)
   const [modoCadastro, setModoCadastro] = useState(false);
@@ -134,6 +136,31 @@ export const Contas: React.FC = () => {
     }
   };
 
+  // RF30: Marcar como paga ou desfazer pagamento
+  const handleAlternarPagamento = async (id: string, paga: boolean) => {
+    try {
+      setAcaoPendenteId(id);
+      setErro(null);
+      const contaAtualizada = await definirPagamentoConta(id, paga);
+      setContas((prev) =>
+        prev.map((c) => (c.id === id ? contaAtualizada : c))
+      );
+      setMensagemSucesso(
+        paga
+          ? `Conta "${contaAtualizada.descricao || 'sem descrição'}" marcada como paga!`
+          : `Pagamento da conta "${contaAtualizada.descricao || 'sem descrição'}" desfeito.`
+      );
+    } catch (e) {
+      if (e instanceof ErroApi) {
+        setErro(e.detalhe);
+      } else {
+        setErro('Não foi possível alterar o status de pagamento da conta.');
+      }
+    } finally {
+      setAcaoPendenteId(null);
+    }
+  };
+
   // Cálculos de resumo
   const resumo = useMemo(() => {
     let totalAVencer = 0;
@@ -179,13 +206,7 @@ export const Contas: React.FC = () => {
         </a>
 
         <div className={styles.navAcoes}>
-          <Botao
-            variant="secondary"
-            onClick={() => navegar('/')}
-            icone={<IconArrowLeft size={18} />}
-          >
-            Voltar ao Início
-          </Botao>
+          <BotaoAudio textoParaLer={textoResumoAudio} rotuloAcessivel="Ouvir resumo de contas a pagar" />
           <Botao
             variant="secondary"
             onClick={() => {
@@ -193,304 +214,298 @@ export const Contas: React.FC = () => {
               navegar('/entrar');
             }}
             aria-label="Sair da conta"
-            icone={<IconLogout size={18} />}
+            icone={<IconLogout size={20} />}
           >
             Sair
           </Botao>
         </div>
       </header>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
+      <main>
+        <div className={styles.cabecalhoSecao}>
           <h1 className={styles.tituloPrincipal}>Minhas Contas a Pagar</h1>
           <p className={styles.subtituloPrincipal}>
-            Acompanhe o que já foi pago, o que está para vencer e o que está atrasado.
+            Acompanhe o que já pagou e o que ainda precisa separar dinheiro este mês.
           </p>
         </div>
 
-        <BotaoAudio
-          textoParaLer={textoResumoAudio}
-          rotuloAcessivel="Ouvir resumo das contas"
-        />
-      </div>
+        {erro && (
+          <div style={{ marginBottom: 20 }}>
+            <AlertaStatus tipo="erro">{erro}</AlertaStatus>
+          </div>
+        )}
 
-      {mensagemSucesso && (
-        <AlertaStatus tipo="sucesso" role="status">
-          {mensagemSucesso}
-        </AlertaStatus>
-      )}
+        {mensagemSucesso && (
+          <div style={{ marginBottom: 20 }}>
+            <AlertaStatus tipo="sucesso">{mensagemSucesso}</AlertaStatus>
+          </div>
+        )}
 
-      {erro && (
-        <AlertaStatus tipo="erro" role="alert">
-          {erro}
-        </AlertaStatus>
-      )}
+        {/* Resumo Triplo de Contas */}
+        <section className={styles.gridResumo} aria-label="Resumo geral das contas">
+          <div className={styles.cardResumo}>
+            <span className={styles.rotuloResumo}>A Vencer</span>
+            <span className={`${styles.valorResumo} ${styles.destaqueAVencer}`}>
+              {formatarMoeda(resumo.totalAVencer)}
+            </span>
+          </div>
 
-      {/* Grid de Resumo */}
-      <section className={styles.gridResumo} aria-label="Resumo dos valores">
-        <div className={styles.cardResumo}>
-          <span className={styles.rotuloResumo}>A Vencer no Mês</span>
-          <strong className={`${styles.valorResumo} ${styles.destaqueAVencer}`}>
-            {formatarMoeda(resumo.totalAVencer)}
-          </strong>
-        </div>
+          <div className={styles.cardResumo}>
+            <span className={styles.rotuloResumo}>Em Atraso</span>
+            <span className={`${styles.valorResumo} ${styles.destaqueAtraso}`}>
+              {formatarMoeda(resumo.totalAtraso)}
+            </span>
+          </div>
 
-        <div className={styles.cardResumo}>
-          <span className={styles.rotuloResumo}>Em Atraso</span>
-          <strong className={`${styles.valorResumo} ${styles.destaqueAtraso}`}>
-            {formatarMoeda(resumo.totalAtraso)}
-          </strong>
-        </div>
+          <div className={styles.cardResumo}>
+            <span className={styles.rotuloResumo}>Já Pagas</span>
+            <span className={`${styles.valorResumo} ${styles.destaquePaga}`}>
+              {formatarMoeda(resumo.totalPago)}
+            </span>
+          </div>
+        </section>
 
-        <div className={styles.cardResumo}>
-          <span className={styles.rotuloResumo}>Total Já Pago</span>
-          <strong className={`${styles.valorResumo} ${styles.destaquePaga}`}>
-            {formatarMoeda(resumo.totalPago)}
-          </strong>
-        </div>
-      </section>
+        {/* Painel de Cadastro de Nova Conta (RF25) */}
+        {modoCadastro && (
+          <section className={styles.painelCadastro} aria-label="Cadastrar nova conta a pagar">
+            <h2 className={styles.tituloPrincipal} style={{ fontSize: 24 }}>
+              Cadastrar Nova Conta a Pagar
+            </h2>
+            <p className={styles.subtituloPrincipal} style={{ marginBottom: 16 }}>
+              Informe o valor e a data de vencimento da conta.
+            </p>
 
-      {/* Formulário de Cadastro de Nova Conta (RF25) */}
-      {modoCadastro ? (
-        <section className={styles.painelCadastro} aria-labelledby="titulo-cadastro-conta">
-          <h2
-            id="titulo-cadastro-conta"
-            style={{
-              fontFamily: 'var(--font-titulo)',
-              fontSize: '24px',
-              fontWeight: 800,
-              color: 'var(--violeta-profundo)',
-              marginBottom: '16px',
-            }}
-          >
-            Cadastrar Nova Conta a Pagar
-          </h2>
-
-          <div className={styles.formGrid}>
-            <div>
-              <label
-                htmlFor="display-valor-conta"
-                style={{
-                  display: 'block',
-                  fontSize: '16px',
-                  fontWeight: 700,
-                  marginBottom: '8px',
-                  color: 'var(--ardosia)',
-                }}
-              >
-                1. Digite o valor da conta:
-              </label>
+            <div className={styles.formGrid}>
               <div
-                id="display-valor-conta"
                 className={styles.displayValorCadastro}
+                aria-live="polite"
                 aria-label={`Valor da conta: ${formatarMoeda(centavosAtuais / 100)}`}
               >
                 {formatarMoeda(centavosAtuais / 100)}
               </div>
-              <TecladoNumerico
-                onDigito={handleDigito}
-                onApagar={handleApagar}
-                onLimpar={() => setValorDigitado('')}
-              />
-            </div>
 
-            <div>
-              <label
-                htmlFor="data-vencimento"
-                style={{
-                  display: 'block',
-                  fontSize: '16px',
-                  fontWeight: 700,
-                  marginBottom: '8px',
-                  color: 'var(--ardosia)',
-                }}
-              >
-                2. Data de vencimento:
-              </label>
-              <input
-                id="data-vencimento"
-                type="date"
-                className={styles.campoData}
-                value={dataVencimento}
-                onChange={(e) => setDataVencimento(e.target.value)}
-              />
-            </div>
+              <TecladoNumerico onDigito={handleDigito} onApagar={handleApagar} />
 
-            <div>
-              <CampoTexto
-                rotulo="3. Nome da conta (opcional):"
-                placeholder="Exemplo: Conta de Luz, Aluguel..."
-                value={descricao}
-                onChange={(e) => setDescricao(e.target.value)}
-              />
-              <div className={styles.sugestoesRapidas} aria-label="Sugestões de nomes">
-                {SUGESTOES_CONTAS.map((sugestao) => (
-                  <button
-                    key={sugestao}
-                    type="button"
-                    className={styles.btnSugestao}
-                    onClick={() => setDescricao(sugestao)}
-                  >
-                    + {sugestao}
-                  </button>
-                ))}
+              <div>
+                <CampoTexto
+                  rotulo="Nome da conta (opcional)"
+                  placeholder="Ex: Conta de Luz, Condomínio, Água"
+                  value={descricao}
+                  onChange={(e) => setDescricao(e.target.value)}
+                />
+                <div className={styles.sugestoesRapidas}>
+                  {SUGESTOES_CONTAS.map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      className={styles.btnSugestao}
+                      onClick={() => setDescricao(item)}
+                    >
+                      + {item}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="data-vencimento" className={styles.rotuloResumo} style={{ display: 'block', marginBottom: 6 }}>
+                  Data de Vencimento
+                </label>
+                <input
+                  id="data-vencimento"
+                  type="date"
+                  className={styles.campoData}
+                  value={dataVencimento}
+                  onChange={(e) => setDataVencimento(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+                <Botao
+                  variant="primary"
+                  onClick={handleSalvarConta}
+                  disabled={salvando || centavosAtuais <= 0}
+                  fullWidth
+                >
+                  {salvando ? 'Salvando...' : 'Salvar Conta'}
+                </Botao>
+                <Botao
+                  variant="secondary"
+                  onClick={() => {
+                    setModoCadastro(false);
+                    setValorDigitado('');
+                    setDescricao('');
+                  }}
+                  disabled={salvando}
+                  fullWidth
+                >
+                  Cancelar
+                </Botao>
               </div>
             </div>
+          </section>
+        )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
-              <Botao
-                variant="primary"
-                fullWidth
-                disabled={centavosAtuais <= 0 || salvando}
-                onClick={handleSalvarConta}
+        {/* Barra de Controles e Filtros de Contas (RF33) */}
+        {!modoCadastro && (
+          <div className={styles.barraControles}>
+            <div className={styles.filtrosContainer} role="tablist" aria-label="Filtros de situação das contas">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={filtro === 'todas'}
+                className={`${styles.btnFiltro} ${filtro === 'todas' ? styles.btnFiltroAtivo : ''}`}
+                onClick={() => setFiltro('todas')}
               >
-                {salvando ? 'Salvando conta...' : 'Salvar Conta'}
-              </Botao>
-              <Botao
-                variant="secondary"
-                fullWidth
-                disabled={salvando}
-                onClick={() => {
-                  setModoCadastro(false);
-                  setValorDigitado('');
-                  setDescricao('');
-                }}
+                Todas ({contas.length})
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={filtro === 'a_vencer'}
+                className={`${styles.btnFiltro} ${filtro === 'a_vencer' ? styles.btnFiltroAtivo : ''}`}
+                onClick={() => setFiltro('a_vencer')}
               >
-                Cancelar
-              </Botao>
+                <IconClock size={16} /> A vencer ({contas.filter((c) => c.status === 'a_vencer').length})
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={filtro === 'em_atraso'}
+                className={`${styles.btnFiltro} ${filtro === 'em_atraso' ? styles.btnFiltroAtivo : ''}`}
+                onClick={() => setFiltro('em_atraso')}
+              >
+                <IconAlert size={16} /> Em atraso ({contas.filter((c) => c.status === 'em_atraso').length})
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={filtro === 'paga'}
+                className={`${styles.btnFiltro} ${filtro === 'paga' ? styles.btnFiltroAtivo : ''}`}
+                onClick={() => setFiltro('paga')}
+              >
+                <IconCheck size={16} /> Pagas ({contas.filter((c) => c.status === 'paga').length})
+              </button>
             </div>
-          </div>
-        </section>
-      ) : (
-        /* Barra de Ações & Filtros */
-        <div className={styles.barraControles}>
-          <div className={styles.filtrosContainer} role="tablist" aria-label="Filtrar contas por situação">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={filtro === 'todas'}
-              className={`${styles.btnFiltro} ${filtro === 'todas' ? styles.btnFiltroAtivo : ''}`}
-              onClick={() => setFiltro('todas')}
+
+            <Botao
+              variant="primary"
+              onClick={() => {
+                setModoCadastro(true);
+                setMensagemSucesso(null);
+              }}
+              icone={<IconPlus size={20} />}
             >
-              Todas ({contas.length})
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={filtro === 'a_vencer'}
-              className={`${styles.btnFiltro} ${filtro === 'a_vencer' ? styles.btnFiltroAtivo : ''}`}
-              onClick={() => setFiltro('a_vencer')}
-            >
-              <IconClock size={16} /> A vencer ({contas.filter((c) => c.status === 'a_vencer').length})
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={filtro === 'em_atraso'}
-              className={`${styles.btnFiltro} ${filtro === 'em_atraso' ? styles.btnFiltroAtivo : ''}`}
-              onClick={() => setFiltro('em_atraso')}
-            >
-              <IconAlert size={16} /> Em atraso ({contas.filter((c) => c.status === 'em_atraso').length})
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={filtro === 'paga'}
-              className={`${styles.btnFiltro} ${filtro === 'paga' ? styles.btnFiltroAtivo : ''}`}
-              onClick={() => setFiltro('paga')}
-            >
-              <IconCheck size={16} /> Pagas ({contas.filter((c) => c.status === 'paga').length})
-            </button>
-          </div>
-
-          <Botao
-            variant="primary"
-            onClick={() => {
-              setModoCadastro(true);
-              setMensagemSucesso(null);
-            }}
-            icone={<IconPlus size={20} />}
-          >
-            Cadastrar Nova Conta
-          </Botao>
-        </div>
-      )}
-
-      {/* Lista de Contas (RF32) */}
-      <section aria-label="Lista de contas a pagar">
-        {carregando ? (
-          <div className={styles.estadoVazio}>
-            <p>Carregando contas cadastradas...</p>
-          </div>
-        ) : contasFiltradas.length === 0 ? (
-          <div className={styles.estadoVazio}>
-            <p className={styles.estadoVazioTitulo}>Nenhuma conta encontrada</p>
-            <p>
-              {filtro === 'todas'
-                ? 'Você ainda não cadastrou nenhuma conta a pagar.'
-                : 'Não há contas nesta situação no momento.'}
-            </p>
-          </div>
-        ) : (
-          <div className={styles.listaContas}>
-            {contasFiltradas.map((conta) => {
-              const valorNum = Number(conta.valor);
-              const dataObj = new Date(conta.vencimento_em + 'T12:00:00');
-              const dataFormatada = dataObj.toLocaleDateString('pt-BR', {
-                day: '2-digit',
-                month: 'long',
-                year: 'numeric',
-              });
-
-              return (
-                <div key={conta.id} className={styles.cardConta}>
-                  <div className={styles.infoPrincipal}>
-                    <div className={styles.iconeContainer} aria-hidden="true">
-                      <IconBills size={26} />
-                    </div>
-                    <div className={styles.detalhesTexto}>
-                      <span className={styles.nomeConta}>
-                        {conta.descricao || 'Conta sem descrição'}
-                      </span>
-                      <span className={styles.dataVencimento}>
-                        Vencimento: <strong>{dataFormatada}</strong>
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className={styles.valoresEStatus}>
-                    <strong className={styles.valorConta}>
-                      {formatarMoeda(valorNum)}
-                    </strong>
-
-                    {/* Badge Triplo de Status WCAG (Cor + Ícone + Texto) */}
-                    {conta.status === 'a_vencer' && (
-                      <span className={`${styles.badgeStatus} ${styles.badgeAVencer}`}>
-                        <IconClock size={16} aria-hidden="true" />
-                        <span>A vencer</span>
-                      </span>
-                    )}
-
-                    {conta.status === 'em_atraso' && (
-                      <span className={`${styles.badgeStatus} ${styles.badgeEmAtraso}`}>
-                        <IconAlert size={16} aria-hidden="true" />
-                        <span>Em atraso</span>
-                      </span>
-                    )}
-
-                    {conta.status === 'paga' && (
-                      <span className={`${styles.badgeStatus} ${styles.badgePaga}`}>
-                        <IconCheck size={16} aria-hidden="true" />
-                        <span>Paga</span>
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+              Cadastrar Nova Conta
+            </Botao>
           </div>
         )}
-      </section>
+
+        {/* Lista de Contas (RF30, RF32) */}
+        <section aria-label="Lista de contas a pagar">
+          {carregando ? (
+            <div className={styles.estadoVazio}>
+              <p>Carregando contas cadastradas...</p>
+            </div>
+          ) : contasFiltradas.length === 0 ? (
+            <div className={styles.estadoVazio}>
+              <p className={styles.estadoVazioTitulo}>Nenhuma conta encontrada</p>
+              <p>
+                {filtro === 'todas'
+                  ? 'Você ainda não cadastrou nenhuma conta a pagar.'
+                  : 'Não há contas nesta situação no momento.'}
+              </p>
+            </div>
+          ) : (
+            <div className={styles.listaContas}>
+              {contasFiltradas.map((conta) => {
+                const valorNum = Number(conta.valor);
+                const dataObj = new Date(conta.vencimento_em + 'T12:00:00');
+                const dataFormatada = dataObj.toLocaleDateString('pt-BR', {
+                  day: '2-digit',
+                  month: 'long',
+                  year: 'numeric',
+                });
+
+                return (
+                  <div key={conta.id} className={styles.cardConta}>
+                    <div className={styles.infoPrincipal}>
+                      <div className={styles.iconeContainer} aria-hidden="true">
+                        <IconBills size={26} />
+                      </div>
+                      <div className={styles.detalhesTexto}>
+                        <span className={styles.nomeConta}>
+                          {conta.descricao || 'Conta sem descrição'}
+                        </span>
+                        <span className={styles.dataVencimento}>
+                          Vencimento: <strong>{dataFormatada}</strong>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className={styles.valoresEStatus}>
+                      <div className={styles.blocoValorEBadge}>
+                        <strong className={styles.valorConta}>
+                          {formatarMoeda(valorNum)}
+                        </strong>
+
+                        {/* Badge Triplo de Status WCAG (Cor + Ícone + Texto) */}
+                        {conta.status === 'a_vencer' && (
+                          <span className={`${styles.badgeStatus} ${styles.badgeAVencer}`}>
+                            <IconClock size={16} aria-hidden="true" />
+                            <span>A vencer</span>
+                          </span>
+                        )}
+
+                        {conta.status === 'em_atraso' && (
+                          <span className={`${styles.badgeStatus} ${styles.badgeEmAtraso}`}>
+                            <IconAlert size={16} aria-hidden="true" />
+                            <span>Em atraso</span>
+                          </span>
+                        )}
+
+                        {conta.status === 'paga' && (
+                          <span className={`${styles.badgeStatus} ${styles.badgePaga}`}>
+                            <IconCheck size={16} aria-hidden="true" />
+                            <span>Paga</span>
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Botões de Ação de Pagamento (RF30 / US10) */}
+                      <div className={styles.acoesPagamento}>
+                        {conta.status !== 'paga' ? (
+                          <button
+                            type="button"
+                            className={styles.btnMarcarPaga}
+                            onClick={() => handleAlternarPagamento(conta.id, true)}
+                            disabled={acaoPendenteId === conta.id}
+                            aria-label={`Marcar a conta ${conta.descricao || 'sem descrição'} como paga`}
+                          >
+                            <IconCheck size={18} aria-hidden="true" />
+                            <span>{acaoPendenteId === conta.id ? 'Salvando...' : 'Marcar como paga'}</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className={styles.btnDesfazerPaga}
+                            onClick={() => handleAlternarPagamento(conta.id, false)}
+                            disabled={acaoPendenteId === conta.id}
+                            aria-label={`Desfazer pagamento da conta ${conta.descricao || 'sem descrição'}`}
+                          >
+                            <IconArrowLeft size={16} aria-hidden="true" />
+                            <span>{acaoPendenteId === conta.id ? 'Salvando...' : 'Desfazer pagamento'}</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      </main>
     </div>
   );
 };

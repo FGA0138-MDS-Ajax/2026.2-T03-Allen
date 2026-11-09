@@ -361,3 +361,82 @@
   color: var(--grafite-noturno);
   margin-bottom: 8px;
 }
+
+/* Ações de Pagamento (RF30 / US10) */
+.blocoValorEBadge {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.acoesPagamento {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btnMarcarPaga {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: #15803d;
+  color: #ffffff;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  padding: 10px 18px;
+  font-family: var(--font-corpo);
+  font-size: 16px;
+  font-weight: 800;
+  min-height: var(--toque-minimo);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btnMarcarPaga:hover:not(:disabled) {
+  background-color: #166534;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(21, 128, 61, 0.25);
+}
+
+.btnMarcarPaga:focus-visible {
+  outline: 3px solid #15803d;
+  outline-offset: 2px;
+}
+
+.btnDesfazerPaga {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: var(--lavanda);
+  color: var(--violeta-profundo);
+  border: 2px solid var(--violeta-vero);
+  border-radius: 14px;
+  padding: 10px 16px;
+  font-family: var(--font-corpo);
+  font-size: 15px;
+  font-weight: 800;
+  min-height: var(--toque-minimo);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btnDesfazerPaga:hover:not(:disabled) {
+  background-color: #ddd6fe;
+  color: var(--violeta-profundo);
+}
+
+.btnDesfazerPaga:focus-visible {
+  outline: 3px solid var(--violeta-vero);
+  outline-offset: 2px;
+}
+
+.btnMarcarPaga:disabled,
+.btnDesfazerPaga:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}

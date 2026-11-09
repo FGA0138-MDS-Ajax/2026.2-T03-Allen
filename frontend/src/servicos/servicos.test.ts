@@ -8,7 +8,7 @@ import {
   ErroApi,
 } from './api';
 import { entrarComPin } from './auth';
-import { listarContas, cadastrarConta } from './contas';
+import { listarContas, cadastrarConta, definirPagamentoConta } from './contas';
 
 describe('Serviços de API e Autenticação', () => {
   beforeEach(() => {
@@ -86,7 +86,7 @@ describe('Serviços de API e Autenticação', () => {
     expect(obterToken()).toBe('token-gerado');
   });
 
-  it('lista e cadastra contas a pagar', async () => {
+  it('lista e cadastra contas a pagar (RF25)', async () => {
     salvarToken('token-valido');
 
     global.fetch = vi.fn().mockResolvedValueOnce({
@@ -100,6 +100,7 @@ describe('Serviços de API e Autenticação', () => {
           vencimento_em: '2026-11-10',
           categoria_id: null,
           status: 'a_vencer',
+          pagamento_em: null,
           criado_em: '2026-11-01T10:00:00',
         },
       ],
@@ -119,6 +120,7 @@ describe('Serviços de API e Autenticação', () => {
         vencimento_em: '2026-11-15',
         categoria_id: null,
         status: 'a_vencer',
+        pagamento_em: null,
         criado_em: '2026-11-01T10:00:00',
       }),
     });
@@ -129,5 +131,48 @@ describe('Serviços de API e Autenticação', () => {
       vencimento_em: '2026-11-15',
     });
     expect(novaConta.id).toBe('124');
+  });
+
+  it('marca e desfaz o pagamento de uma conta (RF30)', async () => {
+    salvarToken('token-valido');
+
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        id: '123',
+        descricao: 'Conta de Luz',
+        valor: 150.5,
+        vencimento_em: '2026-11-10',
+        categoria_id: null,
+        status: 'paga',
+        pagamento_em: '2026-11-09T10:00:00',
+        criado_em: '2026-11-01T10:00:00',
+      }),
+    });
+
+    const contaPaga = await definirPagamentoConta('123', true);
+    expect(contaPaga.status).toBe('paga');
+    expect(contaPaga.pagamento_em).toBe('2026-11-09T10:00:00');
+
+    // Desfaz o pagamento
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        id: '123',
+        descricao: 'Conta de Luz',
+        valor: 150.5,
+        vencimento_em: '2026-11-10',
+        categoria_id: null,
+        status: 'a_vencer',
+        pagamento_em: null,
+        criado_em: '2026-11-01T10:00:00',
+      }),
+    });
+
+    const contaNaoPaga = await definirPagamentoConta('123', false);
+    expect(contaNaoPaga.status).toBe('a_vencer');
+    expect(contaNaoPaga.pagamento_em).toBeNull();
   });
 });

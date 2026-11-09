@@ -6,6 +6,7 @@ import * as servicos from '../../servicos';
 vi.mock('../../servicos', () => ({
   listarContas: vi.fn(),
   cadastrarConta: vi.fn(),
+  definirPagamentoConta: vi.fn(),
   limparSessao: vi.fn(),
   estaAutenticado: vi.fn(),
   ErroApi: class ErroApi extends Error {
@@ -34,6 +35,7 @@ const mockContas: servicos.ContaSaida[] = [
     vencimento_em: '2026-11-20',
     categoria_id: null,
     status: 'a_vencer',
+    pagamento_em: null,
     criado_em: '2026-11-01T10:00:00',
   },
   {
@@ -43,6 +45,7 @@ const mockContas: servicos.ContaSaida[] = [
     vencimento_em: '2026-10-15',
     categoria_id: null,
     status: 'em_atraso',
+    pagamento_em: null,
     criado_em: '2026-10-01T10:00:00',
   },
   {
@@ -52,11 +55,12 @@ const mockContas: servicos.ContaSaida[] = [
     vencimento_em: '2026-11-05',
     categoria_id: null,
     status: 'paga',
+    pagamento_em: '2026-11-05T14:30:00',
     criado_em: '2026-11-01T10:00:00',
   },
 ];
 
-describe('Página de Contas a Pagar (RF25, RF32)', () => {
+describe('Página de Contas a Pagar (RF25, RF30, RF32)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(servicos.estaAutenticado).mockReturnValue(true);
@@ -111,6 +115,7 @@ describe('Página de Contas a Pagar (RF25, RF32)', () => {
       vencimento_em: '2026-11-25',
       categoria_id: null,
       status: 'a_vencer',
+      pagamento_em: null,
       criado_em: '2026-11-02T10:00:00',
     });
 
@@ -141,6 +146,62 @@ describe('Página de Contas a Pagar (RF25, RF32)', () => {
         vencimento_em: expect.any(String),
         descricao: 'Água',
       });
+    });
+  });
+
+  it('permite marcar uma conta como paga e desfazer o pagamento (RF30)', async () => {
+    vi.mocked(servicos.definirPagamentoConta).mockResolvedValueOnce({
+      id: '1',
+      descricao: 'Conta de Luz',
+      valor: 185.5,
+      vencimento_em: '2026-11-20',
+      categoria_id: null,
+      status: 'paga',
+      pagamento_em: '2026-11-09T10:00:00',
+      criado_em: '2026-11-01T10:00:00',
+    });
+
+    render(<Contas />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Conta de Luz')).toBeInTheDocument();
+    });
+
+    // Clica no botão "Marcar como paga" da Conta de Luz
+    const btnPagar = screen.getByRole('button', {
+      name: /Marcar a conta Conta de Luz como paga/i,
+    });
+    fireEvent.click(btnPagar);
+
+    await waitFor(() => {
+      expect(servicos.definirPagamentoConta).toHaveBeenCalledWith('1', true);
+      expect(
+        screen.getByText(/Conta "Conta de Luz" marcada como paga!/i)
+      ).toBeInTheDocument();
+    });
+
+    // Agora desfaz o pagamento da conta Internet Fibra (que já estava paga)
+    vi.mocked(servicos.definirPagamentoConta).mockResolvedValueOnce({
+      id: '3',
+      descricao: 'Internet Fibra',
+      valor: 99.9,
+      vencimento_em: '2026-11-05',
+      categoria_id: null,
+      status: 'a_vencer',
+      pagamento_em: null,
+      criado_em: '2026-11-01T10:00:00',
+    });
+
+    const btnDesfazer = screen.getByRole('button', {
+      name: /Desfazer pagamento da conta Internet Fibra/i,
+    });
+    fireEvent.click(btnDesfazer);
+
+    await waitFor(() => {
+      expect(servicos.definirPagamentoConta).toHaveBeenCalledWith('3', false);
+      expect(
+        screen.getByText(/Pagamento da conta "Internet Fibra" desfeito./i)
+      ).toBeInTheDocument();
     });
   });
 });
