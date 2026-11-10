@@ -31,7 +31,7 @@ class TestCadastro:
         assert body["email"] == "joao@vero.com"
         assert body["tem_pin"] is True
 
-    def test_cadastro_sem_email_retorna_201(self, cliente: TestClient) -> None:
+    def test_cadastro_sem_email_retorna_422(self, cliente: TestClient) -> None:
         resp = cliente.post(
             "/api/v1/auth/cadastro",
             json={
@@ -40,22 +40,17 @@ class TestCadastro:
                 "pin": "1234",
             },
         )
-        assert resp.status_code == 201
-        body = resp.json()
-        assert body["nome"] == "Maria"
-        assert body["telefone"] == "5561988887777"
-        assert body["email"] is None
-        assert body["tem_pin"] is True
+        assert resp.status_code == 422
 
     def test_cadastro_telefone_duplicado_retorna_409(self, cliente: TestClient) -> None:
         telefone = "5561977776666"
         cliente.post(
             "/api/v1/auth/cadastro",
-            json={"nome": "A", "telefone": telefone, "pin": "1111"},
+            json={"nome": "A", "telefone": telefone, "email": "a@vero.com", "pin": "1111"},
         )
         resp = cliente.post(
             "/api/v1/auth/cadastro",
-            json={"nome": "B", "telefone": telefone, "pin": "2222"},
+            json={"nome": "B", "telefone": telefone, "email": "b@vero.com", "pin": "2222"},
         )
         assert resp.status_code == 409
         assert "celular" in resp.text.lower()
@@ -211,20 +206,18 @@ class TestLoginAntigoRemovido:
 class TestUsuarioSaida:
     """Valida schema de resposta UsuarioSaida"""
 
-    def test_resposta_inclui_email_none_quando_nao_informado(
-        self, cliente: TestClient
-    ) -> None:
+    def test_resposta_inclui_email_obrigatorio(self, cliente: TestClient) -> None:
         resp = cliente.post(
             "/api/v1/auth/cadastro",
-            json={"nome": "Sem Email", "telefone": "5561900001111", "pin": "1234"},
+            json={"nome": "Com Email", "telefone": "5561900001111", "email": "teste@vero.com", "pin": "1234"},
         )
         assert resp.status_code == 201
-        assert resp.json()["email"] is None
+        assert resp.json()["email"] == "teste@vero.com"
 
     def test_resposta_inclui_tem_pin_true(self, cliente: TestClient) -> None:
         resp = cliente.post(
             "/api/v1/auth/cadastro",
-            json={"nome": "Com Pin", "telefone": "5561900002222", "pin": "123456"},
+            json={"nome": "Com Pin", "telefone": "5561900002222", "email": "pin@vero.com", "pin": "123456"},
         )
         assert resp.status_code == 201
         assert resp.json()["tem_pin"] is True
