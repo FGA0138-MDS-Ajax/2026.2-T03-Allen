@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     SECRET_KEY: str
     JWT_ALGORITMO: str = "HS256"
+    # Eventos em tempo real (D12). O padrão aponta para o serviço do docker-compose.
+    VALKEY_URL: str = "redis://valkey:6379/0"
 
     model_config = SettingsConfigDict(
         env_file=[
