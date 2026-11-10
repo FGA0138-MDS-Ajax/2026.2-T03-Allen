@@ -22,7 +22,7 @@ ORIGENS = (
 
 def upgrade() -> None:
     op.drop_column("tblUsuario", "hashUsuario")
-    op.alter_column("tblUsuario", "noEmail", nullable=True)
+    op.alter_column("tblUsuario", "noEmail", nullable=False)
 
 
 def downgrade() -> None:

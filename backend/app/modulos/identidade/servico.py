@@ -44,12 +44,9 @@ def cadastrar(sessao: Session, dados: CadastroEntrada) -> Usuario:
     if sessao.scalar(select(Usuario.id).where(Usuario.telefone == dados.telefone)):
         raise TelefoneJaCadastrado
 
-    if dados.email:
-        email = dados.email.lower()
-        if sessao.scalar(select(Usuario.id).where(Usuario.email == email)):
-            raise EmailJaCadastrado
-    else:
-        email = None
+    email = dados.email.lower()
+    if sessao.scalar(select(Usuario.id).where(Usuario.email == email)):
+        raise EmailJaCadastrado
 
     usuario = Usuario(
         nome=dados.nome,

@@ -33,8 +33,8 @@ Nome = Annotated[
 class CadastroEntrada(BaseModel):
     nome: Nome
     telefone: Telefone
-    email: EmailStr | None = None
-    pin: Pin  # agora, o usuario cadastrado entra com telefone e pin, email é opcional
+    email: EmailStr
+    pin: Pin
 
 
 class LoginPinEntrada(BaseModel):
@@ -48,7 +48,7 @@ class UsuarioSaida(BaseModel):
     id: uuid.UUID
     nome: str
     telefone: str
-    email: str | None = None
+    email: str
     tem_pin: bool
 
 

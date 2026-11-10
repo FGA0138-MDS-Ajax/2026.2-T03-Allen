@@ -13,13 +13,14 @@ class Usuario(Base):
     __tablename__ = "tblUsuario"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        "idUsuario", primary_key=True, default=uuid.uuid4, server_default=text("gen_random_uuid()")
+        "idUsuario",
+        primary_key=True,
+        default=uuid.uuid4,
+        server_default=text("gen_random_uuid()"),
     )
     nome: Mapped[str] = mapped_column("noUsuario", String(255))
     telefone: Mapped[str] = mapped_column("nuTelefone", String(255), unique=True)
-    email: Mapped[str | None] = mapped_column(
-        "noEmail", String(255), unique=True, nullable=True
-    )
+    email: Mapped[str] = mapped_column("noEmail", String(255), unique=True)
     hash_pin: Mapped[str] = mapped_column("hashPin", Text)
     tentativas: Mapped[int] = mapped_column("nuTentativas", default=0)
     bloqueado_ate: Mapped[datetime | None] = mapped_column(
