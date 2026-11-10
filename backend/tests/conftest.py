@@ -1,6 +1,5 @@
-"""Fixtures dos testes: banco Postgres de teste e cliente autenticado."""
+"""Fixtures dos testes: banco SQLite em memória e cliente autenticado."""
 
-import os
 import uuid
 from collections.abc import Iterator
 
@@ -8,23 +7,30 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from app.main import app
 from app.modulos.contas.modelos import Conta  # noqa: F401  (registra a tabela)
 from app.modulos.identidade.modelos import Usuario
 from app.modulos.identidade.seguranca import criar_token, gerar_hash
-from app.nucleo.banco import Base, obter_sessao, url_sqlalchemy
-
-URL_TESTE = os.getenv(
-    "DATABASE_URL_TESTE", "postgresql://vero:vero@host.docker.internal:5432/vero"
-)
+from app.nucleo.banco import Base, obter_sessao
 
 
-@pytest.fixture(scope="session")
+# SQLite em memória para testes rápidos sem dependência externa
+URL_TESTE = "sqlite://"
+
+
+@pytest.fixture(scope="function")
 def engine():
-    motor = create_engine(url_sqlalchemy(URL_TESTE))
+    """Cria engine novo para cada teste (isolamento total)."""
+    motor = create_engine(
+        URL_TESTE,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     Base.metadata.create_all(motor)
-    return motor
+    yield motor
+    motor.dispose()
 
 
 @pytest.fixture
@@ -44,10 +50,11 @@ def sessao(engine) -> Iterator[Session]:
 @pytest.fixture
 def usuario(sessao: Session) -> Usuario:
     u = Usuario(
+        id=uuid.uuid4(),
         nome="Maria",
         telefone="55619" + uuid.uuid4().hex[:8],
         email=f"maria{uuid.uuid4().hex[:8]}@vero.com",
-        hash_senha=gerar_hash("senha12345"),
+        hash_pin=gerar_hash("123456"),
         tentativas=0,
     )
     sessao.add(u)
@@ -68,6 +75,6 @@ def cliente(sessao: Session) -> Iterator[TestClient]:
 def cliente_logado(cliente: TestClient, usuario: Usuario) -> TestClient:
     from datetime import timedelta
 
-    token = criar_token(usuario.id, "senha", timedelta(hours=1))
+    token = criar_token(usuario.id, "pin", timedelta(hours=1))
     cliente.headers["Authorization"] = f"Bearer {token}"
     return cliente

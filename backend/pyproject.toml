@@ -8,3 +8,8 @@ ignore = ["E501"]
 
 [tool.bandit]
 exclude_dirs = ["tests", "migracoes", ".venv"]
+
+[dependency-groups]
+dev = [
+    "valkey>=6.2.0",
+]

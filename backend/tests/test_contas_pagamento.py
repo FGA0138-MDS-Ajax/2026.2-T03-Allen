@@ -33,10 +33,11 @@ def _cadastrar_conta(
 def _criar_outro_usuario(sessao: Session) -> Usuario:
     sufixo = uuid.uuid4().hex[:8]
     usuario = Usuario(
+        id=uuid.uuid4(),
         nome="João",
         telefone="55619" + sufixo,
         email=f"joao{sufixo}@vero.com",
-        hash_senha=gerar_hash("senha12345"),
+        hash_pin=gerar_hash("123456"),
         tentativas=0,
     )
     sessao.add(usuario)
