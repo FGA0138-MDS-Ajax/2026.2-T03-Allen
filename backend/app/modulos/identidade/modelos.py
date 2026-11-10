@@ -26,6 +26,10 @@ class Usuario(Base):
     bloqueado_ate: Mapped[datetime | None] = mapped_column(
         "dhBloqueio", DateTime(timezone=True)
     )
+    # Sobe quando o PIN muda: tokens com versão antiga deixam de valer
+    versao_token: Mapped[int] = mapped_column(
+        "nuVersaoToken", default=0, server_default=text("0")
+    )
     dias_alerta: Mapped[int] = mapped_column("nuDiasAlerta", server_default=text("3"))
     audio_ativado: Mapped[bool] = mapped_column("icAudioAtivado", server_default=true())
     whatsapp_ativo: Mapped[bool] = mapped_column(

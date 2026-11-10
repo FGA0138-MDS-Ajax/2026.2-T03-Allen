@@ -19,9 +19,11 @@ import jwt
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 
 from app.modulos.identidade.mensagens import Message as MessageIdentidade
-from app.modulos.identidade.seguranca import ler_token
+from app.modulos.identidade.modelos import Usuario
+from app.modulos.identidade.seguranca import ler_token, token_na_versao_atual
 from app.modulos.tempo_real.mensagens import Message
 from app.nucleo import eventos
+from app.nucleo.banco import SessaoLocal
 
 logger = logging.getLogger(__name__)
 
@@ -93,9 +95,19 @@ async def _autenticar(websocket: WebSocket) -> tuple[uuid.UUID, float]:
         raise SessaoInvalida
     try:
         dados = ler_token(primeira["token"])
-        return uuid.UUID(dados["sub"]), float(dados["exp"])
+        usuario_id = uuid.UUID(dados["sub"])
     except (jwt.PyJWTError, ValueError):
         raise SessaoInvalida from None
+    if not await asyncio.to_thread(_sessao_vale, usuario_id, dados):
+        raise SessaoInvalida
+    return usuario_id, float(dados["exp"])
+
+
+def _sessao_vale(usuario_id: uuid.UUID, dados: dict) -> bool:
+    """A conta existe e o PIN não mudou depois que o token foi emitido."""
+    with SessaoLocal() as sessao:
+        usuario = sessao.get(Usuario, usuario_id)
+        return usuario is not None and token_na_versao_atual(dados, usuario)
 
 
 async def _repassar_eventos(websocket: WebSocket, usuario_id: uuid.UUID) -> None:

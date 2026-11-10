@@ -29,12 +29,15 @@ def conferir_hash(valor: str, hash_salvo: str) -> bool:
 HASH_FICTICIO = gerar_hash("vero-hash-ficticio")
 
 
-def criar_token(id_usuario: uuid.UUID, metodo: str, duracao: timedelta) -> str:
+def criar_token(
+    id_usuario: uuid.UUID, metodo: str, duracao: timedelta, versao: int = 0
+) -> str:
     agora = datetime.now(UTC)
     dados = {
         "sub": str(id_usuario),
         "perfil": "titular",
         "metodo": metodo,
+        "ver": versao,
         "iat": agora,
         "exp": agora + duracao,
     }
@@ -57,17 +60,23 @@ def usuario_atual(
     """Dependência das rotas que exigem login."""
     nao_autorizado = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail=Message.SESSAO_INVALIDA,
+        detail=Message.SESSAO_INVALIDA.message,
         headers={"WWW-Authenticate": "Bearer"},
     )
     if credenciais is None:
         raise nao_autorizado
     try:
-        id_usuario = uuid.UUID(ler_token(credenciais.credentials)["sub"])
+        dados = ler_token(credenciais.credentials)
+        id_usuario = uuid.UUID(dados["sub"])
     except (jwt.PyJWTError, ValueError):
         raise nao_autorizado from None
 
     usuario = sessao.get(Usuario, id_usuario)
-    if usuario is None:
+    if usuario is None or not token_na_versao_atual(dados, usuario):
         raise nao_autorizado
     return usuario
+
+
+def token_na_versao_atual(dados: dict, usuario: Usuario) -> bool:
+    """Falso quando o PIN mudou depois que o token foi emitido."""
+    return dados.get("ver", 0) == usuario.versao_token
