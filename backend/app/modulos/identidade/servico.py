@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.modulos.identidade.esquemas import CadastroEntrada
 from app.modulos.identidade.modelos import Usuario
-from app.modulos.identidade.seguranca import HASH_FICTICIO, conferir_hash, gerar_hash
+from app.modulos.identidade.seguranca import HASH_FICTICIO, conferir_hash, gerar_hash, hash_telefone
 
 
 class Attempts(Enum):
@@ -41,7 +41,8 @@ class ContaBloqueada(Exception):
 
 
 def cadastrar(sessao: Session, dados: CadastroEntrada) -> Usuario:
-    if sessao.scalar(select(Usuario.id).where(Usuario.telefone == dados.telefone)):
+    hash_tel = hash_telefone(dados.telefone)
+    if sessao.scalar(select(Usuario.id).where(Usuario.hash_telefone == hash_tel)):
         raise TelefoneJaCadastrado
 
     email = dados.email.lower()
@@ -50,10 +51,11 @@ def cadastrar(sessao: Session, dados: CadastroEntrada) -> Usuario:
 
     usuario = Usuario(
         nome=dados.nome,
-        telefone=dados.telefone,
+        hash_telefone=hash_tel,
         email=email,
         hash_pin=gerar_hash(dados.pin),
     )
+    usuario.telefone = dados.telefone  # para resposta da API (não persistido)
     sessao.add(usuario)
     try:
         sessao.commit()
@@ -66,8 +68,9 @@ def cadastrar(sessao: Session, dados: CadastroEntrada) -> Usuario:
 
 def autenticar(sessao: Session, telefone: str, segredo: str) -> Usuario:
     """Confere o PIN. Após MAX_TENTATIVAS erros seguidos, bloqueia por TEMPO_BLOQUEIO."""
+    hash_tel = hash_telefone(telefone)
     usuario = sessao.scalar(
-        select(Usuario).where(Usuario.telefone == telefone).with_for_update()
+        select(Usuario).where(Usuario.hash_telefone == hash_tel).with_for_update()
     )
     if usuario is None:
         conferir_hash(segredo, HASH_FICTICIO)
