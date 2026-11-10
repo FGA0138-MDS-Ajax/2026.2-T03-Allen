@@ -19,7 +19,7 @@ class Usuario(Base):
         server_default=text("gen_random_uuid()"),
     )
     nome: Mapped[str] = mapped_column("noUsuario", String(255))
-    telefone: Mapped[str] = mapped_column("nuTelefone", String(255), unique=True)
+    hash_telefone: Mapped[str] = mapped_column("hashTelefone", String(255), unique=True)
     email: Mapped[str] = mapped_column("noEmail", String(255), unique=True)
     hash_pin: Mapped[str] = mapped_column("hashPin", Text)
     tentativas: Mapped[int] = mapped_column("nuTentativas", default=0)
@@ -38,6 +38,9 @@ class Usuario(Base):
     criado_em: Mapped[datetime] = mapped_column(
         "dhCriacao", DateTime(timezone=True), server_default=func.now()
     )
+
+    # Preenchido temporariamente para resposta da API (não persistido)
+    telefone: str = ""
 
     @property
     def tem_pin(self) -> bool:
