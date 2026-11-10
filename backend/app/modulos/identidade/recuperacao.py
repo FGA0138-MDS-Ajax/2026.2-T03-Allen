@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.modulos.identidade import servico
 from app.modulos.identidade.modelos import Usuario
-from app.modulos.identidade.seguranca import gerar_hash
+from app.modulos.identidade.seguranca import gerar_hash, hash_telefone
 from app.nucleo.config import settings
 
 cliente = valkey.Valkey.from_url(settings.VALKEY_URL, decode_responses=True)
@@ -61,7 +61,9 @@ def mascarar_email(email: str) -> str:
 
 def pedir_codigo(sessao: Session, telefone: str) -> tuple[Usuario, str]:
     """Gera um código novo (o anterior deixa de valer). Quem chama envia o e-mail."""
-    usuario = sessao.scalar(select(Usuario).where(Usuario.telefone == telefone))
+    usuario = sessao.scalar(
+        select(Usuario).where(Usuario.hash_telefone == hash_telefone(telefone))
+    )
     if usuario is None:
         raise CelularSemConta
 
@@ -96,7 +98,9 @@ def redefinir_pin(
 ) -> Usuario:
     """Confere o código e grava o novo PIN. Também desbloqueia a conta (D17)."""
     usuario = sessao.scalar(
-        select(Usuario).where(Usuario.telefone == telefone).with_for_update()
+        select(Usuario)
+        .where(Usuario.hash_telefone == hash_telefone(telefone))
+        .with_for_update()
     )
     if usuario is None:
         raise CodigoErrado
@@ -135,7 +139,8 @@ def trocar_pin(
     """Troca com login. PIN atual errado conta como tentativa (D17).
 
     Pode lançar servico.CredenciaisInvalidas ou servico.ContaBloqueada."""
-    usuario = servico.autenticar(sessao, usuario.telefone, pin_atual)
+    sessao.refresh(usuario, with_for_update=True)
+    servico.conferir_pin(sessao, usuario, pin_atual)
     _gravar_novo_pin(sessao, usuario, novo_pin)
     return usuario
 
