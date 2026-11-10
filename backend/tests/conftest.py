@@ -12,7 +12,7 @@ from sqlalchemy.pool import StaticPool
 from app.main import app
 from app.modulos.contas.modelos import Conta  # noqa: F401  (registra a tabela)
 from app.modulos.identidade.modelos import Usuario
-from app.modulos.identidade.seguranca import criar_token, gerar_hash
+from app.modulos.identidade.seguranca import criar_token, gerar_hash, hash_telefone
 from app.nucleo.banco import Base, obter_sessao
 
 
@@ -49,14 +49,16 @@ def sessao(engine) -> Iterator[Session]:
 
 @pytest.fixture
 def usuario(sessao: Session) -> Usuario:
+    telefone = "55619" + uuid.uuid4().hex[:8]
     u = Usuario(
         id=uuid.uuid4(),
         nome="Maria",
-        telefone="55619" + uuid.uuid4().hex[:8],
+        hash_telefone=hash_telefone(telefone),
         email=f"maria{uuid.uuid4().hex[:8]}@vero.com",
         hash_pin=gerar_hash("123456"),
         tentativas=0,
     )
+    u.telefone = telefone  # para resposta da API
     sessao.add(u)
     sessao.flush()
     sessao.refresh(u)
