@@ -23,6 +23,10 @@ dist-ssr/
 out/
 coverage/
 
+# E2E 
+e2e/test-results/
+e2e/playwright-report/
+
 # Sistema e editores
 .DS_Store
 .vscode/

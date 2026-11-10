@@ -1,0 +1,31 @@
+name: Renovate
+
+on:
+  schedule:
+    # Segunda-feira, 06:00 UTC
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  renovate:
+    name: Atualizar dependências
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      # Fixada por SHA: esta action recebe o PAT. O Renovate atualiza o digest.
+      - uses: renovatebot/github-action@2804199d260ad00c1fae0e9e842888369391c776 # v46.3.10
+        with:
+          configurationFile: renovate.json
+          # PAT fine-grained, restrito a este repositório, com permissão de
+          # contents, pull requests, issues e workflows.
+          # O GITHUB_TOKEN não serve: PRs abertos com ele não disparam o CI.
+          token: ${{ secrets.RENOVATE_TOKEN }}
+        env:
+          RENOVATE_REPOSITORIES: ${{ github.repository }}
+          RENOVATE_ONBOARDING: "false"
+          RENOVATE_REQUIRE_CONFIG: optional
+          LOG_LEVEL: info

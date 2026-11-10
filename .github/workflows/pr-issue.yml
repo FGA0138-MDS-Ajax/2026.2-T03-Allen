@@ -1,0 +1,51 @@
+name: PR referencia issue
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  verificar:
+    name: PR referencia issue
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Verificar referência a issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_REF: ${{ github.head_ref }}
+          TITULO: ${{ github.event.pull_request.title }}
+          CORPO: ${{ github.event.pull_request.body }}
+        run: |
+          # PRs do Renovate são de atualização automática e não têm issue
+          case "$HEAD_REF" in
+            renovate/*) echo "PR do Renovate; verificação dispensada."; exit 0 ;;
+          esac
+
+          # Aceita "#12", "dono/repo#12" ou o link da issue, no título ou na descrição
+          texto="$(printf '%s\n%s' "$TITULO" "$CORPO")"
+          refs="$(printf '%s' "$texto" \
+            | grep -oE "(${REPO}#|https://github\.com/${REPO}/issues/|(^|[^A-Za-z0-9/&])#)[0-9]+" \
+            | grep -oE '[0-9]+$' | sort -u || true)"
+
+          if [ -z "$refs" ]; then
+            echo "::error::O PR precisa referenciar uma issue (ex.: 'Closes #12') no título ou na descrição."
+            exit 1
+          fi
+
+          # Confirma que ao menos uma referência é uma issue existente (e não outro PR)
+          for n in $refs; do
+            if gh api "repos/${REPO}/issues/${n}" --jq 'select(.pull_request == null) | .number' 2>/dev/null | grep -q .; then
+              echo "Issue #${n} referenciada."
+              exit 0
+            fi
+          done
+
+          echo "::error::Nenhuma das referências (${refs//$'\n'/, }) é uma issue existente neste repositório."
+          exit 1

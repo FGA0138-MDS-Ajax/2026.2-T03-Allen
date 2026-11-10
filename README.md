@@ -1,7 +1,7 @@
 # Vero
 
 [![CI](https://github.com/beatrizbranfb/Vero/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/beatrizbranfb/Vero/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/beatrizbranfb/Vero/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/beatrizbranfb/Vero/actions/workflows/codeql.yml)
+[![Segurança](https://github.com/beatrizbranfb/Vero/actions/workflows/seguranca.yml/badge.svg?branch=main)](https://github.com/beatrizbranfb/Vero/actions/workflows/seguranca.yml)
 
 **Gestão financeira simples, acessível e sem linguagem contábil.**
 
