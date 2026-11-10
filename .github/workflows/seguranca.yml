@@ -1,0 +1,124 @@
+name: Segurança
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: seguranca-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BANDIT_VERSION: "1.9.4"
+  GITLEAKS_VERSION: "8.30.1"
+  TRIVY_IMAGE: ghcr.io/aquasecurity/trivy:0.76.0
+
+jobs:
+  bandit:
+    name: Bandit (análise estática Python)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar Bandit
+        run: pip install "bandit[toml]==${BANDIT_VERSION}"
+      - name: Analisar backend
+        run: |
+          if [ -z "$(find backend -name '*.py' 2>/dev/null | head -1)" ]; then
+            echo "Nenhum código Python encontrado; nada a analisar."
+            exit 0
+          fi
+          # Falha com achados de severidade média ou alta
+          bandit -c backend/pyproject.toml -r backend --severity-level medium --confidence-level medium
+
+  gitleaks:
+    name: Gitleaks (segredos no código)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Instalar Gitleaks
+        run: |
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz -C /usr/local/bin gitleaks
+      - name: Procurar segredos
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # Em PR, verifica só os commits do PR; nos demais eventos, o histórico inteiro
+          if [ -n "$BASE_SHA" ]; then
+            gitleaks git . --redact --verbose --log-opts="${BASE_SHA}..${HEAD_SHA}"
+          else
+            gitleaks git . --redact --verbose
+          fi
+
+  trivy-fs:
+    name: Trivy (dependências e configuração)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Escanear repositório
+        run: |
+          docker run --rm -v "$PWD:/src" -w /src "$TRIVY_IMAGE" fs \
+            --scanners vuln,misconfig \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --exit-code 1 \
+            .
+
+  trivy-image:
+    name: Trivy (imagens Docker)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar Dockerfile
+        id: check
+        run: |
+          [ -f ${{ matrix.service }}/Dockerfile ] && echo "exists=true" >> "$GITHUB_OUTPUT" || echo "exists=false" >> "$GITHUB_OUTPUT"
+      - name: Build da imagem
+        if: steps.check.outputs.exists == 'true'
+        run: docker build -t "vero-${{ matrix.service }}:scan" ${{ matrix.service }}
+      - name: Escanear imagem
+        if: steps.check.outputs.exists == 'true'
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock "$TRIVY_IMAGE" image \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --exit-code 1 \
+            "vero-${{ matrix.service }}:scan"
+
+  # Check único para a regra de proteção da main
+  seguranca-ok:
+    name: Segurança ok
+    needs: [bandit, gitleaks, trivy-fs, trivy-image]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Verificar resultado dos jobs
+        env:
+          FALHOU: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        run: |
+          if [ "$FALHOU" = "true" ]; then
+            echo "Alguma verificação de segurança falhou ou foi cancelada."
+            exit 1
+          fi
