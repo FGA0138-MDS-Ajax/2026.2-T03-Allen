@@ -34,7 +34,8 @@ describe('Página Entrar (Login no Vero com Teclado Físico)', () => {
     vi.mocked(servicos.entrarComPin).mockResolvedValue({
       access_token: 'fake-token',
       token_type: 'bearer',
-    } as any);
+      expira_em: 7200,
+    });
 
     render(<Entrar />);
 

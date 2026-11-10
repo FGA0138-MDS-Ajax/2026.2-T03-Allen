@@ -95,6 +95,7 @@ export const Entrar = () => {
 
     window.addEventListener('keydown', tratarTeclaPressionada);
     return () => window.removeEventListener('keydown', tratarTeclaPressionada);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [celular, pin, carregando]);
 
   return (

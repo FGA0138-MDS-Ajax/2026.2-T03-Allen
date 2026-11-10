@@ -13,7 +13,7 @@ class Usuario(Base):
     __tablename__ = "tblUsuario"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        "idUsuario", primary_key=True, default=uuid.uuid4, server_default=text("gen_random_uuid()")
+        "idUsuario", primary_key=True, server_default=text("gen_random_uuid()")
     )
     nome: Mapped[str] = mapped_column("noUsuario", String(255))
     telefone: Mapped[str] = mapped_column("nuTelefone", String(255), unique=True)

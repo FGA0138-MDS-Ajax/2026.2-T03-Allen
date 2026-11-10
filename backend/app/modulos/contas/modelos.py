@@ -18,7 +18,7 @@ class Conta(Base):
     __tablename__ = "tblConta"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        "idConta", primary_key=True, default=uuid.uuid4, server_default=text("gen_random_uuid()")
+        "idConta", primary_key=True, server_default=text("gen_random_uuid()")
     )
     usuario_id: Mapped[uuid.UUID] = mapped_column(
         "idUsuario", ForeignKey("tblUsuario.idUsuario")

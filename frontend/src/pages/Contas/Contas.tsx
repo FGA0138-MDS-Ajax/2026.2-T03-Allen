@@ -123,6 +123,7 @@ export const Contas: React.FC = () => {
 
   useEffect(() => {
     carregarContas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const centavosAtuais = valorDigitado ? parseInt(valorDigitado, 10) : 0;
