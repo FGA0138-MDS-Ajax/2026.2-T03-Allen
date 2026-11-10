@@ -3,6 +3,7 @@
 import uuid
 from datetime import UTC, datetime
 
+from app.modulos.contas.recorrencia import gerar_proxima_recorrencia
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -82,6 +83,9 @@ def definir_pagamento(
 
     if mudou:
         ESTRATEGIA_SALDO.ao_alterar_pagamento(conta, paga)
+
+        if paga and conta.recorrente:
+            gerar_proxima_recorrencia(sessao, conta)
 
     sessao.commit()
     sessao.refresh(conta)
