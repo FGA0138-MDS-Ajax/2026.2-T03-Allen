@@ -21,9 +21,6 @@ ORIGENS = (
 
 
 def upgrade() -> None:
-    if sa.inspect(op.get_bind()).has_table("tblTransacao"):
-        return
-
     op.drop_column("tblUsuario", "hashUsuario")
     op.alter_column("tblUsuario", "noEmail", nullable=True)
 
