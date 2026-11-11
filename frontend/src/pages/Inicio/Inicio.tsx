@@ -17,6 +17,7 @@ import {
   IconTrash,
 } from '../../components';
 import { useNavegacao } from '../../router';
+import { useTempoReal } from '../../hooks/useTempoReal';
 import { listarContas, ContaSaida } from '../../servicos';
 import {
   useDadosDoMes,
@@ -30,7 +31,18 @@ import {
 
 export const Inicio: React.FC = () => {
   const { navegar } = useNavegacao();
-  const { hoje, estado, definirMeta, removerLancamento } = useDadosDoMes();
+  const { hoje, estado, definirMeta, removerLancamento, adicionarLancamento } =
+    useDadosDoMes();
+
+  // Escuta transações em tempo real enviadas pelo backend / WhatsApp (RF17 / #74)
+  useTempoReal((evento) => {
+    const valorCentavos = Math.round(Number(evento.dados.valor) * 100);
+    adicionarLancamento(
+      evento.dados.tipo,
+      valorCentavos,
+      evento.dados.categoria
+    );
+  });
 
   const [contas, setContas] = useState<ContaSaida[]>([]);
   const [carregandoContas, setCarregandoContas] = useState(true);
