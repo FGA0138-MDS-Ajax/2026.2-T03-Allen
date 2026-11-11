@@ -44,8 +44,20 @@ describe('Página Extrato de Movimentações', () => {
         meta: 200000,
         entradasFixas: 330000,
         itens: [
-          { id: 1, dia: 1, tipo: 'entrada', centavos: 330000, categoria: 'Salário / Renda' },
-          { id: 2, dia: 2, tipo: 'gasto', centavos: 5000, categoria: 'Mercado' },
+          {
+            id: 1,
+            dia: 1,
+            tipo: 'entrada',
+            centavos: 330000,
+            categoria: 'Salário / Renda',
+          },
+          {
+            id: 2,
+            dia: 2,
+            tipo: 'gasto',
+            centavos: 5000,
+            categoria: 'Mercado',
+          },
         ],
       })
     );
@@ -54,7 +66,9 @@ describe('Página Extrato de Movimentações', () => {
   it('renderiza o cabeçalho, resumo consolidado e movimentações unificadas', async () => {
     render(<Extrato />);
 
-    expect(screen.getByRole('heading', { name: /extrato de movimentações/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /extrato de movimentações/i })
+    ).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /entradas/i })).toBeInTheDocument();
     expect(screen.getByText('Saldo que Sobra')).toBeInTheDocument();
 
@@ -85,11 +99,15 @@ describe('Página Extrato de Movimentações', () => {
 
     fireEvent.click(botoesApagar[0]);
 
-    const botaoConfirmar = screen.getByRole('button', { name: /sim, apagar lançamento/i });
+    const botaoConfirmar = screen.getByRole('button', {
+      name: /sim, apagar lançamento/i,
+    });
     fireEvent.click(botaoConfirmar);
 
     await waitFor(() => {
-      expect(screen.getByText(/apagado com sucesso do vero/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/apagado com sucesso do vero/i)
+      ).toBeInTheDocument();
     });
   });
 });

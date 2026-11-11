@@ -448,7 +448,6 @@ export const IconArrowLeft: React.FC<IconProps> = ({
   </svg>
 );
 
-
 export const IconTrash: React.FC<IconProps> = ({
   size = 20,
   className = '',

@@ -56,12 +56,48 @@ export function estadoPadraoExemplo(hoje: Hoje): EstadoMes {
     meta: 200000, // R$ 2.000,00 de meta
     entradasFixas: 330000, // R$ 3.300,00 de salário/renda mensal
     itens: [
-      { id: 1, dia: diaMax(1), tipo: 'entrada', centavos: 330000, categoria: 'Salário / Renda' },
-      { id: 2, dia: diaMax(3), tipo: 'gasto', centavos: 25000, categoria: 'Contas' },
-      { id: 3, dia: diaMax(5), tipo: 'gasto', centavos: 18000, categoria: 'Mercado' },
-      { id: 4, dia: diaMax(7), tipo: 'gasto', centavos: 9000, categoria: 'Transporte' },
-      { id: 5, dia: Math.max(1, hoje.dia - 1), tipo: 'gasto', centavos: 4500, categoria: 'Farmácia' },
-      { id: 6, dia: hoje.dia, tipo: 'gasto', centavos: 12000, categoria: 'Mercado' },
+      {
+        id: 1,
+        dia: diaMax(1),
+        tipo: 'entrada',
+        centavos: 330000,
+        categoria: 'Salário / Renda',
+      },
+      {
+        id: 2,
+        dia: diaMax(3),
+        tipo: 'gasto',
+        centavos: 25000,
+        categoria: 'Contas',
+      },
+      {
+        id: 3,
+        dia: diaMax(5),
+        tipo: 'gasto',
+        centavos: 18000,
+        categoria: 'Mercado',
+      },
+      {
+        id: 4,
+        dia: diaMax(7),
+        tipo: 'gasto',
+        centavos: 9000,
+        categoria: 'Transporte',
+      },
+      {
+        id: 5,
+        dia: Math.max(1, hoje.dia - 1),
+        tipo: 'gasto',
+        centavos: 4500,
+        categoria: 'Farmácia',
+      },
+      {
+        id: 6,
+        dia: hoje.dia,
+        tipo: 'gasto',
+        centavos: 12000,
+        categoria: 'Mercado',
+      },
     ],
   };
 }
@@ -92,7 +128,6 @@ export function carregarEstadoMes(hoje: Hoje): EstadoMes {
   }
   return estadoPadraoVazio(hoje);
 }
-
 
 export function salvarEstadoMes(estado: EstadoMes): void {
   try {
@@ -139,8 +174,10 @@ export function nivelDisponivel(fracao: number): 'bom' | 'atencao' | 'critico' {
 }
 
 export function mensagemDisponivel(fracao: number): string {
-  if (fracao > 0.5) return 'Mais da metade do seu dinheiro continua disponível no Vero.';
-  if (fracao > 0.25) return 'Menos da metade do seu dinheiro continua disponível.';
+  if (fracao > 0.5)
+    return 'Mais da metade do seu dinheiro continua disponível no Vero.';
+  if (fracao > 0.25)
+    return 'Menos da metade do seu dinheiro continua disponível.';
   if (fracao > 0) return 'Atenção: seu dinheiro do mês está diminuindo.';
   return 'Você já gastou todo o saldo disponível do mês.';
 }
@@ -159,13 +196,21 @@ export function escalaDoGrafico(valores: number[]): {
   return { minimo, maximo, passos };
 }
 
-export function puloDosRotulos(alturaPx: number, passos: number, minimoPx = 24): number {
-  return [1, 2, 5, 10, 20, 50].find((k) => (alturaPx / passos) * k >= minimoPx) ?? 10;
+export function puloDosRotulos(
+  alturaPx: number,
+  passos: number,
+  minimoPx = 24
+): number {
+  return (
+    [1, 2, 5, 10, 20, 50].find((k) => (alturaPx / passos) * k >= minimoPx) ?? 10
+  );
 }
 
 export function useDadosDoMes() {
   const [hoje, setHoje] = useState<Hoje>(() => calcularHoje());
-  const [estado, setEstado] = useState<EstadoMes>(() => carregarEstadoMes(calcularHoje()));
+  const [estado, setEstado] = useState<EstadoMes>(() =>
+    carregarEstadoMes(calcularHoje())
+  );
 
   useEffect(() => {
     const agora = calcularHoje();
@@ -198,7 +243,6 @@ export function useDadosDoMes() {
     [atualizar]
   );
 
-
   const definirMeta = useCallback(
     (centavos: number) => {
       atualizar((atual) => ({ ...atual, meta: centavos }));
@@ -211,7 +255,9 @@ export function useDadosDoMes() {
       atualizar((atual) => {
         // Atualiza a renda fixa e ajusta a entrada do dia 1
         const itensAtualizados = atual.itens.map((item) =>
-          item.id === 1 && item.tipo === 'entrada' ? { ...item, centavos } : item
+          item.id === 1 && item.tipo === 'entrada'
+            ? { ...item, centavos }
+            : item
         );
         return {
           ...atual,
@@ -228,17 +274,21 @@ export function useDadosDoMes() {
       atualizar((atual) => {
         const itemRemovido = atual.itens.find((i) => i.id === id);
         const deducaoEntrada =
-          itemRemovido && itemRemovido.tipo === 'entrada' ? itemRemovido.centavos : 0;
+          itemRemovido && itemRemovido.tipo === 'entrada'
+            ? itemRemovido.centavos
+            : 0;
         return {
           ...atual,
-          entradasFixas: Math.max(0, (Number(atual.entradasFixas) || 0) - deducaoEntrada),
+          entradasFixas: Math.max(
+            0,
+            (Number(atual.entradasFixas) || 0) - deducaoEntrada
+          ),
           itens: atual.itens.filter((i) => i.id !== id),
         };
       });
     },
     [atualizar]
   );
-
 
   return {
     hoje,

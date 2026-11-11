@@ -75,7 +75,7 @@
 .navItemAtivo {
   background-color: var(--lavanda);
   color: var(--violeta-profundo);
-  border-color: #D8D4E8;
+  border-color: #d8d4e8;
 }
 
 .btnSair {
@@ -96,9 +96,9 @@
 }
 
 .btnSair:hover {
-  background-color: #FEE2E2;
-  border-color: #B91C1C;
-  color: #B91C1C;
+  background-color: #fee2e2;
+  border-color: #b91c1c;
+  color: #b91c1c;
 }
 
 .btnSair:focus-visible {

@@ -35,7 +35,9 @@ export const AnotarGasto: React.FC = () => {
   const [categoriaGasto, setCategoriaGasto] = useState<string>('mercado');
   const [categoriaEntrada, setCategoriaEntrada] = useState<string>('salario');
   const [sucesso, setSucesso] = useState<boolean>(false);
-  const [ultimoLancamentoId, setUltimoLancamentoId] = useState<number | null>(null);
+  const [ultimoLancamentoId, setUltimoLancamentoId] = useState<number | null>(
+    null
+  );
   const [erro, setErro] = useState<string | null>(null);
 
   const centavos = valorStr ? parseInt(valorStr, 10) : 0;
@@ -63,7 +65,9 @@ export const AnotarGasto: React.FC = () => {
 
   const salvar = () => {
     if (centavos <= 0) {
-      setErro(`Digite um valor maior que zero para ${tipo === 'gasto' ? 'o gasto' : 'a entrada'}.`);
+      setErro(
+        `Digite um valor maior que zero para ${tipo === 'gasto' ? 'o gasto' : 'a entrada'}.`
+      );
       return;
     }
 
@@ -94,7 +98,11 @@ export const AnotarGasto: React.FC = () => {
       <main className={styles.conteudo}>
         <div className={styles.cardFormulario}>
           {/* Seletor de Tipo: Gasto ou Entrada */}
-          <div className={styles.seletorTipo} role="group" aria-label="Tipo de movimentação">
+          <div
+            className={styles.seletorTipo}
+            role="group"
+            aria-label="Tipo de movimentação"
+          >
             <button
               type="button"
               className={`${styles.btnTipo} ${
@@ -133,7 +141,6 @@ export const AnotarGasto: React.FC = () => {
               : 'Digite o valor recebido que entrou na sua conta:'}
           </p>
 
-
           {erro && (
             <div style={{ marginBottom: 16 }}>
               <AlertaStatus tipo="erro">{erro}</AlertaStatus>
@@ -163,7 +170,9 @@ export const AnotarGasto: React.FC = () => {
 
           {tipo === 'gasto' ? (
             <>
-              <h2 className={styles.subtituloCategoria}>Escolha a categoria:</h2>
+              <h2 className={styles.subtituloCategoria}>
+                Escolha a categoria:
+              </h2>
               <SeletorCategoria
                 categoriaSelecionada={categoriaGasto}
                 onSelecionar={(id) => setCategoriaGasto(id)}
@@ -171,8 +180,14 @@ export const AnotarGasto: React.FC = () => {
             </>
           ) : (
             <>
-              <h2 className={styles.subtituloCategoria}>De onde veio esse dinheiro?</h2>
-              <div className={styles.gradeCategoriasEntrada} role="group" aria-label="Categorias de entrada">
+              <h2 className={styles.subtituloCategoria}>
+                De onde veio esse dinheiro?
+              </h2>
+              <div
+                className={styles.gradeCategoriasEntrada}
+                role="group"
+                aria-label="Categorias de entrada"
+              >
                 {[
                   { id: 'salario', rotulo: 'Salário / Renda' },
                   { id: 'beneficio', rotulo: 'Aposentadoria' },
@@ -183,7 +198,9 @@ export const AnotarGasto: React.FC = () => {
                     key={cat.id}
                     type="button"
                     className={`${styles.btnCategoriaEntrada} ${
-                      categoriaEntrada === cat.id ? styles.btnCategoriaEntradaAtiva : ''
+                      categoriaEntrada === cat.id
+                        ? styles.btnCategoriaEntradaAtiva
+                        : ''
                     }`}
                     onClick={() => setCategoriaEntrada(cat.id)}
                     aria-pressed={categoriaEntrada === cat.id}
@@ -229,7 +246,6 @@ export const AnotarGasto: React.FC = () => {
         }}
         textoContinuar={`Anotar outr${tipo === 'gasto' ? 'o gasto' : 'o recebimento'}`}
       />
-
     </div>
   );
 };

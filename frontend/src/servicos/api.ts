@@ -30,7 +30,8 @@ export const salvarToken = (token: string): void => {
 export const limparSessao = (): void => {
   localStorage.removeItem(CHAVE_TOKEN);
   localStorage.removeItem(CHAVE_SESSAO);
-  document.cookie = 'vero_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+  document.cookie =
+    'vero_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
 };
 
 export const estaAutenticado = (): boolean => {
@@ -70,17 +71,25 @@ export const requisicao = async <T>(
   }
 
   if (!resposta.ok) {
-    let mensagemErro = 'Ocorreu um erro inesperado ao processar sua solicitação.';
+    let mensagemErro =
+      'Ocorreu um erro inesperado ao processar sua solicitação.';
     try {
       const corpoErro = await resposta.json();
       if (typeof corpoErro?.detail === 'string') {
         mensagemErro = corpoErro.detail;
-      } else if (Array.isArray(corpoErro?.detail) && corpoErro.detail.length > 0) {
+      } else if (
+        Array.isArray(corpoErro?.detail) &&
+        corpoErro.detail.length > 0
+      ) {
         mensagemErro = corpoErro.detail[0]?.msg || mensagemErro;
       }
     } catch {
       // Se não for JSON (ex.: erro de proxy 500/502 do Vite com ECONNREFUSED)
-      if (resposta.status === 502 || resposta.status === 503 || resposta.status === 504) {
+      if (
+        resposta.status === 502 ||
+        resposta.status === 503 ||
+        resposta.status === 504
+      ) {
         mensagemErro =
           'O servidor backend (porta 8000) não está em execução neste computador. Inicie o backend ou verifique a conexão.';
       } else if (resposta.status === 500) {
@@ -89,7 +98,6 @@ export const requisicao = async <T>(
       } else if (resposta.statusText) {
         mensagemErro = resposta.statusText;
       }
-
     }
 
     if (resposta.status === 401) {

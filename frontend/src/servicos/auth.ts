@@ -75,4 +75,3 @@ export const entrarComPin = async (
     throw erro;
   }
 };
-

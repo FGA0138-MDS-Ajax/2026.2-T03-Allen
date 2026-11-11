@@ -50,7 +50,9 @@ describe('Página Inicio (Dashboard do Vero com Gráfico e Origem do Saldo)', ()
   it('renderiza o saldo disponível, barra de nível e detalhamento de origem do saldo', async () => {
     render(<Inicio />);
 
-    expect(screen.getByText('Você ainda tem disponível no mês:')).toBeInTheDocument();
+    expect(
+      screen.getByText('Você ainda tem disponível no mês:')
+    ).toBeInTheDocument();
     expect(screen.getByTestId('saldo-disponivel')).toBeInTheDocument();
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
 
@@ -58,7 +60,9 @@ describe('Página Inicio (Dashboard do Vero com Gráfico e Origem do Saldo)', ()
     expect(screen.getByText('De onde sai esse saldo:')).toBeInTheDocument();
     expect(screen.getByText('Salário e entradas do mês')).toBeInTheDocument();
     expect(screen.getByText('Contas a pagar cadastradas')).toBeInTheDocument();
-    expect(screen.getByText('Gastos anotados no dia a dia')).toBeInTheDocument();
+    expect(
+      screen.getByText('Gastos anotados no dia a dia')
+    ).toBeInTheDocument();
   });
 
   it('exibe as contas mais próximas de vencer com seus status e valores', async () => {
@@ -69,7 +73,9 @@ describe('Página Inicio (Dashboard do Vero com Gráfico e Origem do Saldo)', ()
       expect(screen.getByText('Aluguel Atrasado')).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/contas mais próximas de vencer/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/contas mais próximas de vencer/i)
+    ).toBeInTheDocument();
   });
 
   it('exibe o dashboard com meta de saldo e gráfico de evolução diária', () => {
@@ -77,14 +83,17 @@ describe('Página Inicio (Dashboard do Vero com Gráfico e Origem do Saldo)', ()
 
     expect(screen.getByText('Meta de saldo do mês')).toBeInTheDocument();
     expect(screen.getByText('Seu saldo no mês')).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: /gráfico de linha/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: /gráfico de linha/i })
+    ).toBeInTheDocument();
   });
 
   it('navega para a tela de anotar gasto ao clicar no botão de registrar gasto', () => {
     render(<Inicio />);
 
-    const [btnRegistrar] = screen.getAllByRole('button', { name: /anotar gasto\/recebimento/i });
-
+    const [btnRegistrar] = screen.getAllByRole('button', {
+      name: /anotar gasto\/recebimento/i,
+    });
 
     fireEvent.click(btnRegistrar);
 

@@ -43,12 +43,16 @@ export const Cadastro = () => {
       return;
     }
     if (!email.trim()) {
-      setErro('Por favor, informe seu e-mail para recuperar o PIN caso esqueça.');
+      setErro(
+        'Por favor, informe seu e-mail para recuperar o PIN caso esqueça.'
+      );
       return;
     }
     const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!regexEmail.test(email.trim())) {
-      setErro('Digite um endereço de e-mail válido (exemplo: seuemail@exemplo.com).');
+      setErro(
+        'Digite um endereço de e-mail válido (exemplo: seuemail@exemplo.com).'
+      );
       return;
     }
     setErro(null);
@@ -107,7 +111,9 @@ export const Cadastro = () => {
       if (e instanceof ErroApi) {
         setErro(e.detalhe);
       } else {
-        setErro('Não foi possível realizar o cadastro no Vero. Tente novamente.');
+        setErro(
+          'Não foi possível realizar o cadastro no Vero. Tente novamente.'
+        );
       }
     } finally {
       setCarregando(false);
@@ -351,7 +357,15 @@ export const Cadastro = () => {
           )}
 
           {passo === 4 && (
-            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+            <div
+              style={{
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 16,
+              }}
+            >
               <div
                 style={{
                   width: 64,
@@ -370,12 +384,16 @@ export const Cadastro = () => {
 
               <h2 className={styles.titulo}>Cadastro concluído!</h2>
               <p className={styles.subtitulo}>
-                Sua conta no Vero foi criada com sucesso. Agora você pode falar com o assistente pelo WhatsApp ou acessar o aplicativo.
+                Sua conta no Vero foi criada com sucesso. Agora você pode falar
+                com o assistente pelo WhatsApp ou acessar o aplicativo.
               </p>
 
-              <div className={styles.botoesAcao} style={{ width: '100%', marginTop: 8 }}>
+              <div
+                className={styles.botoesAcao}
+                style={{ width: '100%', marginTop: 8 }}
+              >
                 <a
-                  href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMERO || '5561999998888'}?text=${encodeURIComponent(
+                  href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMERO || '5561992066340'}?text=${encodeURIComponent(
                     'Olá! Acabei de criar minha conta no Vero.'
                   )}`}
                   target="_blank"

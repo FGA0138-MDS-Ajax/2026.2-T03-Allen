@@ -30,7 +30,6 @@ import {
   Lancamento,
 } from '../../servicos/dadosDoMes';
 
-
 export const Inicio: React.FC = () => {
   const { navegar } = useNavegacao();
   const { hoje, estado, definirMeta, removerLancamento, adicionarLancamento } =
@@ -49,9 +48,12 @@ export const Inicio: React.FC = () => {
   const [contas, setContas] = useState<ContaSaida[]>([]);
   const [carregandoContas, setCarregandoContas] = useState(true);
   const [metaDigitada, setMetaDigitada] = useState<string>('');
-  const [avisoMeta, setAvisoMeta] = useState<string>('Quanto você deseja guardar no fim do mês.');
-  const [gastoParaExcluir, setGastoParaExcluir] = useState<Lancamento | null>(null);
-
+  const [avisoMeta, setAvisoMeta] = useState<string>(
+    'Quanto você deseja guardar no fim do mês.'
+  );
+  const [gastoParaExcluir, setGastoParaExcluir] = useState<Lancamento | null>(
+    null
+  );
 
   useEffect(() => {
     let ativo = true;
@@ -97,7 +99,10 @@ export const Inicio: React.FC = () => {
     entradasFixas - totalContasDoMesCentavos - gastosAnotados;
 
   const fracao = fracaoDisponivel(saldoDisponivelCentavos, entradasFixas);
-  const percentualGasto = Math.min(100, Math.max(0, Math.round((1 - fracao) * 100)));
+  const percentualGasto = Math.min(
+    100,
+    Math.max(0, Math.round((1 - fracao) * 100))
+  );
   const nivel = nivelDisponivel(fracao);
 
   // Pontos do gráfico de saldo dia a dia
@@ -107,9 +112,7 @@ export const Inicio: React.FC = () => {
 
   // Últimos valores anotados pelo usuário (mais recentes primeiro)
   const ultimosGastos = useMemo(() => {
-    return [...estado.itens]
-      .sort((a, b) => b.id - a.id)
-      .slice(0, 4);
+    return [...estado.itens].sort((a, b) => b.id - a.id).slice(0, 4);
   }, [estado.itens]);
 
   const formatarMoeda = (centavos: number) => {
@@ -120,10 +123,13 @@ export const Inicio: React.FC = () => {
     });
   };
 
-
   const obterIcone = (categoria: string) => {
     const c = categoria.toLowerCase();
-    if (c.includes('mercado') || c.includes('supermercado') || c.includes('feira')) {
+    if (
+      c.includes('mercado') ||
+      c.includes('supermercado') ||
+      c.includes('feira')
+    ) {
       return <IconMarket size={22} />;
     }
     if (c.includes('farm') || c.includes('remed') || c.includes('saude')) {
@@ -132,10 +138,20 @@ export const Inicio: React.FC = () => {
     if (c.includes('casa') || c.includes('aluguel') || c.includes('condom')) {
       return <IconHome size={22} />;
     }
-    if (c.includes('transporte') || c.includes('onibus') || c.includes('uber') || c.includes('combust')) {
+    if (
+      c.includes('transporte') ||
+      c.includes('onibus') ||
+      c.includes('uber') ||
+      c.includes('combust')
+    ) {
       return <IconTransport size={22} />;
     }
-    if (c.includes('conta') || c.includes('luz') || c.includes('agua') || c.includes('internet')) {
+    if (
+      c.includes('conta') ||
+      c.includes('luz') ||
+      c.includes('agua') ||
+      c.includes('internet')
+    ) {
       return <IconBills size={22} />;
     }
     return <IconOther size={22} />;
@@ -172,7 +188,6 @@ export const Inicio: React.FC = () => {
     setMetaDigitada('');
     setAvisoMeta(`Meta de saldo salva: ${formatarMoeda(centavos)}.`);
   };
-
 
   const textoAudio = `Você ainda tem disponível no mês: ${formatarMoeda(
     saldoDisponivelCentavos
@@ -217,29 +232,39 @@ export const Inicio: React.FC = () => {
                     nivel === 'bom'
                       ? styles.barraVerde
                       : nivel === 'atencao'
-                      ? styles.barraAmarela
-                      : styles.barraVermelha
+                        ? styles.barraAmarela
+                        : styles.barraVermelha
                   }`}
                   style={{ width: `${percentualGasto}%` }}
                 />
               </div>
 
-              <p className={styles.textoStatusSaldo}>{mensagemDisponivel(fracao)}</p>
+              <p className={styles.textoStatusSaldo}>
+                {mensagemDisponivel(fracao)}
+              </p>
 
               {/* Detalhamento didático: De onde sai esse saldo */}
               <div className={styles.origemSaldoBox}>
-                <div className={styles.origemTitulo}>De onde sai esse saldo:</div>
+                <div className={styles.origemTitulo}>
+                  De onde sai esse saldo:
+                </div>
                 <div className={styles.origemLinha}>
                   <span>Salário e entradas do mês</span>
-                  <strong className={styles.valorPositivo}>+ {formatarMoeda(entradasFixas)}</strong>
+                  <strong className={styles.valorPositivo}>
+                    + {formatarMoeda(entradasFixas)}
+                  </strong>
                 </div>
                 <div className={styles.origemLinha}>
                   <span>Contas a pagar cadastradas</span>
-                  <strong className={styles.valorNegativo}>− {formatarMoeda(totalContasDoMesCentavos)}</strong>
+                  <strong className={styles.valorNegativo}>
+                    − {formatarMoeda(totalContasDoMesCentavos)}
+                  </strong>
                 </div>
                 <div className={styles.origemLinha}>
                   <span>Gastos anotados no dia a dia</span>
-                  <strong className={styles.valorNegativo}>− {formatarMoeda(gastosAnotados)}</strong>
+                  <strong className={styles.valorNegativo}>
+                    − {formatarMoeda(gastosAnotados)}
+                  </strong>
                 </div>
                 <div className={`${styles.origemLinha} ${styles.origemSoma}`}>
                   <span>Dinheiro livre que ainda sobra</span>
@@ -259,9 +284,8 @@ export const Inicio: React.FC = () => {
                 <span>Anotar gasto/recebimento</span>
               </button>
 
-
               <a
-                href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMERO || '5561999998888'}?text=${encodeURIComponent(
+                href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMERO || '5561992066340'}?text=${encodeURIComponent(
                   'Olá! Gostaria de anotar um gasto no Vero.'
                 )}`}
                 target="_blank"
@@ -274,9 +298,15 @@ export const Inicio: React.FC = () => {
             </div>
 
             {/* Contas Mais Próximas de Vencer (RF25, RF30) */}
-            <section className={styles.card} aria-labelledby="titulo-contas-urgentes">
+            <section
+              className={styles.card}
+              aria-labelledby="titulo-contas-urgentes"
+            >
               <div className={styles.tituloCard}>
-                <h2 id="titulo-contas-urgentes" style={{ fontSize: 20, margin: 0 }}>
+                <h2
+                  id="titulo-contas-urgentes"
+                  style={{ fontSize: 20, margin: 0 }}
+                >
                   Contas mais próximas de vencer
                 </h2>
                 <button
@@ -289,7 +319,9 @@ export const Inicio: React.FC = () => {
               </div>
 
               {carregandoContas ? (
-                <p style={{ color: 'var(--ardosia)', fontSize: 15 }}>Carregando contas cadastradas...</p>
+                <p style={{ color: 'var(--ardosia)', fontSize: 15 }}>
+                  Carregando contas cadastradas...
+                </p>
               ) : contasMaisProximas.length === 0 ? (
                 <p style={{ color: 'var(--ardosia)', fontSize: 15 }}>
                   Parabéns! Nenhuma conta pendente para este mês.
@@ -323,19 +355,36 @@ export const Inicio: React.FC = () => {
                             >
                               {conta.status === 'em_atraso' ? (
                                 <>
-                                  <IconAlert size={12} style={{ display: 'inline', marginRight: 4 }} />
+                                  <IconAlert
+                                    size={12}
+                                    style={{
+                                      display: 'inline',
+                                      marginRight: 4,
+                                    }}
+                                  />
                                   Em atraso ({dataFormatada})
                                 </>
                               ) : (
                                 <>
-                                  <IconClock size={12} style={{ display: 'inline', marginRight: 4 }} />
+                                  <IconClock
+                                    size={12}
+                                    style={{
+                                      display: 'inline',
+                                      marginRight: 4,
+                                    }}
+                                  />
                                   Vence em {dataFormatada}
                                 </>
                               )}
                             </span>
                           </div>
                         </div>
-                        <strong style={{ fontSize: 17, color: 'var(--grafite-noturno)' }}>
+                        <strong
+                          style={{
+                            fontSize: 17,
+                            color: 'var(--grafite-noturno)',
+                          }}
+                        >
                           {formatarMoeda(Math.round(valorNum * 100))}
                         </strong>
                       </div>
@@ -350,11 +399,22 @@ export const Inicio: React.FC = () => {
           <div className={styles.coluna}>
             {/* Meta de Saldo do Mês */}
             <section className={styles.card} aria-labelledby="titulo-meta">
-              <h2 id="titulo-meta" className={styles.tituloCard} style={{ marginBottom: 8 }}>
+              <h2
+                id="titulo-meta"
+                className={styles.tituloCard}
+                style={{ marginBottom: 8 }}
+              >
                 Meta de saldo do mês
               </h2>
               <form onSubmit={salvarMeta} className={styles.formMeta}>
-                <label htmlFor="input-meta-valor" style={{ fontSize: 15, color: 'var(--ardosia)', fontWeight: 600 }}>
+                <label
+                  htmlFor="input-meta-valor"
+                  style={{
+                    fontSize: 15,
+                    color: 'var(--ardosia)',
+                    fontWeight: 600,
+                  }}
+                >
                   Quanto você quer ter guardado no fim do mês:
                 </label>
                 <div className={styles.linhaEntradaMeta}>
@@ -362,12 +422,18 @@ export const Inicio: React.FC = () => {
                     id="input-meta-valor"
                     type="text"
                     inputMode="numeric"
-                    placeholder={estado.meta > 0 ? `Atual: ${formatarMoeda(estado.meta)}` : 'Ex: 2000'}
+                    placeholder={
+                      estado.meta > 0
+                        ? `Atual: ${formatarMoeda(estado.meta)}`
+                        : 'Ex: 2000'
+                    }
                     value={metaDigitada}
                     onChange={(e) => {
                       setMetaDigitada(e.target.value);
                       if (avisoMeta.includes('Digite um valor')) {
-                        setAvisoMeta('Quanto você deseja guardar no fim do mês.');
+                        setAvisoMeta(
+                          'Quanto você deseja guardar no fim do mês.'
+                        );
                       }
                     }}
                     className={styles.inputMeta}
@@ -394,7 +460,6 @@ export const Inicio: React.FC = () => {
                         estado.meta - saldoDisponivelCentavos
                       )} para você alcançar sua meta.`}
                 </div>
-
               </form>
             </section>
 
@@ -411,9 +476,15 @@ export const Inicio: React.FC = () => {
             </section>
 
             {/* Últimos Valores Anotados (conectados em tempo real) */}
-            <section className={styles.card} aria-labelledby="titulo-ultimos-gastos">
+            <section
+              className={styles.card}
+              aria-labelledby="titulo-ultimos-gastos"
+            >
               <div className={styles.tituloCard}>
-                <h2 id="titulo-ultimos-gastos" style={{ fontSize: 20, margin: 0 }}>
+                <h2
+                  id="titulo-ultimos-gastos"
+                  style={{ fontSize: 20, margin: 0 }}
+                >
                   Últimos valores anotados
                 </h2>
                 <button
@@ -427,7 +498,13 @@ export const Inicio: React.FC = () => {
 
               <div className={styles.listaGastos}>
                 {ultimosGastos.length === 0 ? (
-                  <p style={{ fontSize: 16, color: 'var(--ardosia)', margin: '16px 0' }}>
+                  <p
+                    style={{
+                      fontSize: 16,
+                      color: 'var(--ardosia)',
+                      margin: '16px 0',
+                    }}
+                  >
                     Nenhum gasto anotado ainda neste mês.
                   </p>
                 ) : (
@@ -437,8 +514,8 @@ export const Inicio: React.FC = () => {
                       item.dia === hoje.dia
                         ? 'Hoje'
                         : item.dia === hoje.dia - 1
-                        ? 'Ontem'
-                        : `Dia ${item.dia}`;
+                          ? 'Ontem'
+                          : `Dia ${item.dia}`;
 
                     return (
                       <div key={item.id} className={styles.itemGasto}>
@@ -447,11 +524,19 @@ export const Inicio: React.FC = () => {
                             {obterIcone(item.categoria)}
                           </div>
                           <div>
-                            <div className={styles.nomeGasto}>{item.categoria}</div>
+                            <div className={styles.nomeGasto}>
+                              {item.categoria}
+                            </div>
                             <div className={styles.dataGasto}>{quando}</div>
                           </div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                          }}
+                        >
                           <strong
                             className={styles.valorGasto}
                             style={{
@@ -460,7 +545,8 @@ export const Inicio: React.FC = () => {
                                 : 'var(--erro-texto)',
                             }}
                           >
-                            {ehEntrada ? '+' : '−'} {formatarMoeda(item.centavos)}
+                            {ehEntrada ? '+' : '−'}{' '}
+                            {formatarMoeda(item.centavos)}
                           </strong>
                           {!ehEntrada && (
                             <button
@@ -514,10 +600,24 @@ export const Inicio: React.FC = () => {
               boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
             }}
           >
-            <h2 id="titulo-modal-excluir" style={{ fontSize: 20, margin: 0, color: 'var(--grafite-noturno)' }}>
+            <h2
+              id="titulo-modal-excluir"
+              style={{
+                fontSize: 20,
+                margin: 0,
+                color: 'var(--grafite-noturno)',
+              }}
+            >
               Tem certeza?
             </h2>
-            <p style={{ margin: 0, fontSize: 16, color: 'var(--ardosia)', lineHeight: 1.5 }}>
+            <p
+              style={{
+                margin: 0,
+                fontSize: 16,
+                color: 'var(--ardosia)',
+                lineHeight: 1.5,
+              }}
+            >
               Deseja realmente apagar o gasto de{' '}
               <strong>{gastoParaExcluir.categoria}</strong> no valor de{' '}
               <strong>{formatarMoeda(gastoParaExcluir.centavos)}</strong>?

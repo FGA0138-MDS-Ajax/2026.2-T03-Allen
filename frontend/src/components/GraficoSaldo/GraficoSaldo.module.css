@@ -30,7 +30,7 @@
   display: inline-block;
   width: 20px;
   height: 0;
-  border-top: 3px dashed #3B82F6;
+  border-top: 3px dashed #3b82f6;
   border-radius: 2px;
 }
 
@@ -41,7 +41,7 @@
   touch-action: pan-y;
   background-color: var(--branco);
   border-radius: 16px;
-  border: 1px solid #E9E4F8;
+  border: 1px solid #e9e4f8;
   overflow: hidden;
 }
 
@@ -88,13 +88,13 @@
 }
 
 .th {
-  border-bottom: 2px solid #E9E4F8;
+  border-bottom: 2px solid #e9e4f8;
   padding: 6px 10px;
   text-align: left;
   color: var(--ardosia);
 }
 
 .td {
-  border-bottom: 1px solid #F3F0FB;
+  border-bottom: 1px solid #f3f0fb;
   padding: 6px 10px;
 }

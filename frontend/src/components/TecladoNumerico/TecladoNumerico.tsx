@@ -26,7 +26,8 @@ export const TecladoNumerico: React.FC<TecladoNumericoProps> = ({
       const elementoAtivo = document.activeElement;
       const estaNoInput =
         elementoAtivo &&
-        (elementoAtivo.tagName === 'INPUT' || elementoAtivo.tagName === 'TEXTAREA');
+        (elementoAtivo.tagName === 'INPUT' ||
+          elementoAtivo.tagName === 'TEXTAREA');
 
       if (estaNoInput) return;
 
@@ -36,7 +37,10 @@ export const TecladoNumerico: React.FC<TecladoNumericoProps> = ({
       } else if (evento.key === 'Backspace') {
         evento.preventDefault();
         onApagar();
-      } else if ((evento.key === 'Escape' || evento.key === 'Delete') && onLimpar) {
+      } else if (
+        (evento.key === 'Escape' || evento.key === 'Delete') &&
+        onLimpar
+      ) {
         evento.preventDefault();
         onLimpar();
       }

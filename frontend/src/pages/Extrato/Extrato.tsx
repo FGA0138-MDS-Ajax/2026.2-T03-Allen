@@ -36,7 +36,9 @@ export const Extrato: React.FC = () => {
   const [contas, setContas] = useState<ContaSaida[]>([]);
   const [filtro, setFiltro] = useState<FiltroTipo>('todos');
   const [mensagemSucesso, setMensagemSucesso] = useState<string | null>(null);
-  const [itemParaExcluir, setItemParaExcluir] = useState<ItemExtrato | null>(null);
+  const [itemParaExcluir, setItemParaExcluir] = useState<ItemExtrato | null>(
+    null
+  );
 
   useEffect(() => {
     let ativo = true;
@@ -60,7 +62,11 @@ export const Extrato: React.FC = () => {
 
   const obterIcone = (categoria: string) => {
     const c = categoria.toLowerCase();
-    if (c.includes('mercado') || c.includes('supermercado') || c.includes('feira')) {
+    if (
+      c.includes('mercado') ||
+      c.includes('supermercado') ||
+      c.includes('feira')
+    ) {
       return <IconMarket size={22} />;
     }
     if (c.includes('farm') || c.includes('remed') || c.includes('saude')) {
@@ -69,10 +75,20 @@ export const Extrato: React.FC = () => {
     if (c.includes('casa') || c.includes('aluguel') || c.includes('condom')) {
       return <IconHome size={22} />;
     }
-    if (c.includes('transporte') || c.includes('onibus') || c.includes('uber') || c.includes('combust')) {
+    if (
+      c.includes('transporte') ||
+      c.includes('onibus') ||
+      c.includes('uber') ||
+      c.includes('combust')
+    ) {
       return <IconTransport size={22} />;
     }
-    if (c.includes('conta') || c.includes('luz') || c.includes('agua') || c.includes('internet')) {
+    if (
+      c.includes('conta') ||
+      c.includes('luz') ||
+      c.includes('agua') ||
+      c.includes('internet')
+    ) {
       return <IconBills size={22} />;
     }
     return <IconOther size={22} />;
@@ -94,8 +110,8 @@ export const Extrato: React.FC = () => {
           item.dia === hoje.dia
             ? 'Hoje'
             : item.dia === hoje.dia - 1
-            ? 'Ontem'
-            : `Dia ${item.dia}`,
+              ? 'Ontem'
+              : `Dia ${item.dia}`,
         dataOrdenacao: item.dia,
         centavos: item.centavos,
         ehApagavel: true,
@@ -153,9 +169,12 @@ export const Extrato: React.FC = () => {
 
   // Filtragem por abas
   const itensFiltrados = useMemo(() => {
-    if (filtro === 'gastos') return itensUnificados.filter((i) => i.tipo === 'gasto');
-    if (filtro === 'contas') return itensUnificados.filter((i) => i.tipo === 'conta');
-    if (filtro === 'entradas') return itensUnificados.filter((i) => i.tipo === 'entrada');
+    if (filtro === 'gastos')
+      return itensUnificados.filter((i) => i.tipo === 'gasto');
+    if (filtro === 'contas')
+      return itensUnificados.filter((i) => i.tipo === 'conta');
+    if (filtro === 'entradas')
+      return itensUnificados.filter((i) => i.tipo === 'entrada');
     return itensUnificados;
   }, [itensUnificados, filtro]);
 
@@ -165,7 +184,9 @@ export const Extrato: React.FC = () => {
     if (itemParaExcluir.tipo === 'conta' && itemParaExcluir.contaId) {
       setContas((ant) => ant.filter((c) => c.id !== itemParaExcluir.contaId));
       await excluirConta(itemParaExcluir.contaId);
-      setMensagemSucesso(`Conta "${itemParaExcluir.titulo}" apagada com sucesso do Vero.`);
+      setMensagemSucesso(
+        `Conta "${itemParaExcluir.titulo}" apagada com sucesso do Vero.`
+      );
     } else if (itemParaExcluir.lancamentoId !== undefined) {
       removerLancamento(itemParaExcluir.lancamentoId);
       setMensagemSucesso(
@@ -240,7 +261,11 @@ export const Extrato: React.FC = () => {
         {/* Lista e Filtros */}
         <section className={styles.cardLista}>
           {/* Abas de Filtro */}
-          <div className={styles.filtros} role="tablist" aria-label="Filtrar lançamentos do extrato">
+          <div
+            className={styles.filtros}
+            role="tablist"
+            aria-label="Filtrar lançamentos do extrato"
+          >
             <button
               type="button"
               role="tab"
@@ -257,7 +282,8 @@ export const Extrato: React.FC = () => {
               className={`${styles.btnFiltro} ${filtro === 'entradas' ? styles.btnFiltroAtivo : ''}`}
               onClick={() => setFiltro('entradas')}
             >
-              Entradas ({itensUnificados.filter((i) => i.tipo === 'entrada').length})
+              Entradas (
+              {itensUnificados.filter((i) => i.tipo === 'entrada').length})
             </button>
             <button
               type="button"
@@ -266,7 +292,8 @@ export const Extrato: React.FC = () => {
               className={`${styles.btnFiltro} ${filtro === 'gastos' ? styles.btnFiltroAtivo : ''}`}
               onClick={() => setFiltro('gastos')}
             >
-              Gastos ({itensUnificados.filter((i) => i.tipo === 'gasto').length})
+              Gastos ({itensUnificados.filter((i) => i.tipo === 'gasto').length}
+              )
             </button>
             <button
               type="button"
@@ -275,7 +302,8 @@ export const Extrato: React.FC = () => {
               className={`${styles.btnFiltro} ${filtro === 'contas' ? styles.btnFiltroAtivo : ''}`}
               onClick={() => setFiltro('contas')}
             >
-              Contas ({itensUnificados.filter((i) => i.tipo === 'conta').length})
+              Contas ({itensUnificados.filter((i) => i.tipo === 'conta').length}
+              )
             </button>
           </div>
 
@@ -304,10 +332,10 @@ export const Extrato: React.FC = () => {
                             {ehEntrada
                               ? 'Entrada'
                               : item.tipo === 'gasto'
-                              ? 'Gasto'
-                              : item.statusConta === 'paga'
-                              ? 'Conta Paga'
-                              : 'Conta Pendente'}
+                                ? 'Gasto'
+                                : item.statusConta === 'paga'
+                                  ? 'Conta Paga'
+                                  : 'Conta Pendente'}
                           </span>
                         </div>
                       </div>
@@ -384,10 +412,18 @@ export const Extrato: React.FC = () => {
             >
               Tem certeza que deseja apagar?
             </h2>
-            <p style={{ fontSize: 16, color: 'var(--ardosia)', lineHeight: 1.5, marginBottom: 20 }}>
+            <p
+              style={{
+                fontSize: 16,
+                color: 'var(--ardosia)',
+                lineHeight: 1.5,
+                marginBottom: 20,
+              }}
+            >
               Você está prestes a apagar o lançamento de{' '}
               <strong>{itemParaExcluir.titulo}</strong> no valor de{' '}
-              <strong>{formatarMoeda(itemParaExcluir.centavos)}</strong>. Essa ação não pode ser desfeita.
+              <strong>{formatarMoeda(itemParaExcluir.centavos)}</strong>. Essa
+              ação não pode ser desfeita.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

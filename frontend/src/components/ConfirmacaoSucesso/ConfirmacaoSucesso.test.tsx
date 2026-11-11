@@ -28,9 +28,13 @@ describe('Componente ConfirmacaoSucesso', () => {
     );
 
     expect(screen.getByText('Tudo certo!')).toBeInTheDocument();
-    expect(screen.getByText('Gasto de R$ 25,00 salvo com sucesso.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Gasto de R$ 25,00 salvo com sucesso.')
+    ).toBeInTheDocument();
 
-    const btnInicio = screen.getByRole('button', { name: /ir para a tela inicial/i });
+    const btnInicio = screen.getByRole('button', {
+      name: /ir para a tela inicial/i,
+    });
     fireEvent.click(btnInicio);
     expect(mockInicio).toHaveBeenCalledTimes(1);
 

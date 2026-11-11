@@ -38,7 +38,7 @@
   background: var(--branco);
   border-radius: 24px;
   padding: clamp(20px, 4vw, 28px);
-  border: 2px solid #E9E4F8;
+  border: 2px solid #e9e4f8;
   box-shadow: 0 10px 30px rgba(26, 26, 46, 0.05);
 }
 
@@ -105,7 +105,7 @@
   background: var(--nevoa);
   border-radius: 16px;
   padding: 14px 16px;
-  border: 1px solid #E9E4F8;
+  border: 1px solid #e9e4f8;
 }
 
 .origemTitulo {
@@ -126,7 +126,7 @@
 }
 
 .origemSoma {
-  border-top: 2px dashed #D8D4E8;
+  border-top: 2px dashed #d8d4e8;
   margin-top: 8px;
   padding-top: 8px;
   font-weight: 800;
@@ -187,13 +187,13 @@
   font-family: var(--font-corpo);
   font-size: 17px;
   font-weight: 700;
-  border: 2px solid #A7F3D0;
+  border: 2px solid #a7f3d0;
   text-decoration: none;
   transition: all 0.15s ease;
 }
 
 .btnWhatsApp:hover {
-  background: #ECFDF5;
+  background: #ecfdf5;
 }
 
 /* Títulos de seção */
@@ -235,7 +235,7 @@
   padding: 12px 14px;
   border-radius: 16px;
   background: var(--nevoa);
-  border: 1px solid #E9E4F8;
+  border: 1px solid #e9e4f8;
 }
 
 .infoContaProxima {
@@ -266,12 +266,12 @@
 }
 
 .badgeAtraso {
-  background: #FEE2E2;
+  background: #fee2e2;
   color: var(--erro-texto);
 }
 
 .badgeHoje {
-  background: #FEF3C7;
+  background: #fef3c7;
   color: var(--aviso-texto);
 }
 
@@ -353,7 +353,7 @@
   padding: 12px 14px;
   background: var(--nevoa);
   border-radius: 16px;
-  border: 1px solid #E9E4F8;
+  border: 1px solid #e9e4f8;
 }
 
 .infoGasto {
@@ -404,7 +404,6 @@
 }
 
 .btnApagarGasto:hover {
-  background-color: #FEE2E2;
+  background-color: #fee2e2;
   color: var(--erro-texto);
 }
-

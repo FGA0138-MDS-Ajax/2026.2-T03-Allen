@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  extrairDigitos,
-  formatarCelular,
-  validarCelular,
-} from './telefone';
+import { extrairDigitos, formatarCelular, validarCelular } from './telefone';
 
 describe('Utilitários de telefone celular', () => {
   it('extrai apenas os dígitos numéricos de uma string', () => {

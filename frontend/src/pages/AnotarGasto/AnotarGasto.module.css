@@ -17,7 +17,7 @@
   background: var(--branco);
   border-radius: 24px;
   padding: clamp(20px, 4vw, 32px);
-  border: 2px solid #E9E4F8;
+  border: 2px solid #e9e4f8;
   box-shadow: 0 10px 30px rgba(26, 26, 46, 0.05);
 }
 
@@ -46,7 +46,7 @@
   min-height: 52px;
   padding: 10px 16px;
   border-radius: 14px;
-  border: 2px solid #E9E4F8;
+  border: 2px solid #e9e4f8;
   background-color: var(--nevoa);
   color: var(--ardosia);
   font-family: var(--font-corpo);
@@ -66,15 +66,15 @@
 }
 
 .btnTipoAtivoGasto {
-  background-color: #FEE2E2;
-  border-color: #EF4444;
-  color: #991B1B;
+  background-color: #fee2e2;
+  border-color: #ef4444;
+  color: #991b1b;
 }
 
 .btnTipoAtivoEntrada {
-  background-color: #D1FAE5;
-  border-color: #10B981;
-  color: #065F46;
+  background-color: #d1fae5;
+  border-color: #10b981;
+  color: #065f46;
 }
 
 .gradeCategoriasEntrada {
@@ -88,7 +88,7 @@
   min-height: 48px;
   padding: 10px 14px;
   border-radius: 12px;
-  border: 2px solid #E9E4F8;
+  border: 2px solid #e9e4f8;
   background-color: var(--nevoa);
   color: var(--grafite-noturno);
   font-family: var(--font-corpo);
@@ -107,11 +107,10 @@
 }
 
 .btnCategoriaEntradaAtiva {
-  background-color: #D1FAE5;
-  border-color: #10B981;
-  color: #065F46;
+  background-color: #d1fae5;
+  border-color: #10b981;
+  color: #065f46;
 }
-
 
 .displayMonetario {
   width: 100%;

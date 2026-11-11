@@ -14,7 +14,9 @@ export interface BarraNavegacaoProps {
   rotaAtiva?: string;
 }
 
-export const BarraNavegacao: React.FC<BarraNavegacaoProps> = ({ rotaAtiva }) => {
+export const BarraNavegacao: React.FC<BarraNavegacaoProps> = ({
+  rotaAtiva,
+}) => {
   const { navegar, rota } = useNavegacao();
   const rotaAtual = rotaAtiva || rota;
 
@@ -59,7 +61,10 @@ export const BarraNavegacao: React.FC<BarraNavegacaoProps> = ({ rotaAtiva }) => 
             onClick={() => navegar('/extrato')}
             aria-current={rotaAtual === '/extrato' ? 'page' : undefined}
           >
-            <span aria-hidden="true" style={{ display: 'inline-flex', marginRight: 4 }}>
+            <span
+              aria-hidden="true"
+              style={{ display: 'inline-flex', marginRight: 4 }}
+            >
               <IconClock size={18} />
             </span>
             <span>Extrato</span>
@@ -73,22 +78,31 @@ export const BarraNavegacao: React.FC<BarraNavegacaoProps> = ({ rotaAtiva }) => 
             onClick={() => navegar('/anotar-gasto')}
             aria-current={rotaAtual === '/anotar-gasto' ? 'page' : undefined}
           >
-            <span aria-hidden="true" style={{ display: 'inline-flex', marginRight: 4 }}>
+            <span
+              aria-hidden="true"
+              style={{ display: 'inline-flex', marginRight: 4 }}
+            >
               <IconPlus size={18} />
             </span>
             <span>Anotar Gasto/Recebimento</span>
           </button>
 
-
           <button
             type="button"
             className={`${styles.navItem} ${
-              rotaAtual === '/contas' || rotaAtual === '/' ? styles.navItemAtivo : ''
+              rotaAtual === '/contas' || rotaAtual === '/'
+                ? styles.navItemAtivo
+                : ''
             }`}
             onClick={() => navegar('/contas')}
-            aria-current={rotaAtual === '/contas' || rotaAtual === '/' ? 'page' : undefined}
+            aria-current={
+              rotaAtual === '/contas' || rotaAtual === '/' ? 'page' : undefined
+            }
           >
-            <span aria-hidden="true" style={{ display: 'inline-flex', marginRight: 4 }}>
+            <span
+              aria-hidden="true"
+              style={{ display: 'inline-flex', marginRight: 4 }}
+            >
               <IconBills size={18} />
             </span>
             <span>Contas a Pagar</span>
@@ -101,7 +115,10 @@ export const BarraNavegacao: React.FC<BarraNavegacaoProps> = ({ rotaAtiva }) => 
           onClick={sair}
           aria-label="Sair da sua conta no Vero"
         >
-          <span aria-hidden="true" style={{ display: 'inline-flex', marginRight: 4 }}>
+          <span
+            aria-hidden="true"
+            style={{ display: 'inline-flex', marginRight: 4 }}
+          >
             <IconLogout size={18} />
           </span>
           <span>Sair</span>

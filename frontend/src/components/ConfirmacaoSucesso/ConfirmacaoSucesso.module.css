@@ -47,7 +47,7 @@
 
 .mensagem {
   font-size: clamp(17px, 4vw, 20px);
-  color: #EDE9FE;
+  color: #ede9fe;
   margin-bottom: 28px;
   line-height: 1.4;
 }
@@ -113,7 +113,7 @@
   padding: 8px 16px;
   border-radius: 14px;
   background-color: transparent;
-  color: #DDD6FE;
+  color: #ddd6fe;
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;

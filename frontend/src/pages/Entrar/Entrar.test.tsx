@@ -53,7 +53,10 @@ describe('Página Entrar (Login no Vero com Teclado Físico)', () => {
     fireEvent.keyDown(window, { key: 'Enter' });
 
     await waitFor(() => {
-      expect(servicos.entrarComPin).toHaveBeenCalledWith('(61) 99999-8888', '1234');
+      expect(servicos.entrarComPin).toHaveBeenCalledWith(
+        '(61) 99999-8888',
+        '1234'
+      );
       expect(mockNavegar).toHaveBeenCalledWith('/inicio');
     });
   });

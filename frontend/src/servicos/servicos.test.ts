@@ -49,7 +49,9 @@ describe('Serviços de API e Autenticação', () => {
     );
 
     const headersChamados = mockFetch.mock.calls[0][1].headers as Headers;
-    expect(headersChamados.get('Authorization')).toBe('Bearer meu-token-secreto');
+    expect(headersChamados.get('Authorization')).toBe(
+      'Bearer meu-token-secreto'
+    );
     expect(resultado).toEqual({ status: 'sucesso' });
   });
 

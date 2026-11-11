@@ -21,8 +21,12 @@ describe('App', () => {
     vi.mocked(servicos.estaAutenticado).mockReturnValue(false);
     render(<App />);
     expect(screen.getByText('Vero')).toBeInTheDocument();
-    expect(screen.getByText('Suas finanças na palma da sua mão.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /fazer login/i })).toBeInTheDocument();
+    expect(
+      screen.getByText('Suas finanças na palma da sua mão.')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /fazer login/i })
+    ).toBeInTheDocument();
   });
 
   it('deve exibir a tela de contas a pagar quando estiver autenticado', async () => {
@@ -31,6 +35,8 @@ describe('App', () => {
     await waitFor(() => {
       expect(screen.getByText(/minhas contas a pagar/i)).toBeInTheDocument();
     });
-    expect(screen.getByRole('button', { name: /cadastrar nova conta/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /cadastrar nova conta/i })
+    ).toBeInTheDocument();
   });
 });

@@ -122,10 +122,14 @@ describe('Página de Contas a Pagar (RF25, RF30, RF32)', () => {
 
     render(<Contas />);
 
-    const btnNovo = screen.getByRole('button', { name: /Cadastrar Nova Conta/i });
+    const btnNovo = screen.getByRole('button', {
+      name: /Cadastrar Nova Conta/i,
+    });
     fireEvent.click(btnNovo);
 
-    expect(screen.getByText('Cadastrar Nova Conta a Pagar')).toBeInTheDocument();
+    expect(
+      screen.getByText('Cadastrar Nova Conta a Pagar')
+    ).toBeInTheDocument();
 
     // Digita 7500 centavos = R$ 75,00 no teclado numérico
     fireEvent.click(screen.getByRole('button', { name: '7' }));
@@ -166,7 +170,9 @@ describe('Página de Contas a Pagar (RF25, RF30, RF32)', () => {
 
     render(<Contas />);
 
-    fireEvent.click(screen.getByRole('button', { name: /Cadastrar Nova Conta/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /Cadastrar Nova Conta/i })
+    );
 
     // Digita 120000 = R$ 1.200,00
     fireEvent.click(screen.getByRole('button', { name: '1' }));
@@ -211,15 +217,21 @@ describe('Página de Contas a Pagar (RF25, RF30, RF32)', () => {
     fireEvent.click(btnExcluir);
 
     // Modal de confirmação deve aparecer
-    expect(screen.getByText('Tem certeza que deseja apagar?')).toBeInTheDocument();
+    expect(
+      screen.getByText('Tem certeza que deseja apagar?')
+    ).toBeInTheDocument();
 
     // Clica em confirmar
-    const btnConfirmar = screen.getByRole('button', { name: /Sim, apagar conta/i });
+    const btnConfirmar = screen.getByRole('button', {
+      name: /Sim, apagar conta/i,
+    });
     fireEvent.click(btnConfirmar);
 
     await waitFor(() => {
       expect(servicos.excluirConta).toHaveBeenCalledWith('1');
-      expect(screen.getByText(/Conta "Conta de Luz" apagada com sucesso do Vero/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Conta "Conta de Luz" apagada com sucesso do Vero/i)
+      ).toBeInTheDocument();
     });
   });
 

@@ -54,7 +54,9 @@ export const Entrar = () => {
       if (e instanceof ErroApi) {
         setErro(e.detalhe);
       } else {
-        setErro('Não foi possível entrar no Vero. Verifique os dados e tente novamente.');
+        setErro(
+          'Não foi possível entrar no Vero. Verifique os dados e tente novamente.'
+        );
       }
     } finally {
       setCarregando(false);
@@ -67,7 +69,9 @@ export const Entrar = () => {
       // Se o usuário estiver focado no campo de celular, o input nativo cuida da digitação
       const elementoAtivo = document.activeElement;
       const estaNoInputCelular =
-        elementoAtivo && elementoAtivo.tagName === 'INPUT' && elementoAtivo !== document.body;
+        elementoAtivo &&
+        elementoAtivo.tagName === 'INPUT' &&
+        elementoAtivo !== document.body;
 
       if (evento.key === 'Enter') {
         evento.preventDefault();
@@ -114,10 +118,7 @@ export const Entrar = () => {
           <span>Vero</span>
         </a>
 
-        <Botao
-          variant="secondary"
-          onClick={() => navegar('/cadastro')}
-        >
+        <Botao variant="secondary" onClick={() => navegar('/cadastro')}>
           Criar conta
         </Botao>
       </header>
@@ -126,7 +127,8 @@ export const Entrar = () => {
         <section className={styles.card} aria-live="polite">
           <h1 className={styles.titulo}>Entrar no Vero</h1>
           <p className={styles.subtitulo}>
-            Digite seu celular e seu PIN de <strong>4 números</strong> usando seu teclado físico ou o teclado na tela.
+            Digite seu celular e seu PIN de <strong>4 números</strong> usando
+            seu teclado físico ou o teclado na tela.
           </p>
 
           {erro && (
@@ -195,10 +197,7 @@ export const Entrar = () => {
             </div>
           </div>
 
-          <TecladoNumerico
-            onDigito={digitarPin}
-            onApagar={apagarPin}
-          />
+          <TecladoNumerico onDigito={digitarPin} onApagar={apagarPin} />
 
           <div style={{ marginTop: 24 }}>
             <Botao

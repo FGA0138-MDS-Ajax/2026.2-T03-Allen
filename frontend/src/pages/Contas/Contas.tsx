@@ -97,7 +97,9 @@ export const Contas: React.FC = () => {
   });
   const [salvando, setSalvando] = useState(false);
   const [recorrente, setRecorrente] = useState(false);
-  const [contaParaExcluir, setContaParaExcluir] = useState<ContaSaida | null>(null);
+  const [contaParaExcluir, setContaParaExcluir] = useState<ContaSaida | null>(
+    null
+  );
 
   const carregarContas = async () => {
     if (!estaAutenticado()) {
@@ -139,7 +141,6 @@ export const Contas: React.FC = () => {
       currency: 'BRL',
     });
   };
-
 
   const digitar = (digito: string) => {
     if (valorDigitado.length < 8) {
@@ -270,7 +271,9 @@ export const Contas: React.FC = () => {
 
   const textoResumoAudio = useMemo(() => {
     return `Você tem ${formatarMoeda(resumo.totalAVencer)} a vencer este mês, ${
-      resumo.totalAtraso > 0 ? `${formatarMoeda(resumo.totalAtraso)} em atraso` : 'nenhuma conta em atraso'
+      resumo.totalAtraso > 0
+        ? `${formatarMoeda(resumo.totalAtraso)} em atraso`
+        : 'nenhuma conta em atraso'
     }, e ${formatarMoeda(resumo.totalPago)} já pagos no Vero.`;
   }, [resumo]);
 
@@ -280,12 +283,27 @@ export const Contas: React.FC = () => {
 
       <main>
         <div className={styles.cabecalhoSecao}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
-            <h1 className={styles.tituloPrincipal} style={{ margin: 0 }}>Minhas Contas a Pagar</h1>
-            <BotaoAudio textoParaLer={textoResumoAudio} rotuloAcessivel="Ouvir resumo de contas" />
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 12,
+              flexWrap: 'wrap',
+              marginBottom: 8,
+            }}
+          >
+            <h1 className={styles.tituloPrincipal} style={{ margin: 0 }}>
+              Minhas Contas a Pagar
+            </h1>
+            <BotaoAudio
+              textoParaLer={textoResumoAudio}
+              rotuloAcessivel="Ouvir resumo de contas"
+            />
           </div>
           <p className={styles.subtituloPrincipal}>
-            Acompanhe o que já pagou e o que ainda precisa separar dinheiro este mês.
+            Acompanhe o que já pagou e o que ainda precisa separar dinheiro este
+            mês.
           </p>
         </div>
 
@@ -301,7 +319,10 @@ export const Contas: React.FC = () => {
           </div>
         )}
 
-        <section className={styles.gridResumo} aria-label="Resumo geral das contas">
+        <section
+          className={styles.gridResumo}
+          aria-label="Resumo geral das contas"
+        >
           <div className={styles.cardResumo}>
             <span className={styles.rotuloResumo}>A Vencer</span>
             <span className={`${styles.valorResumo} ${styles.destaqueAVencer}`}>
@@ -325,11 +346,17 @@ export const Contas: React.FC = () => {
         </section>
 
         {modoCadastro && (
-          <section className={styles.painelCadastro} aria-label="Cadastrar nova conta a pagar">
+          <section
+            className={styles.painelCadastro}
+            aria-label="Cadastrar nova conta a pagar"
+          >
             <h2 className={styles.tituloPrincipal} style={{ fontSize: 24 }}>
               Cadastrar Nova Conta a Pagar
             </h2>
-            <p className={styles.subtituloPrincipal} style={{ marginBottom: 16 }}>
+            <p
+              className={styles.subtituloPrincipal}
+              style={{ marginBottom: 16 }}
+            >
               Informe o valor e a data de vencimento da conta.
             </p>
 
@@ -342,7 +369,11 @@ export const Contas: React.FC = () => {
                 {formatarMoeda(centavosAtuais / 100)}
               </div>
 
-              <TecladoNumerico onDigito={digitar} onApagar={apagar} capturarTeclado={modoCadastro} />
+              <TecladoNumerico
+                onDigito={digitar}
+                onApagar={apagar}
+                capturarTeclado={modoCadastro}
+              />
 
               <div>
                 <CampoTexto
@@ -425,7 +456,11 @@ export const Contas: React.FC = () => {
 
         {!modoCadastro && (
           <div className={styles.barraControles}>
-            <div className={styles.filtrosContainer} role="tablist" aria-label="Filtros de situação das contas">
+            <div
+              className={styles.filtrosContainer}
+              role="tablist"
+              aria-label="Filtros de situação das contas"
+            >
               <button
                 type="button"
                 role="tab"
@@ -442,7 +477,8 @@ export const Contas: React.FC = () => {
                 className={`${styles.btnFiltro} ${filtro === 'a_vencer' ? styles.btnFiltroAtivo : ''}`}
                 onClick={() => setFiltro('a_vencer')}
               >
-                <IconClock size={16} /> A vencer ({contas.filter((c) => c.status === 'a_vencer').length})
+                <IconClock size={16} /> A vencer (
+                {contas.filter((c) => c.status === 'a_vencer').length})
               </button>
               <button
                 type="button"
@@ -451,7 +487,8 @@ export const Contas: React.FC = () => {
                 className={`${styles.btnFiltro} ${filtro === 'em_atraso' ? styles.btnFiltroAtivo : ''}`}
                 onClick={() => setFiltro('em_atraso')}
               >
-                <IconAlert size={16} /> Em atraso ({contas.filter((c) => c.status === 'em_atraso').length})
+                <IconAlert size={16} /> Em atraso (
+                {contas.filter((c) => c.status === 'em_atraso').length})
               </button>
               <button
                 type="button"
@@ -460,7 +497,8 @@ export const Contas: React.FC = () => {
                 className={`${styles.btnFiltro} ${filtro === 'paga' ? styles.btnFiltroAtivo : ''}`}
                 onClick={() => setFiltro('paga')}
               >
-                <IconCheck size={16} /> Pagas ({contas.filter((c) => c.status === 'paga').length})
+                <IconCheck size={16} /> Pagas (
+                {contas.filter((c) => c.status === 'paga').length})
               </button>
             </div>
 
@@ -484,7 +522,9 @@ export const Contas: React.FC = () => {
             </div>
           ) : contasFiltradas.length === 0 ? (
             <div className={styles.estadoVazio}>
-              <p className={styles.estadoVazioTitulo}>Nenhuma conta encontrada</p>
+              <p className={styles.estadoVazioTitulo}>
+                Nenhuma conta encontrada
+              </p>
               <p>
                 {filtro === 'todas'
                   ? 'Você ainda não cadastrou nenhuma conta a pagar no Vero.'
@@ -501,13 +541,19 @@ export const Contas: React.FC = () => {
                   month: 'long',
                 });
                 const dataCabecalhoFormatada =
-                  dataCabecalho.charAt(0).toUpperCase() + dataCabecalho.slice(1);
+                  dataCabecalho.charAt(0).toUpperCase() +
+                  dataCabecalho.slice(1);
 
                 return (
                   <section
                     key={grupo.data}
                     aria-label={`Contas para ${dataCabecalhoFormatada}`}
-                    style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 8 }}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 12,
+                      marginBottom: 8,
+                    }}
                   >
                     <div
                       style={{
@@ -523,23 +569,42 @@ export const Contas: React.FC = () => {
                       {dataCabecalhoFormatada}
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 12,
+                      }}
+                    >
                       {grupo.contas.map((conta) => {
                         const valorNumerico = Number(conta.valor);
-                        const dataFormatada = dataObj.toLocaleDateString('pt-BR', {
-                          day: '2-digit',
-                          month: 'long',
-                          year: 'numeric',
-                        });
+                        const dataFormatada = dataObj.toLocaleDateString(
+                          'pt-BR',
+                          {
+                            day: '2-digit',
+                            month: 'long',
+                            year: 'numeric',
+                          }
+                        );
 
                         return (
                           <div key={conta.id} className={styles.cardConta}>
                             <div className={styles.infoPrincipal}>
-                              <div className={styles.iconeContainer} aria-hidden="true">
+                              <div
+                                className={styles.iconeContainer}
+                                aria-hidden="true"
+                              >
                                 {obterIconeConta(conta.descricao)}
                               </div>
                               <div className={styles.detalhesTexto}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    flexWrap: 'wrap',
+                                  }}
+                                >
                                   <span className={styles.nomeConta}>
                                     {conta.descricao || 'Conta sem descrição'}
                                   </span>
@@ -562,21 +627,27 @@ export const Contas: React.FC = () => {
                                 </strong>
 
                                 {conta.status === 'a_vencer' && (
-                                  <span className={`${styles.badgeStatus} ${styles.badgeAVencer}`}>
+                                  <span
+                                    className={`${styles.badgeStatus} ${styles.badgeAVencer}`}
+                                  >
                                     <IconClock size={16} aria-hidden="true" />
                                     <span>A vencer</span>
                                   </span>
                                 )}
 
                                 {conta.status === 'em_atraso' && (
-                                  <span className={`${styles.badgeStatus} ${styles.badgeEmAtraso}`}>
+                                  <span
+                                    className={`${styles.badgeStatus} ${styles.badgeEmAtraso}`}
+                                  >
                                     <IconAlert size={16} aria-hidden="true" />
                                     <span>Em atraso</span>
                                   </span>
                                 )}
 
                                 {conta.status === 'paga' && (
-                                  <span className={`${styles.badgeStatus} ${styles.badgePaga}`}>
+                                  <span
+                                    className={`${styles.badgeStatus} ${styles.badgePaga}`}
+                                  >
                                     <IconCheck size={16} aria-hidden="true" />
                                     <span>Paga</span>
                                   </span>
@@ -588,23 +659,38 @@ export const Contas: React.FC = () => {
                                   <button
                                     type="button"
                                     className={styles.btnMarcarPaga}
-                                    onClick={() => alternarPagamento(conta.id, true)}
+                                    onClick={() =>
+                                      alternarPagamento(conta.id, true)
+                                    }
                                     disabled={pendenteId === conta.id}
                                     aria-label={`Marcar a conta ${conta.descricao || 'sem descrição'} como paga`}
                                   >
                                     <IconCheck size={18} aria-hidden="true" />
-                                    <span>{pendenteId === conta.id ? 'Salvando...' : 'Marcar como paga'}</span>
+                                    <span>
+                                      {pendenteId === conta.id
+                                        ? 'Salvando...'
+                                        : 'Marcar como paga'}
+                                    </span>
                                   </button>
                                 ) : (
                                   <button
                                     type="button"
                                     className={styles.btnDesfazerPaga}
-                                    onClick={() => alternarPagamento(conta.id, false)}
+                                    onClick={() =>
+                                      alternarPagamento(conta.id, false)
+                                    }
                                     disabled={pendenteId === conta.id}
                                     aria-label={`Desfazer pagamento da conta ${conta.descricao || 'sem descrição'}`}
                                   >
-                                    <IconArrowLeft size={16} aria-hidden="true" />
-                                    <span>{pendenteId === conta.id ? 'Salvando...' : 'Desfazer pagamento'}</span>
+                                    <IconArrowLeft
+                                      size={16}
+                                      aria-hidden="true"
+                                    />
+                                    <span>
+                                      {pendenteId === conta.id
+                                        ? 'Salvando...'
+                                        : 'Desfazer pagamento'}
+                                    </span>
                                   </button>
                                 )}
 
@@ -667,10 +753,19 @@ export const Contas: React.FC = () => {
             >
               Tem certeza que deseja apagar?
             </h2>
-            <p style={{ fontSize: 16, color: 'var(--ardosia)', lineHeight: 1.5, marginBottom: 20 }}>
+            <p
+              style={{
+                fontSize: 16,
+                color: 'var(--ardosia)',
+                lineHeight: 1.5,
+                marginBottom: 20,
+              }}
+            >
               Você está prestes a apagar a conta{' '}
-              <strong>{contaParaExcluir.descricao || 'sem descrição'}</strong> no valor de{' '}
-              <strong>{formatarMoeda(Number(contaParaExcluir.valor))}</strong>. Essa ação não pode ser desfeita.
+              <strong>{contaParaExcluir.descricao || 'sem descrição'}</strong>{' '}
+              no valor de{' '}
+              <strong>{formatarMoeda(Number(contaParaExcluir.valor))}</strong>.
+              Essa ação não pode ser desfeita.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

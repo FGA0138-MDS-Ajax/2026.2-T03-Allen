@@ -46,7 +46,7 @@
   background-color: var(--branco);
   border-radius: 18px;
   padding: 16px 20px;
-  border: 2px solid #E9E4F8;
+  border: 2px solid #e9e4f8;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -95,7 +95,7 @@
   min-height: 44px;
   padding: 8px 18px;
   border-radius: 999px;
-  border: 2px solid #D8D4E8;
+  border: 2px solid #d8d4e8;
   background-color: var(--branco);
   color: var(--ardosia);
   font-family: var(--font-corpo);
@@ -127,7 +127,7 @@
   background-color: var(--branco);
   border-radius: 18px;
   padding: 16px 20px;
-  border: 1px solid #E9E4F8;
+  border: 1px solid #e9e4f8;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -138,7 +138,7 @@
 }
 
 .cardItem:hover {
-  border-color: #D8D4E8;
+  border-color: #d8d4e8;
 }
 
 .infoEsquerda {
@@ -184,22 +184,22 @@
 }
 
 .badgeGasto {
-  background-color: #FEE2E2;
+  background-color: #fee2e2;
   color: var(--erro-texto);
 }
 
 .badgeConta {
-  background-color: #FEF3C7;
+  background-color: #fef3c7;
   color: var(--aviso-texto);
 }
 
 .badgeContaPaga {
-  background-color: #DCFCE7;
+  background-color: #dcfce7;
   color: var(--sucesso-texto);
 }
 
 .badgeEntrada {
-  background-color: #DCFCE7;
+  background-color: #dcfce7;
   color: var(--sucesso-texto);
 }
 
@@ -230,9 +230,9 @@
 }
 
 .btnApagar:hover {
-  background-color: #FEE2E2;
+  background-color: #fee2e2;
   color: var(--erro-texto);
-  border-color: #FCA5A5;
+  border-color: #fca5a5;
 }
 
 .estadoVazio {
@@ -240,6 +240,6 @@
   border-radius: 20px;
   padding: 40px 20px;
   text-align: center;
-  border: 2px dashed #D8D4E8;
+  border: 2px dashed #d8d4e8;
   color: var(--ardosia);
 }

@@ -19,20 +19,15 @@ export const BoasVindas: React.FC = () => {
           <span>Acesso rápido e protegido</span>
         </span>
 
-        <h1 className={styles.heroTitle}>
-          Suas finanças na palma da sua mão.
-        </h1>
+        <h1 className={styles.heroTitle}>Suas finanças na palma da sua mão.</h1>
 
         <p className={styles.heroSubtitle}>
-          Controle seus gastos e saiba quanto tem disponível no mês, sem complicação ou linguagem contábil.
+          Controle seus gastos e saiba quanto tem disponível no mês, sem
+          complicação ou linguagem contábil.
         </p>
 
         <div className={styles.acoesContainer}>
-          <Botao
-            variant="primary"
-            fullWidth
-            onClick={() => navegar('/entrar')}
-          >
+          <Botao variant="primary" fullWidth onClick={() => navegar('/entrar')}>
             Fazer login
           </Botao>
 

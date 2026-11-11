@@ -28,7 +28,6 @@ export interface ContaCadastroEntrada {
   recorrente?: boolean;
 }
 
-
 export interface ContaPagamentoEntrada {
   paga: boolean;
 }
@@ -81,4 +80,3 @@ export const excluirConta = async (id: string): Promise<void> => {
     // Caso a API ainda não suporte o método DELETE, a remoção permanece na interface
   }
 };
-
