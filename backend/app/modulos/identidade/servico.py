@@ -18,7 +18,6 @@ class Attempts(Enum):
 
     MAX_TENTATIVAS = 5
     TEMPO_BLOQUEIO = timedelta(seconds=30)
-    # DURACAO_TOKEN_SENHA = timedelta(days=7)
     DURACAO_TOKEN_PIN = timedelta(hours=2)
 
 
@@ -86,10 +85,6 @@ def conferir_pin(sessao: Session, usuario: Usuario, segredo: str) -> Usuario:
     if usuario.bloqueado_ate and usuario.bloqueado_ate > agora:
         sessao.rollback()
         raise ContaBloqueada(_segundos_ate(usuario.bloqueado_ate, agora))
-
-    # if usuario.hash_pin is None:
-    #     sessao.rollback()  -> pin agora é obrigatorio
-    #     raise PinNaoCriado
 
     if not conferir_hash(segredo, usuario.hash_pin):
         usuario.tentativas += 1

@@ -1,6 +1,7 @@
 """Testes do cadastro e login com PIN (RF01 - identidade)."""
 
 import uuid
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -46,11 +47,21 @@ class TestCadastro:
         telefone = "5561977776666"
         cliente.post(
             "/api/v1/auth/cadastro",
-            json={"nome": "A", "telefone": telefone, "email": "a@vero.com", "pin": "1111"},
+            json={
+                "nome": "A",
+                "telefone": telefone,
+                "email": "a@vero.com",
+                "pin": "1111",
+            },
         )
         resp = cliente.post(
             "/api/v1/auth/cadastro",
-            json={"nome": "B", "telefone": telefone, "email": "b@vero.com", "pin": "2222"},
+            json={
+                "nome": "B",
+                "telefone": telefone,
+                "email": "b@vero.com",
+                "pin": "2222",
+            },
         )
         assert resp.status_code == 409
         assert "celular" in resp.text.lower()
@@ -193,17 +204,17 @@ class TestLoginAntigoRemovido:
             "/api/v1/auth/login",
             json={"telefone": "5561999998888", "senha": "qualquer"},
         )
-        # Deve falhar porque o schema espera 'pin', não 'senha'
+        # deve falhar porque o schema espera 'pin', não 'senha'
         assert resp.status_code == 422
 
-    def test_nao_existe_endpoint_definir_pin(self, cliente: TestClient) -> None:
-        resp = cliente.put(
+    def test_rota_antiga_pin_funciona_como_login(self, cliente: TestClient) -> None:
+        # voltando com /pin em vez de /login
+        resp = cliente.post(
             "/api/v1/auth/pin",
-            json={"pin": "123456"},
+            json={"telefone": "5561911110000", "pin": "123456"},
         )
-        # 401 porque não tem token, mas não 404 (rota não existe)
-        # Se a rota não existisse, seria 404. Como existe mas exige auth, é 401.
-        assert resp.status_code in (401, 404)
+        # Usuário não existe -> 401 (credenciais inválidas), não 404
+        assert resp.status_code == 401
 
 
 class TestUsuarioSaida:
@@ -212,7 +223,12 @@ class TestUsuarioSaida:
     def test_resposta_inclui_email_obrigatorio(self, cliente: TestClient) -> None:
         resp = cliente.post(
             "/api/v1/auth/cadastro",
-            json={"nome": "Com Email", "telefone": "5561900001111", "email": "teste@vero.com", "pin": "1234"},
+            json={
+                "nome": "Com Email",
+                "telefone": "5561900001111",
+                "email": "teste@vero.com",
+                "pin": "1234",
+            },
         )
         assert resp.status_code == 201
         assert resp.json()["email"] == "teste@vero.com"
@@ -220,8 +236,12 @@ class TestUsuarioSaida:
     def test_resposta_inclui_tem_pin_true(self, cliente: TestClient) -> None:
         resp = cliente.post(
             "/api/v1/auth/cadastro",
-            json={"nome": "Com Pin", "telefone": "5561900002222", "email": "pin@vero.com", "pin": "123456"},
+            json={
+                "nome": "Com Pin",
+                "telefone": "5561900002222",
+                "email": "pin@vero.com",
+                "pin": "123456",
+            },
         )
         assert resp.status_code == 201
         assert resp.json()["tem_pin"] is True
-

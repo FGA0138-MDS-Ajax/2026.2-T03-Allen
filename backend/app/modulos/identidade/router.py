@@ -53,6 +53,13 @@ def entrar_com_pin(
     )
 
 
+@router.post("/pin", response_model=TokenSaida, include_in_schema=False)
+def entrar_com_pin_legacy(
+    dados: LoginPinEntrada, sessao: Session = Depends(obter_sessao)
+) -> TokenSaida:
+    return entrar_com_pin(dados, sessao)
+
+
 def _entrar(
     sessao: Session, telefone: str, segredo: str, mensagem_erro: str
 ) -> TokenSaida:
