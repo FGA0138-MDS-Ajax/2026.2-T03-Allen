@@ -18,8 +18,10 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
+    # isso aqui é um hash de 123456
+    # esse placeholder teoricamente vai forcar o user a alterar o pin
     op.execute(
-        'UPDATE "tblUsuario" SET "hashPin" = \'$2b$12$dummy\' WHERE "hashPin" IS NULL'
+        'UPDATE "tblUsuario" SET "hashPin" = \'$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/RK.PZvO.S\' WHERE "hashPin" IS NULL'
     )
     op.alter_column("tblUsuario", "hashPin", nullable=False)
 
