@@ -22,6 +22,7 @@ export const Cadastro = () => {
   // Dados do formulário
   const [nome, setNome] = useState('');
   const [celular, setCelular] = useState('');
+  const [email, setEmail] = useState('');
   const [codigo, setCodigo] = useState('');
   const [primeiroPin, setPrimeiroPin] = useState('');
   const [segundoPin, setSegundoPin] = useState('');
@@ -40,6 +41,15 @@ export const Cadastro = () => {
       setErro(
         'Digite um número de celular válido com DDD (exemplo: (61) 99999-8888).'
       );
+      return;
+    }
+    if (!email.trim()) {
+      setErro('Por favor, informe seu e-mail para recuperar o PIN caso esqueça.');
+      return;
+    }
+    const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!regexEmail.test(email.trim())) {
+      setErro('Digite um endereço de e-mail válido (exemplo: seuemail@exemplo.com).');
       return;
     }
     setErro(null);
@@ -99,6 +109,7 @@ export const Cadastro = () => {
         nome: nome.trim(),
         telefone: celular,
         pin: primeiroPin,
+        email: email.trim(),
       });
 
       setPasso(5);
@@ -215,6 +226,18 @@ export const Cadastro = () => {
                 value={celular}
                 onChange={(e) => {
                   setCelular(formatarCelular(e.target.value));
+                  if (erro) setErro(null);
+                }}
+              />
+
+              <CampoTexto
+                rotulo="E-mail (obrigatório para recuperar seu PIN)"
+                placeholder="seuemail@exemplo.com"
+                type="email"
+                ajuda="Usaremos este e-mail caso você precise recuperar seu PIN de acesso"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
                   if (erro) setErro(null);
                 }}
               />
