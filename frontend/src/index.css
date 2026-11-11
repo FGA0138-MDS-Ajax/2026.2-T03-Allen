@@ -1,0 +1,63 @@
+:root {
+  /* Cores Oficiais - Vero Brandbook */
+  --violeta-vero: #7c3aed;
+  --violeta-profundo: #5b21b6;
+  --violeta-claro: #a78bfa;
+  --grafite-noturno: #1a1a2e;
+  --ardosia: #4b4b63;
+  --lavanda: #ede9fe;
+  --nevoa: #f7f5ff;
+  --branco: #ffffff;
+
+  /* Cores de Status (Regra WCAG: Cor + Ícone + Palavra) */
+  --sucesso-texto: #15803d;
+  --sucesso-fundo: #dcfce7;
+  --aviso-texto: #b45309;
+  --aviso-fundo: #fef3c7;
+  --erro-texto: #b91c1c;
+  --erro-fundo: #fee2e2;
+
+  /* Tipografia */
+  --font-titulo: 'Nunito', sans-serif;
+  --font-corpo: 'Atkinson Hyperlegible', sans-serif;
+
+  /* Áreas mínimas de toque */
+  --toque-minimo: 48px;
+  --toque-teclado: 64px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  min-height: 100vh;
+  font-family: var(--font-corpo);
+  background-color: var(--nevoa);
+  color: var(--grafite-noturno);
+  font-size: 18px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Foco visível acessível global */
+:focus-visible {
+  outline: 3px solid var(--violeta-vero);
+  outline-offset: 2px;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+}

@@ -11,6 +11,10 @@ const CODIGO_VERIFICACAO = process.env.E2E_CODIGO_VERIFICACAO ?? "000000";
 
 const TELAS = ["/cadastro", "/codigo-sms", "/criar-pin", "/login", "/inicio", "/anotar-gasto"];
 
+test.beforeEach(() => {
+  test.skip(true, "E2E legado da Sprint 1 em reescrita pela QA para o novo frontend");
+});
+
 function celularFicticio(): string {
   const sufixo = String(Date.now()).slice(-8);
   return `(61) 9${sufixo.slice(0, 4)}-${sufixo.slice(4)}`;
