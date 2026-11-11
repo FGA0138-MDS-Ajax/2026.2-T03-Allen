@@ -1,0 +1,170 @@
+.pageContainer {
+  width: 100%;
+  min-height: 100vh;
+  background-color: var(--nevoa);
+  display: flex;
+  flex-direction: column;
+}
+
+.conteudo {
+  width: 100%;
+  max-width: 540px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+.cardFormulario {
+  background: var(--branco);
+  border-radius: 24px;
+  padding: clamp(20px, 4vw, 32px);
+  border: 2px solid #e9e4f8;
+  box-shadow: 0 10px 30px rgba(26, 26, 46, 0.05);
+}
+
+.tituloTela {
+  font-family: var(--font-titulo);
+  font-weight: 900;
+  font-size: clamp(24px, 5vw, 28px);
+  color: var(--grafite-noturno);
+  margin-bottom: 6px;
+}
+
+.subtituloTela {
+  font-size: clamp(15px, 4vw, 17px);
+  color: var(--ardosia);
+  margin-bottom: 18px;
+}
+
+.seletorTipo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.btnTipo {
+  min-height: 52px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  border: 2px solid #e9e4f8;
+  background-color: var(--nevoa);
+  color: var(--ardosia);
+  font-family: var(--font-corpo);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s ease-in-out;
+}
+
+.btnTipo:focus-visible {
+  outline: 3px solid var(--violeta-vero);
+  outline-offset: 2px;
+}
+
+.btnTipoAtivoGasto {
+  background-color: #fee2e2;
+  border-color: #ef4444;
+  color: #991b1b;
+}
+
+.btnTipoAtivoEntrada {
+  background-color: #d1fae5;
+  border-color: #10b981;
+  color: #065f46;
+}
+
+.gradeCategoriasEntrada {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.btnCategoriaEntrada {
+  min-height: 48px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 2px solid #e9e4f8;
+  background-color: var(--nevoa);
+  color: var(--grafite-noturno);
+  font-family: var(--font-corpo);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.btnCategoriaEntrada:focus-visible {
+  outline: 3px solid var(--violeta-vero);
+  outline-offset: 2px;
+}
+
+.btnCategoriaEntradaAtiva {
+  background-color: #d1fae5;
+  border-color: #10b981;
+  color: #065f46;
+}
+
+.displayMonetario {
+  width: 100%;
+  min-height: 68px;
+  background: var(--nevoa);
+  border: 3px solid var(--violeta-vero);
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-titulo);
+  font-size: clamp(28px, 6vw, 36px);
+  font-weight: 900;
+  color: var(--grafite-noturno);
+  margin-bottom: 18px;
+  padding: 8px 16px;
+  outline: none;
+}
+
+.displayMonetario:focus-visible {
+  box-shadow: 0 0 0 4px var(--lavanda);
+}
+
+.subtituloCategoria {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--grafite-noturno);
+  margin: 20px 0 12px;
+}
+
+.acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.btnCancelar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50px;
+  padding: 10px 20px;
+  border-radius: 14px;
+  border: 2px solid var(--ardosia);
+  background: transparent;
+  color: var(--grafite-noturno);
+  font-family: var(--font-corpo);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btnCancelar:hover {
+  background-color: var(--nevoa);
+}

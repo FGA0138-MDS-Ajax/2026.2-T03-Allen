@@ -130,13 +130,16 @@ class TestLoginPin:
 
     @pytest.fixture
     def usuario_com_pin(self, sessao: Session) -> Usuario:
+        from app.modulos.identidade.seguranca import gerar_hash, hash_telefone
+
         u = Usuario(
             id=uuid.uuid4(),
             nome="Teste",
-            telefone="5561911110000",
+            hash_telefone=hash_telefone("5561911110000"),
             email="teste@vero.com",
             hash_pin=gerar_hash("123456"),
         )
+        u.telefone = "5561911110000"  # para resposta da API
         sessao.add(u)
         sessao.flush()
         sessao.refresh(u)

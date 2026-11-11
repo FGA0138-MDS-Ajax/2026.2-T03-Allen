@@ -1,0 +1,65 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.label {
+  display: block;
+  font-family: var(--font-corpo);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--grafite-noturno);
+  margin-bottom: 8px;
+}
+
+.ajuda {
+  font-size: 15px;
+  color: var(--ardosia);
+  margin-bottom: 8px;
+}
+
+.input {
+  width: 100%;
+  min-height: 60px;
+  padding: 14px 18px;
+  font-family: var(--font-corpo);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--grafite-noturno);
+  background: var(--nevoa);
+  border: 3px solid var(--ardosia);
+  border-radius: 16px;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.input:focus {
+  outline: none;
+  background-color: var(--branco);
+  border-color: var(--violeta-vero);
+  box-shadow: 0 0 0 4px var(--lavanda);
+}
+
+.inputErro {
+  border-color: var(--erro-texto);
+  background-color: var(--erro-fundo);
+}
+
+.inputErro:focus {
+  border-color: var(--erro-texto);
+  box-shadow: 0 0 0 4px #fecaca;
+}
+
+.mensagemErro {
+  margin-top: 6px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--erro-texto);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

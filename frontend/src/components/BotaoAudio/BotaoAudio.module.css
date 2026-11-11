@@ -1,0 +1,44 @@
+.botaoAudio {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--toque-minimo);
+  min-width: var(--toque-minimo);
+  padding: 8px 14px;
+  border-radius: 999px;
+  background-color: var(--lavanda);
+  color: var(--violeta-profundo);
+  border: 2px solid transparent;
+  font-family: var(--font-corpo);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.botaoAudio:hover {
+  background-color: #ddd6fe;
+  border-color: var(--violeta-profundo);
+}
+
+.botaoAudio:focus-visible {
+  outline: 3px solid var(--violeta-vero);
+  outline-offset: 2px;
+}
+
+.falando {
+  background-color: var(--violeta-vero);
+  color: var(--branco);
+  animation: pulsar 1.2s infinite ease-in-out;
+}
+
+@keyframes pulsar {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}

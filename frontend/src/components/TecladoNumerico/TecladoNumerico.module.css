@@ -1,0 +1,56 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(8px, 2vw, 12px);
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto 20px;
+}
+
+.tecla {
+  height: clamp(56px, 14vw, 64px);
+  min-height: 48px;
+  border-radius: 16px;
+  background-color: var(--nevoa);
+  border: 2px solid #d8d4e8;
+  font-family: var(--font-corpo);
+  font-size: clamp(24px, 6vw, 30px);
+  font-weight: 700;
+  color: var(--grafite-noturno);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    transform 0.08s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.tecla:hover {
+  border-color: var(--violeta-vero);
+  background-color: var(--lavanda);
+}
+
+.tecla:active {
+  transform: scale(0.95);
+  background-color: #ddd6fe;
+}
+
+.tecla:focus-visible {
+  outline: 3px solid var(--violeta-vero);
+  outline-offset: 2px;
+}
+
+.teclaAcao {
+  font-size: clamp(14px, 3.8vw, 16px);
+  background-color: var(--lavanda);
+  color: var(--violeta-profundo);
+  border-color: #c4b5fd;
+}
+
+.teclaAcao:hover {
+  background-color: #ddd6fe;
+  border-color: var(--violeta-profundo);
+}

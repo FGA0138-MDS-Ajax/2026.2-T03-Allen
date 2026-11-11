@@ -12,7 +12,7 @@ Legenda: ✅ passou · ❌ falhou (abrir issue) · ⚠️ passou em parte · ⏳
 
 | # | Critério | Status | Issue / observação |
 |---|---|---|---|
-| 1 | Cadastro pede só celular (com DDD) e nome, sem e-mail obrigatório | ❌ | #54: a tela pede só nome e celular, mas a API exige e-mail e senha |
+| 1 | Cadastro pede celular (com DDD), nome, e-mail (para recuperar o PIN) e PIN, sem senha | ❌ | #54: a API exige senha e o PIN só é criado depois; a tela pede só nome e celular. Critério atualizado em 10/11: e-mail obrigatório por decisão do time |
 | 2 | Número validado no formato BR | ✅ | API recusa `123` com 422 e normaliza para `55DDDNÚMERO`. A tela ainda não valida (#56) |
 | 3 | Número verificado por código (SMS ou WhatsApp) | ⏳ | #55: a tela `/codigo-sms` existe, mas não há envio nem conferência de código |
 | 4 | Número já cadastrado mostra mensagem clara oferecendo "Entrar" | ⚠️ | API devolve 409 com "Este celular já está cadastrado. Tente entrar na sua conta."; a tela não mostra (#56) |

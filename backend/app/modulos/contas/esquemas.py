@@ -53,7 +53,11 @@ class ContaPagamentoEntrada(BaseModel):
     endpoint atender ao botão "Paga" e ao botão "Desfazer".
     """
 
-    paga: bool
+    vencimento_em: date
+    valor: Valor
+    descricao: Descricao | None = None
+    categoria_id: int | None = None
+    recorrente: bool = False  # para repetir todos mes
 
 
 class ContaSaida(BaseModel):
@@ -67,3 +71,5 @@ class ContaSaida(BaseModel):
     status: StatusConta
     pagamento_em: datetime | None
     criado_em: datetime
+    recorrente: bool
+    id_conta_origem: UUID | None = None
