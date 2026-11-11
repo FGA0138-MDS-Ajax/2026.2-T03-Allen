@@ -1,5 +1,6 @@
-"""Fixtures dos testes: banco SQLite em memória e cliente autenticado."""
+"""Fixtures dos testes: usa Postgres (CI) ou SQLite (local) conforme DATABASE_URL."""
 
+import os
 import uuid
 from collections.abc import Iterator
 
@@ -14,20 +15,22 @@ from app.modulos.contas.modelos import Conta  # noqa: F401  (registra a tabela)
 from app.modulos.identidade.modelos import Usuario
 from app.modulos.identidade.seguranca import criar_token, gerar_hash
 from app.nucleo.banco import Base, obter_sessao
+from app.nucleo.config import settings
 
-
-# SQLite em memória para testes rápidos sem dependência externa
-URL_TESTE = "sqlite://"
+URL_TESTE = os.getenv("DATABASE_URL", "sqlite://")
 
 
 @pytest.fixture(scope="function")
 def engine():
     """Cria engine novo para cada teste (isolamento total)."""
-    motor = create_engine(
-        URL_TESTE,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
+    if URL_TESTE.startswith("sqlite"):
+        motor = create_engine(
+            URL_TESTE,
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+    else:
+        motor = create_engine(URL_TESTE)
     Base.metadata.create_all(motor)
     yield motor
     motor.dispose()
