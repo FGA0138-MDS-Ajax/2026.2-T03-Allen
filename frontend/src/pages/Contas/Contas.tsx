@@ -223,6 +223,22 @@ export const Contas: React.FC = () => {
     return contas.filter((c) => c.status === filtro);
   }, [contas, filtro]);
 
+  // Agrupamento diário de contas ordenado por vencimento (RF32, critério 1 / #78)
+  const contasAgrupadasPorDia = useMemo(() => {
+    const mapa = new Map<string, ContaSaida[]>();
+    for (const conta of contasFiltradas) {
+      const data = conta.vencimento_em;
+      const existentes = mapa.get(data) || [];
+      existentes.push(conta);
+      mapa.set(data, existentes);
+    }
+    const datasOrdenadas = Array.from(mapa.keys()).sort();
+    return datasOrdenadas.map((data) => ({
+      data,
+      contas: mapa.get(data)!,
+    }));
+  }, [contasFiltradas]);
+
   const textoResumoAudio = useMemo(() => {
     return `Você tem ${formatarMoeda(resumo.totalAVencer)} a vencer este mês, ${
       resumo.totalAtraso > 0 ? `${formatarMoeda(resumo.totalAtraso)} em atraso` : 'nenhuma conta em atraso'
@@ -433,86 +449,120 @@ export const Contas: React.FC = () => {
             </div>
           ) : (
             <div className={styles.listaContas}>
-              {contasFiltradas.map((conta) => {
-                const valorNumerico = Number(conta.valor);
-                const dataObj = new Date(conta.vencimento_em + 'T12:00:00');
-                const dataFormatada = dataObj.toLocaleDateString('pt-BR', {
+              {contasAgrupadasPorDia.map((grupo) => {
+                const dataObj = new Date(grupo.data + 'T12:00:00');
+                const dataCabecalho = dataObj.toLocaleDateString('pt-BR', {
+                  weekday: 'long',
                   day: '2-digit',
                   month: 'long',
-                  year: 'numeric',
                 });
+                const dataCabecalhoFormatada =
+                  dataCabecalho.charAt(0).toUpperCase() + dataCabecalho.slice(1);
 
                 return (
-                  <div key={conta.id} className={styles.cardConta}>
-                    <div className={styles.infoPrincipal}>
-                      <div className={styles.iconeContainer} aria-hidden="true">
-                        {obterIconeConta(conta.descricao)}
-                      </div>
-                      <div className={styles.detalhesTexto}>
-                        <span className={styles.nomeConta}>
-                          {conta.descricao || 'Conta sem descrição'}
-                        </span>
-                        <span className={styles.dataVencimento}>
-                          Vencimento: <strong>{dataFormatada}</strong>
-                        </span>
-                      </div>
+                  <section
+                    key={grupo.data}
+                    aria-label={`Contas para ${dataCabecalhoFormatada}`}
+                    style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 8 }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 16,
+                        fontWeight: 700,
+                        color: 'var(--violeta-profundo)',
+                        backgroundColor: '#F3F0FB',
+                        padding: '8px 14px',
+                        borderRadius: 10,
+                        borderLeft: '4px solid var(--violeta-vero)',
+                      }}
+                    >
+                      {dataCabecalhoFormatada}
                     </div>
 
-                    <div className={styles.valoresEStatus}>
-                      <div className={styles.blocoValorEBadge}>
-                        <strong className={styles.valorConta}>
-                          {formatarMoeda(valorNumerico)}
-                        </strong>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {grupo.contas.map((conta) => {
+                        const valorNumerico = Number(conta.valor);
+                        const dataFormatada = dataObj.toLocaleDateString('pt-BR', {
+                          day: '2-digit',
+                          month: 'long',
+                          year: 'numeric',
+                        });
 
-                        {conta.status === 'a_vencer' && (
-                          <span className={`${styles.badgeStatus} ${styles.badgeAVencer}`}>
-                            <IconClock size={16} aria-hidden="true" />
-                            <span>A vencer</span>
-                          </span>
-                        )}
+                        return (
+                          <div key={conta.id} className={styles.cardConta}>
+                            <div className={styles.infoPrincipal}>
+                              <div className={styles.iconeContainer} aria-hidden="true">
+                                {obterIconeConta(conta.descricao)}
+                              </div>
+                              <div className={styles.detalhesTexto}>
+                                <span className={styles.nomeConta}>
+                                  {conta.descricao || 'Conta sem descrição'}
+                                </span>
+                                <span className={styles.dataVencimento}>
+                                  Vencimento: <strong>{dataFormatada}</strong>
+                                </span>
+                              </div>
+                            </div>
 
-                        {conta.status === 'em_atraso' && (
-                          <span className={`${styles.badgeStatus} ${styles.badgeEmAtraso}`}>
-                            <IconAlert size={16} aria-hidden="true" />
-                            <span>Em atraso</span>
-                          </span>
-                        )}
+                            <div className={styles.valoresEStatus}>
+                              <div className={styles.blocoValorEBadge}>
+                                <strong className={styles.valorConta}>
+                                  {formatarMoeda(valorNumerico)}
+                                </strong>
 
-                        {conta.status === 'paga' && (
-                          <span className={`${styles.badgeStatus} ${styles.badgePaga}`}>
-                            <IconCheck size={16} aria-hidden="true" />
-                            <span>Paga</span>
-                          </span>
-                        )}
-                      </div>
+                                {conta.status === 'a_vencer' && (
+                                  <span className={`${styles.badgeStatus} ${styles.badgeAVencer}`}>
+                                    <IconClock size={16} aria-hidden="true" />
+                                    <span>A vencer</span>
+                                  </span>
+                                )}
 
-                      <div className={styles.acoesPagamento}>
-                        {conta.status !== 'paga' ? (
-                          <button
-                            type="button"
-                            className={styles.btnMarcarPaga}
-                            onClick={() => alternarPagamento(conta.id, true)}
-                            disabled={pendenteId === conta.id}
-                            aria-label={`Marcar a conta ${conta.descricao || 'sem descrição'} como paga`}
-                          >
-                            <IconCheck size={18} aria-hidden="true" />
-                            <span>{pendenteId === conta.id ? 'Salvando...' : 'Marcar como paga'}</span>
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className={styles.btnDesfazerPaga}
-                            onClick={() => alternarPagamento(conta.id, false)}
-                            disabled={pendenteId === conta.id}
-                            aria-label={`Desfazer pagamento da conta ${conta.descricao || 'sem descrição'}`}
-                          >
-                            <IconArrowLeft size={16} aria-hidden="true" />
-                            <span>{pendenteId === conta.id ? 'Salvando...' : 'Desfazer pagamento'}</span>
-                          </button>
-                        )}
-                      </div>
+                                {conta.status === 'em_atraso' && (
+                                  <span className={`${styles.badgeStatus} ${styles.badgeEmAtraso}`}>
+                                    <IconAlert size={16} aria-hidden="true" />
+                                    <span>Em atraso</span>
+                                  </span>
+                                )}
+
+                                {conta.status === 'paga' && (
+                                  <span className={`${styles.badgeStatus} ${styles.badgePaga}`}>
+                                    <IconCheck size={16} aria-hidden="true" />
+                                    <span>Paga</span>
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className={styles.acoesPagamento}>
+                                {conta.status !== 'paga' ? (
+                                  <button
+                                    type="button"
+                                    className={styles.btnMarcarPaga}
+                                    onClick={() => alternarPagamento(conta.id, true)}
+                                    disabled={pendenteId === conta.id}
+                                    aria-label={`Marcar a conta ${conta.descricao || 'sem descrição'} como paga`}
+                                  >
+                                    <IconCheck size={18} aria-hidden="true" />
+                                    <span>{pendenteId === conta.id ? 'Salvando...' : 'Marcar como paga'}</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className={styles.btnDesfazerPaga}
+                                    onClick={() => alternarPagamento(conta.id, false)}
+                                    disabled={pendenteId === conta.id}
+                                    aria-label={`Desfazer pagamento da conta ${conta.descricao || 'sem descrição'}`}
+                                  >
+                                    <IconArrowLeft size={16} aria-hidden="true" />
+                                    <span>{pendenteId === conta.id ? 'Salvando...' : 'Desfazer pagamento'}</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  </div>
+                  </section>
                 );
               })}
             </div>

@@ -40,6 +40,15 @@ export function calcularHoje(): Hoje {
   };
 }
 
+export function estadoPadraoVazio(hoje: Hoje): EstadoMes {
+  return {
+    mes: hoje.mes,
+    meta: 0,
+    entradasFixas: 0,
+    itens: [],
+  };
+}
+
 export function estadoPadraoExemplo(hoje: Hoje): EstadoMes {
   const diaMax = (d: number) => Math.min(d, hoje.dia);
   return {
@@ -69,7 +78,7 @@ export function carregarEstadoMes(hoje: Hoje): EstadoMes {
   } catch {
     // Caso localStorage não esteja acessível
   }
-  return estadoPadraoExemplo(hoje);
+  return estadoPadraoVazio(hoje);
 }
 
 export function salvarEstadoMes(estado: EstadoMes): void {

@@ -1,6 +1,6 @@
 /**
  * Serviço de autenticação com o backend do Vero.
- * Integração com o endpoint POST /api/v1/auth/pin (US02 / RF01).
+ * Integração com os endpoints de autenticação e cadastro (US01 / US02 / RF01 / RF03).
  */
 
 import { extrairDigitos } from '../utils/telefone';
@@ -11,6 +11,39 @@ export interface RespostaToken {
   token_type: string;
   expira_em: number;
 }
+
+export interface CadastroEntrada {
+  nome: string;
+  telefone: string;
+  pin: string;
+  email?: string;
+}
+
+export interface RespostaUsuario {
+  id: string;
+  nome: string;
+  telefone: string;
+  email?: string | null;
+  tem_pin?: boolean;
+}
+
+export const cadastrarUsuario = async (
+  dados: CadastroEntrada
+): Promise<RespostaUsuario> => {
+  const digitosTelefone = extrairDigitos(dados.telefone);
+
+  const resposta = await requisicao<RespostaUsuario>('/api/v1/auth/cadastro', {
+    method: 'POST',
+    body: JSON.stringify({
+      nome: dados.nome,
+      telefone: digitosTelefone,
+      pin: dados.pin,
+      ...(dados.email ? { email: dados.email } : {}),
+    }),
+  });
+
+  return resposta;
+};
 
 export const entrarComPin = async (
   telefone: string,

@@ -25,6 +25,7 @@ import {
   fracaoDisponivel,
   nivelDisponivel,
   mensagemDisponivel,
+  Lancamento,
 } from '../../servicos/dadosDoMes';
 
 export const Inicio: React.FC = () => {
@@ -35,6 +36,7 @@ export const Inicio: React.FC = () => {
   const [carregandoContas, setCarregandoContas] = useState(true);
   const [metaDigitada, setMetaDigitada] = useState<string | null>(null);
   const [avisoMeta, setAvisoMeta] = useState<string>('Quanto você deseja guardar no fim do mês.');
+  const [gastoParaExcluir, setGastoParaExcluir] = useState<Lancamento | null>(null);
 
   useEffect(() => {
     let ativo = true;
@@ -53,12 +55,12 @@ export const Inicio: React.FC = () => {
     };
   }, []);
 
-  // Total de contas pendentes (a vencer ou em atraso) em centavos
-  const totalContasPendentesCentavos = useMemo(() => {
+  // Total de contas cadastradas para o mês (em centavos)
+  // Conforme a regra de negócio (saldo.py): contas cadastradas já são compromissos
+  // do mês; pagar uma conta não altera o saldo disponível.
+  const totalContasDoMesCentavos = useMemo(() => {
     return Math.round(
-      contas
-        .filter((c) => c.status !== 'paga')
-        .reduce((soma, c) => soma + Number(c.valor), 0) * 100
+      contas.reduce((soma, c) => soma + Number(c.valor), 0) * 100
     );
   }, [contas]);
 
@@ -73,11 +75,10 @@ export const Inicio: React.FC = () => {
   // Cálculo da composição do saldo disponível
   const entradasFixas = estado.entradasFixas;
   const gastosAnotados = totalGastos(estado.itens);
-  const saldoDisponivelCentavos = Math.max(
-    0,
-    entradasFixas - totalContasPendentesCentavos - gastosAnotados
-  );
+  const saldoDisponivelCentavos =
+    entradasFixas - totalContasDoMesCentavos - gastosAnotados;
   const fracao = fracaoDisponivel(saldoDisponivelCentavos, entradasFixas);
+  const percentualGasto = Math.min(100, Math.max(0, Math.round((1 - fracao) * 100)));
   const nivel = nivelDisponivel(fracao);
 
   // Pontos do gráfico de saldo dia a dia
@@ -146,9 +147,9 @@ export const Inicio: React.FC = () => {
             {/* Card Principal: Saldo Disponível com Origem Clara */}
             <section className={styles.card} aria-labelledby="titulo-saldo">
               <div className={styles.topoSaldo}>
-                <span id="titulo-saldo" className={styles.rotuloSaldo}>
+                <h1 id="titulo-saldo" className={styles.rotuloSaldo}>
                   Você ainda tem disponível no mês:
-                </span>
+                </h1>
                 <BotaoAudio textoParaLer={textoAudio} />
               </div>
 
@@ -163,10 +164,11 @@ export const Inicio: React.FC = () => {
               <div
                 className={styles.barraProgresso}
                 role="progressbar"
-                aria-valuenow={Math.round(fracao * 100)}
+                aria-valuenow={percentualGasto}
                 aria-valuemin={0}
                 aria-valuemax={100}
-                aria-label="Fração do dinheiro disponível no mês"
+                aria-label={`Você já gastou ${percentualGasto}% do dinheiro do mês`}
+                aria-valuetext={`Você já gastou ${percentualGasto}% do dinheiro do mês`}
               >
                 <div
                   className={`${styles.barraPreenchimento} ${
@@ -176,7 +178,7 @@ export const Inicio: React.FC = () => {
                       ? styles.barraAmarela
                       : styles.barraVermelha
                   }`}
-                  style={{ width: `${Math.round(fracao * 100)}%` }}
+                  style={{ width: `${percentualGasto}%` }}
                 />
               </div>
 
@@ -191,7 +193,7 @@ export const Inicio: React.FC = () => {
                 </div>
                 <div className={styles.origemLinha}>
                   <span>Contas a pagar cadastradas</span>
-                  <strong className={styles.valorNegativo}>− {formatarMoeda(totalContasPendentesCentavos)}</strong>
+                  <strong className={styles.valorNegativo}>− {formatarMoeda(totalContasDoMesCentavos)}</strong>
                 </div>
                 <div className={styles.origemLinha}>
                   <span>Gastos anotados no dia a dia</span>
@@ -216,7 +218,9 @@ export const Inicio: React.FC = () => {
               </button>
 
               <a
-                href="https://wa.me/5561999998888"
+                href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMERO || '5561999998888'}?text=${encodeURIComponent(
+                  'Olá! Gostaria de anotar um gasto no Vero.'
+                )}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.btnWhatsApp}
@@ -372,57 +376,144 @@ export const Inicio: React.FC = () => {
               </div>
 
               <div className={styles.listaGastos}>
-                {ultimosGastos.map((item) => {
-                  const ehEntrada = item.tipo === 'entrada';
-                  const quando =
-                    item.dia === hoje.dia
-                      ? 'Hoje'
-                      : item.dia === hoje.dia - 1
-                      ? 'Ontem'
-                      : `Dia ${item.dia}`;
+                {ultimosGastos.length === 0 ? (
+                  <p style={{ fontSize: 16, color: 'var(--ardosia)', margin: '16px 0' }}>
+                    Nenhum gasto anotado ainda neste mês.
+                  </p>
+                ) : (
+                  ultimosGastos.map((item) => {
+                    const ehEntrada = item.tipo === 'entrada';
+                    const quando =
+                      item.dia === hoje.dia
+                        ? 'Hoje'
+                        : item.dia === hoje.dia - 1
+                        ? 'Ontem'
+                        : `Dia ${item.dia}`;
 
-                  return (
-                    <div key={item.id} className={styles.itemGasto}>
-                      <div className={styles.infoGasto}>
-                        <div className={styles.iconeGasto} aria-hidden="true">
-                          {obterIcone(item.categoria)}
+                    return (
+                      <div key={item.id} className={styles.itemGasto}>
+                        <div className={styles.infoGasto}>
+                          <div className={styles.iconeGasto} aria-hidden="true">
+                            {obterIcone(item.categoria)}
+                          </div>
+                          <div>
+                            <div className={styles.nomeGasto}>{item.categoria}</div>
+                            <div className={styles.dataGasto}>{quando}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className={styles.nomeGasto}>{item.categoria}</div>
-                          <div className={styles.dataGasto}>{quando}</div>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <strong
-                          className={styles.valorGasto}
-                          style={{
-                            color: ehEntrada
-                              ? 'var(--sucesso-texto)'
-                              : 'var(--erro-texto)',
-                          }}
-                        >
-                          {ehEntrada ? '+' : '−'} {formatarMoeda(item.centavos)}
-                        </strong>
-                        {!ehEntrada && (
-                          <button
-                            type="button"
-                            className={styles.btnApagarGasto}
-                            onClick={() => removerLancamento(item.id)}
-                            aria-label={`Apagar gasto de ${item.categoria}`}
-                            title="Apagar este gasto"
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <strong
+                            className={styles.valorGasto}
+                            style={{
+                              color: ehEntrada
+                                ? 'var(--sucesso-texto)'
+                                : 'var(--erro-texto)',
+                            }}
                           >
-                            <IconTrash size={18} />
-                          </button>
-                        )}
+                            {ehEntrada ? '+' : '−'} {formatarMoeda(item.centavos)}
+                          </strong>
+                          {!ehEntrada && (
+                            <button
+                              type="button"
+                              className={styles.btnApagarGasto}
+                              onClick={() => setGastoParaExcluir(item)}
+                              aria-label={`Apagar gasto de ${item.categoria}`}
+                              title="Apagar este gasto"
+                            >
+                              <IconTrash size={18} />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </section>
           </div>
         </div>
       </main>
+
+      {/* Modal de Confirmação para Exclusão de Gasto (RF10 / #68) */}
+      {gastoParaExcluir && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="titulo-modal-excluir"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(26, 26, 46, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 20,
+              padding: 24,
+              maxWidth: 400,
+              width: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 16,
+              boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
+            }}
+          >
+            <h2 id="titulo-modal-excluir" style={{ fontSize: 20, margin: 0, color: 'var(--grafite-noturno)' }}>
+              Tem certeza?
+            </h2>
+            <p style={{ margin: 0, fontSize: 16, color: 'var(--ardosia)', lineHeight: 1.5 }}>
+              Deseja realmente apagar o gasto de{' '}
+              <strong>{gastoParaExcluir.categoria}</strong> no valor de{' '}
+              <strong>{formatarMoeda(gastoParaExcluir.centavos)}</strong>?
+            </p>
+            <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  removerLancamento(gastoParaExcluir.id);
+                  setGastoParaExcluir(null);
+                }}
+                style={{
+                  flex: 1,
+                  minHeight: 48,
+                  backgroundColor: '#DC2626',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 12,
+                  fontSize: 16,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Sim, apagar
+              </button>
+              <button
+                type="button"
+                onClick={() => setGastoParaExcluir(null)}
+                style={{
+                  flex: 1,
+                  minHeight: 48,
+                  backgroundColor: '#F3F4F6',
+                  color: 'var(--grafite-noturno)',
+                  border: '2px solid #D1D5DB',
+                  borderRadius: 12,
+                  fontSize: 16,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

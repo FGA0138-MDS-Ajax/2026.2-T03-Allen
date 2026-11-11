@@ -10,12 +10,14 @@ import {
   IconWhatsApp,
 } from '../../components';
 import { useNavegacao } from '../../router';
+import { cadastrarUsuario, ErroApi } from '../../servicos';
 import { formatarCelular, validarCelular } from '../../utils/telefone';
 import styles from './Cadastro.module.css';
 
 export const Cadastro = () => {
   const { navegar } = useNavegacao();
-  const [passo, setPasso] = useState<1 | 2 | 3 | 4>(1);
+  const [passo, setPasso] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [carregando, setCarregando] = useState(false);
 
   // Dados do formulário
   const [nome, setNome] = useState('');
@@ -82,19 +84,33 @@ export const Cadastro = () => {
     setPasso(4);
   };
 
-  const finalizarCadastro = () => {
+  const finalizarCadastro = async () => {
     if (segundoPin !== primeiroPin) {
       setErro('Os números digitados não conferem. Digite novamente.');
       setSegundoPin('');
       return;
     }
 
-    localStorage.setItem(
-      'vero_usuario',
-      JSON.stringify({ nome, celular, pin: primeiroPin })
-    );
+    setCarregando(true);
+    setErro(null);
 
-    navegar('/entrar');
+    try {
+      await cadastrarUsuario({
+        nome: nome.trim(),
+        telefone: celular,
+        pin: primeiroPin,
+      });
+
+      setPasso(5);
+    } catch (e) {
+      if (e instanceof ErroApi) {
+        setErro(e.detalhe);
+      } else {
+        setErro('Não foi possível realizar o cadastro no Vero. Tente novamente.');
+      }
+    } finally {
+      setCarregando(false);
+    }
   };
 
   return (
@@ -325,13 +341,62 @@ export const Cadastro = () => {
                 <Botao
                   variant="primary"
                   fullWidth
-                  disabled={segundoPin.length !== 4}
+                  disabled={segundoPin.length !== 4 || carregando}
                   onClick={finalizarCadastro}
                 >
-                  Confirmar e salvar
+                  {carregando ? 'Salvando cadastro...' : 'Confirmar e salvar'}
                 </Botao>
               </div>
             </>
+          )}
+
+          {passo === 5 && (
+            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+              <div
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: '50%',
+                  backgroundColor: '#D1FAE5',
+                  color: '#065F46',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                aria-hidden="true"
+              >
+                <IconCheck size={36} />
+              </div>
+
+              <h2 className={styles.titulo}>Cadastro concluído!</h2>
+              <p className={styles.subtitulo}>
+                Sua conta no Vero foi criada com sucesso. Agora você pode falar com o assistente pelo WhatsApp ou acessar o aplicativo.
+              </p>
+
+              <div className={styles.botoesAcao} style={{ width: '100%', marginTop: 8 }}>
+                <a
+                  href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMERO || '5561999998888'}?text=${encodeURIComponent(
+                    'Olá! Acabei de criar minha conta no Vero.'
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ textDecoration: 'none' }}
+                >
+                  <Botao variant="primary" fullWidth>
+                    <IconWhatsApp size={22} />
+                    <span>Falar com o assistente no WhatsApp</span>
+                  </Botao>
+                </a>
+
+                <Botao
+                  variant="secondary"
+                  fullWidth
+                  onClick={() => navegar('/entrar')}
+                >
+                  Entrar no aplicativo
+                </Botao>
+              </div>
+            </div>
           )}
         </section>
       </div>

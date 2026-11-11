@@ -35,6 +35,20 @@ describe('Página Extrato de Movimentações', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(servicos.listarContas).mockResolvedValue(mockContas);
+    const data = new Date();
+    const mes = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
+    localStorage.setItem(
+      'vero-dados-do-mes',
+      JSON.stringify({
+        mes,
+        meta: 200000,
+        entradasFixas: 330000,
+        itens: [
+          { id: 1, dia: 1, tipo: 'entrada', centavos: 330000, categoria: 'Salário / Renda' },
+          { id: 2, dia: 2, tipo: 'gasto', centavos: 5000, categoria: 'Mercado' },
+        ],
+      })
+    );
   });
 
   it('renderiza o cabeçalho, resumo consolidado e movimentações unificadas', async () => {
