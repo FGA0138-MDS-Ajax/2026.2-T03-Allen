@@ -1,5 +1,7 @@
 """Hash de senha e PIN (bcrypt) e tokens de sessão (JWT)."""
 
+import hashlib
+import hmac
 import uuid
 from datetime import UTC, datetime, timedelta
 
@@ -23,6 +25,12 @@ def gerar_hash(valor: str) -> str:
 
 def conferir_hash(valor: str, hash_salvo: str) -> bool:
     return bcrypt.checkpw(valor.encode(), hash_salvo.encode())
+
+
+# Hash determinístico para telefone (HMAC-SHA256 com SECRET_KEY como pepper)
+# O mesmo telefone sempre gera o mesmo hash, permitindo buscas e unique constraint.
+def hash_telefone(valor: str) -> str:
+    return hmac.new(settings.SECRET_KEY.encode(), valor.encode(), hashlib.sha256).hexdigest()
 
 
 # Conferido quando o celular não existe, para a resposta levar o mesmo tempo

@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.modulos.identidade.esquemas import CadastroEntrada
 from app.modulos.identidade.modelos import Usuario
-from app.modulos.identidade.seguranca import HASH_FICTICIO, conferir_hash, gerar_hash
+from app.modulos.identidade.seguranca import HASH_FICTICIO, conferir_hash, gerar_hash, hash_telefone
 
 
 class Attempts(Enum):
@@ -18,7 +18,7 @@ class Attempts(Enum):
 
     MAX_TENTATIVAS = 5
     TEMPO_BLOQUEIO = timedelta(seconds=30)
-    DURACAO_TOKEN_SENHA = timedelta(days=7)
+    # DURACAO_TOKEN_SENHA = timedelta(days=7)
     DURACAO_TOKEN_PIN = timedelta(hours=2)
 
 
@@ -34,10 +34,6 @@ class CredenciaisInvalidas(Exception):
     pass
 
 
-class PinNaoCriado(Exception):
-    pass
-
-
 class ContaBloqueada(Exception):
     def __init__(self, segundos_restantes: int) -> None:
         super().__init__(segundos_restantes)
@@ -45,34 +41,36 @@ class ContaBloqueada(Exception):
 
 
 def cadastrar(sessao: Session, dados: CadastroEntrada) -> Usuario:
-    email = dados.email.lower()
-    if sessao.scalar(select(Usuario.id).where(Usuario.telefone == dados.telefone)):
+    hash_tel = hash_telefone(dados.telefone)
+    if sessao.scalar(select(Usuario.id).where(Usuario.hash_telefone == hash_tel)):
         raise TelefoneJaCadastrado
+
+    email = dados.email.lower()
     if sessao.scalar(select(Usuario.id).where(Usuario.email == email)):
         raise EmailJaCadastrado
 
     usuario = Usuario(
         nome=dados.nome,
-        telefone=dados.telefone,
+        hash_telefone=hash_tel,
         email=email,
-        hash_senha=gerar_hash(dados.senha),
+        hash_pin=gerar_hash(dados.pin),
     )
+    usuario.telefone = dados.telefone  # para resposta da API (não persistido)
     sessao.add(usuario)
     try:
         sessao.commit()
     except IntegrityError:
-        # Outro cadastro com o mesmo celular entrou entre a verificação e o commit
         sessao.rollback()
         raise TelefoneJaCadastrado from None
     sessao.refresh(usuario)
     return usuario
 
 
-def autenticar(sessao: Session, telefone: str, segredo: str, metodo: str) -> Usuario:
-    """Confere a senha ou o PIN. Após MAX_TENTATIVAS erros seguidos, bloqueia por
-    TEMPO_BLOQUEIO. Senha e PIN contam juntos."""
+def autenticar(sessao: Session, telefone: str, segredo: str) -> Usuario:
+    """Confere o PIN. Após MAX_TENTATIVAS erros seguidos, bloqueia por TEMPO_BLOQUEIO."""
+    hash_tel = hash_telefone(telefone)
     usuario = sessao.scalar(
-        select(Usuario).where(Usuario.telefone == telefone).with_for_update()
+        select(Usuario).where(Usuario.hash_telefone == hash_tel).with_for_update()
     )
     if usuario is None:
         conferir_hash(segredo, HASH_FICTICIO)
@@ -83,12 +81,11 @@ def autenticar(sessao: Session, telefone: str, segredo: str, metodo: str) -> Usu
         sessao.rollback()
         raise ContaBloqueada(_segundos_ate(usuario.bloqueado_ate, agora))
 
-    hash_salvo = usuario.hash_senha if metodo == "senha" else usuario.hash_pin
-    if hash_salvo is None:
-        sessao.rollback()
-        raise PinNaoCriado
+    # if usuario.hash_pin is None:
+    #     sessao.rollback()  -> pin agora é obrigatorio
+    #     raise PinNaoCriado
 
-    if not conferir_hash(segredo, hash_salvo):
+    if not conferir_hash(segredo, usuario.hash_pin):
         usuario.tentativas += 1
         bloqueou = usuario.tentativas >= Attempts.MAX_TENTATIVAS.value
         if bloqueou:
@@ -103,11 +100,6 @@ def autenticar(sessao: Session, telefone: str, segredo: str, metodo: str) -> Usu
     usuario.bloqueado_ate = None
     sessao.commit()
     return usuario
-
-
-def definir_pin(sessao: Session, usuario: Usuario, pin: str) -> None:
-    usuario.hash_pin = gerar_hash(pin)
-    sessao.commit()
 
 
 def _segundos_ate(momento: datetime, agora: datetime) -> int:

@@ -13,14 +13,15 @@ class Usuario(Base):
     __tablename__ = "tblUsuario"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        "idUsuario", primary_key=True, server_default=text("gen_random_uuid()")
+        "idUsuario",
+        primary_key=True,
+        default=uuid.uuid4,
+        server_default=text("gen_random_uuid()"),
     )
     nome: Mapped[str] = mapped_column("noUsuario", String(255))
-    telefone: Mapped[str] = mapped_column("nuTelefone", String(255), unique=True)
+    hash_telefone: Mapped[str] = mapped_column("hashTelefone", String(255), unique=True)
     email: Mapped[str] = mapped_column("noEmail", String(255), unique=True)
-    # hashUsuario guarda o hash da senha; o PIN, opcional, fica em hashPin
-    hash_senha: Mapped[str] = mapped_column("hashUsuario", Text)
-    hash_pin: Mapped[str | None] = mapped_column("hashPin", Text)
+    hash_pin: Mapped[str] = mapped_column("hashPin", Text)
     tentativas: Mapped[int] = mapped_column("nuTentativas", default=0)
     bloqueado_ate: Mapped[datetime | None] = mapped_column(
         "dhBloqueio", DateTime(timezone=True)
@@ -33,6 +34,9 @@ class Usuario(Base):
     criado_em: Mapped[datetime] = mapped_column(
         "dhCriacao", DateTime(timezone=True), server_default=func.now()
     )
+
+    # Preenchido temporariamente para resposta da API (não persistido)
+    telefone: str = ""
 
     @property
     def tem_pin(self) -> bool:

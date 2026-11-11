@@ -147,3 +147,49 @@ def test_cadastro_com_categoria_inexistente_retorna_422(
 
     assert resposta.status_code == 422
     assert "categoria não existe" in resposta.text
+
+
+def test_recorrente_gera_proximo_mes_apos_pagamento(cliente_logado, sessao):
+    # cadastra conta recorrente dia 31
+    resp = cliente_logado.post(
+        "/api/v1/contas",
+        json={"vencimento_em": "2026-01-31", "valor": "100.00", "recorrente": True},
+    )
+    conta_id = resp.json()["id"]
+
+    # pagamento em janeiro
+    cliente_logado.patch(f"/api/v1/contas/{conta_id}/pagamento", json={"paga": True})
+
+    # verifica que fevereiro tem 28 dias
+    contas = cliente_logado.get("/api/v1/contas").json()
+    fev = [conta for conta in contas if conta["vencimento_em"].startswith("2026-02")]
+    assert len(fev) == 1
+    assert fev[0]["vencimento_em"] == "2026-02-28"  # mudar de 31 -> 28
+
+
+def test_recorrente_setembro(cliente_logado):
+    resp = cliente_logado.post(
+        "/api/v1/contas",
+        json={"vencimento_em": "2026-08-30", "valor": "80.00", "recorrente": True},
+    )
+
+    conta_id = resp.json()["id"]
+    cliente_logado.patch(f"/api/v1/contas/{conta_id}/pagamento", json={"paga": True})
+
+    contas = cliente_logado.get("/api/v1/contas").json()
+    set = [conta for conta in contas if conta["vencimento_em"].startswith("2026-09")]
+    assert set[0]["vencimento_em"] == "2026-09-30"  # nao mudar 30, pq existe
+
+
+def test_recorrente_abril(cliente_logado):
+    resp = cliente_logado.post(
+        "/api/v1/contas",
+        json={"vencimento_em": "2026-03-31", "valor": "50.00", "recorrente": True},
+    )
+
+    conta_id = resp.json()["id"]
+    cliente_logado.patch(f"/api/v1/contas/{conta_id}/pagamento", json={"paga": True})
+
+    contas = cliente_logado.get("/api/v1/contas").json()
+    set = [conta for conta in contas if conta["vencimento_em"].startswith("2026-04")]
+    assert set[0]["vencimento_em"] == "2026-04-30"  # mudar de 31 -> 30
