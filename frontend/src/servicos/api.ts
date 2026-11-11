@@ -80,12 +80,16 @@ export const requisicao = async <T>(
       }
     } catch {
       // Se não for JSON (ex.: erro de proxy 500/502 do Vite com ECONNREFUSED)
-      if (resposta.status === 500 || resposta.status === 502 || resposta.status === 504) {
+      if (resposta.status === 502 || resposta.status === 503 || resposta.status === 504) {
         mensagemErro =
           'O servidor backend (porta 8000) não está em execução neste computador. Inicie o backend ou verifique a conexão.';
+      } else if (resposta.status === 500) {
+        mensagemErro =
+          'Ocorreu um erro interno no servidor (500). Verifique os logs do backend.';
       } else if (resposta.statusText) {
         mensagemErro = resposta.statusText;
       }
+
     }
 
     if (resposta.status === 401) {

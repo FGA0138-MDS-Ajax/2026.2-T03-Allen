@@ -16,19 +16,18 @@ import styles from './Cadastro.module.css';
 
 export const Cadastro = () => {
   const { navegar } = useNavegacao();
-  const [passo, setPasso] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [passo, setPasso] = useState<1 | 2 | 3 | 4>(1);
   const [carregando, setCarregando] = useState(false);
 
   // Dados do formulário
   const [nome, setNome] = useState('');
   const [celular, setCelular] = useState('');
   const [email, setEmail] = useState('');
-  const [codigo, setCodigo] = useState('');
   const [primeiroPin, setPrimeiroPin] = useState('');
   const [segundoPin, setSegundoPin] = useState('');
   const [erro, setErro] = useState<string | null>(null);
 
-  const avancarParaCodigo = () => {
+  const avancarParaPin = () => {
     if (!nome.trim()) {
       setErro('Por favor, informe seu nome.');
       return;
@@ -56,21 +55,12 @@ export const Cadastro = () => {
     setPasso(2);
   };
 
-  const avancarParaPin = () => {
-    if (!codigo.trim()) {
-      setErro('Digite o código de verificação recebido.');
-      return;
-    }
-    setErro(null);
-    setPasso(3);
-  };
-
   const digitarPin = (d: string) => {
-    if (passo === 3) {
+    if (passo === 2) {
       if (primeiroPin.length < 4) {
         setPrimeiroPin((prev) => prev + d);
       }
-    } else if (passo === 4) {
+    } else if (passo === 3) {
       if (segundoPin.length < 4) {
         setSegundoPin((prev) => prev + d);
       }
@@ -78,9 +68,9 @@ export const Cadastro = () => {
   };
 
   const apagarPin = () => {
-    if (passo === 3) {
+    if (passo === 2) {
       setPrimeiroPin((prev) => prev.slice(0, -1));
-    } else if (passo === 4) {
+    } else if (passo === 3) {
       setSegundoPin((prev) => prev.slice(0, -1));
     }
   };
@@ -91,7 +81,7 @@ export const Cadastro = () => {
       return;
     }
     setErro(null);
-    setPasso(4);
+    setPasso(3);
   };
 
   const finalizarCadastro = async () => {
@@ -112,7 +102,7 @@ export const Cadastro = () => {
         email: email.trim(),
       });
 
-      setPasso(5);
+      setPasso(4);
     } catch (e) {
       if (e instanceof ErroApi) {
         setErro(e.detalhe);
@@ -219,7 +209,7 @@ export const Cadastro = () => {
               <CampoTexto
                 rotulo="Número de celular com DDD"
                 placeholder="(61) 99999-8888"
-                ajuda="Enviaremos uma mensagem de confirmação para este número"
+                ajuda="Seu celular será seu número de acesso ao Vero"
                 type="tel"
                 inputMode="numeric"
                 maxLength={15}
@@ -243,7 +233,7 @@ export const Cadastro = () => {
               />
 
               <div className={styles.botoesAcao}>
-                <Botao variant="primary" fullWidth onClick={avancarParaCodigo}>
+                <Botao variant="primary" fullWidth onClick={avancarParaPin}>
                   Continuar
                 </Botao>
                 <Botao
@@ -260,36 +250,6 @@ export const Cadastro = () => {
           {passo === 2 && (
             <>
               <span className={styles.etapaIndicador}>Passo 2 de 3</span>
-              <h2 className={styles.titulo}>Código de confirmação</h2>
-              <p className={styles.subtitulo}>
-                Digite o código enviado para o número de celular informado.
-              </p>
-
-              <CampoTexto
-                rotulo="Código de verificação"
-                placeholder="000000"
-                value={codigo}
-                onChange={(e) => setCodigo(e.target.value)}
-              />
-
-              <div className={styles.botoesAcao}>
-                <Botao variant="primary" fullWidth onClick={avancarParaPin}>
-                  Confirmar
-                </Botao>
-                <Botao
-                  variant="secondary"
-                  fullWidth
-                  onClick={() => setPasso(1)}
-                >
-                  Voltar e corrigir dados
-                </Botao>
-              </div>
-            </>
-          )}
-
-          {passo === 3 && (
-            <>
-              <span className={styles.etapaIndicador}>Passo 3 de 3</span>
               <h2 className={styles.titulo}>Crie seu PIN numérico</h2>
               <p className={styles.subtitulo}>
                 Escolha 4 números fáceis de lembrar para entrar no aplicativo.
@@ -326,13 +286,20 @@ export const Cadastro = () => {
                 >
                   Continuar
                 </Botao>
+                <Botao
+                  variant="secondary"
+                  fullWidth
+                  onClick={() => setPasso(1)}
+                >
+                  Voltar e corrigir dados
+                </Botao>
               </div>
             </>
           )}
 
-          {passo === 4 && (
+          {passo === 3 && (
             <>
-              <span className={styles.etapaIndicador}>Confirmação</span>
+              <span className={styles.etapaIndicador}>Passo 3 de 3</span>
               <h2 className={styles.titulo}>Confirme seu PIN</h2>
               <p className={styles.subtitulo}>
                 Digite novamente os 4 números para confirmar.
@@ -369,11 +336,21 @@ export const Cadastro = () => {
                 >
                   {carregando ? 'Salvando cadastro...' : 'Confirmar e salvar'}
                 </Botao>
+                <Botao
+                  variant="secondary"
+                  fullWidth
+                  onClick={() => {
+                    setSegundoPin('');
+                    setPasso(2);
+                  }}
+                >
+                  Voltar e alterar PIN
+                </Botao>
               </div>
             </>
           )}
 
-          {passo === 5 && (
+          {passo === 4 && (
             <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
               <div
                 style={{

@@ -23,11 +23,13 @@ import {
   useDadosDoMes,
   saldoPorDia,
   totalGastos,
+  totalEntradas,
   fracaoDisponivel,
   nivelDisponivel,
   mensagemDisponivel,
   Lancamento,
 } from '../../servicos/dadosDoMes';
+
 
 export const Inicio: React.FC = () => {
   const { navegar } = useNavegacao();
@@ -46,9 +48,10 @@ export const Inicio: React.FC = () => {
 
   const [contas, setContas] = useState<ContaSaida[]>([]);
   const [carregandoContas, setCarregandoContas] = useState(true);
-  const [metaDigitada, setMetaDigitada] = useState<string | null>(null);
+  const [metaDigitada, setMetaDigitada] = useState<string>('');
   const [avisoMeta, setAvisoMeta] = useState<string>('Quanto você deseja guardar no fim do mês.');
   const [gastoParaExcluir, setGastoParaExcluir] = useState<Lancamento | null>(null);
+
 
   useEffect(() => {
     let ativo = true;
@@ -72,7 +75,7 @@ export const Inicio: React.FC = () => {
   // do mês; pagar uma conta não altera o saldo disponível.
   const totalContasDoMesCentavos = useMemo(() => {
     return Math.round(
-      contas.reduce((soma, c) => soma + Number(c.valor), 0) * 100
+      contas.reduce((soma, c) => soma + (Number(c.valor) || 0), 0) * 100
     );
   }, [contas]);
 
@@ -84,11 +87,15 @@ export const Inicio: React.FC = () => {
       .slice(0, 3);
   }, [contas]);
 
-  // Cálculo da composição do saldo disponível
-  const entradasFixas = estado.entradasFixas;
-  const gastosAnotados = totalGastos(estado.itens);
+  // Cálculo da composição do saldo disponível (soma de todas as entradas registradas no mês)
+  const entradasFixas = Math.max(
+    totalEntradas(estado.itens),
+    Number(estado.entradasFixas) || 0
+  );
+  const gastosAnotados = totalGastos(estado.itens) || 0;
   const saldoDisponivelCentavos =
     entradasFixas - totalContasDoMesCentavos - gastosAnotados;
+
   const fracao = fracaoDisponivel(saldoDisponivelCentavos, entradasFixas);
   const percentualGasto = Math.min(100, Math.max(0, Math.round((1 - fracao) * 100)));
   const nivel = nivelDisponivel(fracao);
@@ -106,11 +113,13 @@ export const Inicio: React.FC = () => {
   }, [estado.itens]);
 
   const formatarMoeda = (centavos: number) => {
-    return (centavos / 100).toLocaleString('pt-BR', {
+    const valor = Number.isFinite(centavos) ? centavos : 0;
+    return (valor / 100).toLocaleString('pt-BR', {
       style: 'currency',
       currency: 'BRL',
     });
   };
+
 
   const obterIcone = (categoria: string) => {
     const c = categoria.toLowerCase();
@@ -134,15 +143,36 @@ export const Inicio: React.FC = () => {
 
   const salvarMeta = (e: React.FormEvent) => {
     e.preventDefault();
-    const reais = Number((metaDigitada ?? '').replace(/\D/g, ''));
-    if (!reais) {
+    const textoLimpo = metaDigitada.trim();
+    if (!textoLimpo) {
       setAvisoMeta('Digite um valor numérico para a meta, por exemplo 2000.');
       return;
     }
-    definirMeta(reais * 100);
-    setMetaDigitada(null);
-    setAvisoMeta(`Meta de saldo salva: ${formatarMoeda(reais * 100)}.`);
+
+    let centavos = 0;
+    if (textoLimpo.includes(',')) {
+      const normalizado = textoLimpo
+        .replace(/\./g, '')
+        .replace(',', '.')
+        .replace(/[^\d.]/g, '');
+      const num = parseFloat(normalizado);
+      centavos = Math.round((Number.isFinite(num) ? num : 0) * 100);
+    } else {
+      const apenasDigitos = textoLimpo.replace(/\D/g, '');
+      const num = parseInt(apenasDigitos, 10);
+      centavos = (Number.isFinite(num) ? num : 0) * 100;
+    }
+
+    if (centavos <= 0) {
+      setAvisoMeta('Digite um valor numérico maior que zero para a meta.');
+      return;
+    }
+
+    definirMeta(centavos);
+    setMetaDigitada('');
+    setAvisoMeta(`Meta de saldo salva: ${formatarMoeda(centavos)}.`);
   };
+
 
   const textoAudio = `Você ainda tem disponível no mês: ${formatarMoeda(
     saldoDisponivelCentavos
@@ -226,8 +256,9 @@ export const Inicio: React.FC = () => {
                 onClick={() => navegar('/anotar-gasto')}
               >
                 <IconPlus size={24} />
-                <span>Anotar novo gasto ou entrada</span>
+                <span>Anotar gasto/recebimento</span>
               </button>
+
 
               <a
                 href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMERO || '5561999998888'}?text=${encodeURIComponent(
@@ -331,13 +362,14 @@ export const Inicio: React.FC = () => {
                     id="input-meta-valor"
                     type="text"
                     inputMode="numeric"
-                    placeholder="Ex: 2000"
-                    value={
-                      metaDigitada !== null
-                        ? metaDigitada
-                        : (estado.meta / 100).toLocaleString('pt-BR')
-                    }
-                    onChange={(e) => setMetaDigitada(e.target.value)}
+                    placeholder={estado.meta > 0 ? `Atual: ${formatarMoeda(estado.meta)}` : 'Ex: 2000'}
+                    value={metaDigitada}
+                    onChange={(e) => {
+                      setMetaDigitada(e.target.value);
+                      if (avisoMeta.includes('Digite um valor')) {
+                        setAvisoMeta('Quanto você deseja guardar no fim do mês.');
+                      }
+                    }}
                     className={styles.inputMeta}
                     aria-label="Valor da meta de saldo em reais"
                   />
@@ -351,12 +383,18 @@ export const Inicio: React.FC = () => {
                 </span>
 
                 <div className={styles.destaqueMeta}>
+                  {estado.meta > 0 && (
+                    <div style={{ marginBottom: 4, fontWeight: 700 }}>
+                      Meta definida: {formatarMoeda(estado.meta)}
+                    </div>
+                  )}
                   {saldoDisponivelCentavos >= estado.meta
                     ? 'Seu saldo disponível está acima da meta do mês.'
                     : `Faltam ${formatarMoeda(
                         estado.meta - saldoDisponivelCentavos
                       )} para você alcançar sua meta.`}
                 </div>
+
               </form>
             </section>
 

@@ -86,6 +86,29 @@ describe('Serviços de API e Autenticação', () => {
     expect(obterToken()).toBe('token-gerado');
   });
 
+  it('faz fallback para /api/v1/auth/login quando /api/v1/auth/pin retorna 404', async () => {
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: async () => ({ detail: 'Not Found' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          access_token: 'token-fallback-login',
+          token_type: 'bearer',
+          expira_em: 7200,
+        }),
+      });
+
+    const resposta = await entrarComPin('(61) 99999-8888', '1234');
+    expect(resposta.access_token).toBe('token-fallback-login');
+    expect(obterToken()).toBe('token-fallback-login');
+  });
+
   it('lista e cadastra contas a pagar (RF25)', async () => {
     salvarToken('token-valido');
 

@@ -31,14 +31,19 @@ def _cadastrar_conta(
 
 
 def _criar_outro_usuario(sessao: Session) -> Usuario:
+    from app.modulos.identidade.seguranca import hash_telefone
+
     sufixo = uuid.uuid4().hex[:8]
+    telefone = "55619" + sufixo
     usuario = Usuario(
+        id=uuid.uuid4(),
         nome="João",
-        telefone="55619" + sufixo,
+        hash_telefone=hash_telefone(telefone),
         email=f"joao{sufixo}@vero.com",
-        hash_senha=gerar_hash("senha12345"),
+        hash_pin=gerar_hash("123456"),
         tentativas=0,
     )
+    usuario.telefone = telefone
     sessao.add(usuario)
     sessao.commit()
     sessao.refresh(usuario)

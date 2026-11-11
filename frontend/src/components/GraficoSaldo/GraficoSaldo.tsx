@@ -14,14 +14,17 @@ export interface GraficoSaldoProps {
 }
 
 const ALTURA = 320;
-const MARGEM = { topo: 20, dir: 24, base: 36, esq: 84 };
+const MARGEM = { topo: 32, dir: 36, base: 36, esq: 84 };
+
 
 function formatarMoeda(centavos: number): string {
-  return (centavos / 100).toLocaleString('pt-BR', {
+  const valor = Number.isFinite(centavos) ? centavos : 0;
+  return (valor / 100).toLocaleString('pt-BR', {
     style: 'currency',
     currency: 'BRL',
   });
 }
+
 
 function rotuloReaisAbreviado(centavos: number): string {
   return `R$ ${(centavos / 100).toLocaleString('pt-BR')}`;
@@ -200,29 +203,44 @@ export const GraficoSaldo: React.FC<GraficoSaldoProps> = ({
               />
             )}
 
-            {/* Círculo do último saldo registrado */}
-            {pontos.length > 0 && (
-              <>
-                <circle
-                  cx={calcularX(ultimoPonto.dia)}
-                  cy={calcularY(ultimoPonto.saldo)}
-                  r={6}
-                  fill="#7C3AED"
-                  stroke="#FFFFFF"
-                  strokeWidth={2}
-                />
-                <text
-                  x={calcularX(ultimoPonto.dia)}
-                  y={calcularY(ultimoPonto.saldo) - 12}
-                  textAnchor="middle"
-                  fill="#1A1A2E"
-                  fontSize={14}
-                  fontWeight={800}
-                >
-                  {formatarMoeda(ultimoPonto.saldo)}
-                </text>
-              </>
-            )}
+            {/* Círculo do último saldo registrado com rótulo protegido */}
+            {pontos.length > 0 && (() => {
+              const cx = calcularX(ultimoPonto.dia);
+              const cy = calcularY(ultimoPonto.saldo);
+              const rotulo = formatarMoeda(ultimoPonto.saldo);
+              // Se o ponto estiver muito próximo ao topo do gráfico, coloca o texto abaixo do ponto
+              const textY = cy - 14 < MARGEM.topo + 12 ? cy + 22 : cy - 14;
+              // Mantém o texto dentro dos limites horizontais do SVG
+              const textX = Math.min(largura - MARGEM.dir - 35, Math.max(MARGEM.esq + 35, cx));
+
+              return (
+                <g key="ultimo-ponto">
+                  <circle
+                    cx={cx}
+                    cy={cy}
+                    r={6}
+                    fill="#7C3AED"
+                    stroke="#FFFFFF"
+                    strokeWidth={2}
+                  />
+                  <text
+                    x={textX}
+                    y={textY}
+                    textAnchor="middle"
+                    fill="#1A1A2E"
+                    fontSize={13}
+                    fontWeight={800}
+                    stroke="#FFFFFF"
+                    strokeWidth={4}
+                    strokeLinejoin="round"
+                    paintOrder="stroke"
+                  >
+                    {rotulo}
+                  </text>
+                </g>
+              );
+            })()}
+
 
             {/* Linha vertical de foco ao passar ponteiro */}
             {diaEmFoco !== null && (

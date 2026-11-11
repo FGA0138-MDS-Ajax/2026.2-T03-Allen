@@ -76,8 +76,9 @@ export const BarraNavegacao: React.FC<BarraNavegacaoProps> = ({ rotaAtiva }) => 
             <span aria-hidden="true" style={{ display: 'inline-flex', marginRight: 4 }}>
               <IconPlus size={18} />
             </span>
-            <span>Anotar Gasto</span>
+            <span>Anotar Gasto/Recebimento</span>
           </button>
+
 
           <button
             type="button"

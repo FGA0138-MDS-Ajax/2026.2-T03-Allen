@@ -54,7 +54,7 @@ describe('Página Extrato de Movimentações', () => {
   it('renderiza o cabeçalho, resumo consolidado e movimentações unificadas', async () => {
     render(<Extrato />);
 
-    expect(screen.getByText('Extrato de Movimentações')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /extrato de movimentações/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /entradas/i })).toBeInTheDocument();
     expect(screen.getByText('Saldo que Sobra')).toBeInTheDocument();
 
@@ -80,10 +80,13 @@ describe('Página Extrato de Movimentações', () => {
   it('permite apagar um gasto com o botão de excluir', async () => {
     render(<Extrato />);
 
-    const botoesApagar = screen.getAllByTitle(/apagar este gasto/i);
+    const botoesApagar = screen.getAllByTitle(/apagar este/i);
     expect(botoesApagar.length).toBeGreaterThan(0);
 
     fireEvent.click(botoesApagar[0]);
+
+    const botaoConfirmar = screen.getByRole('button', { name: /sim, apagar lançamento/i });
+    fireEvent.click(botaoConfirmar);
 
     await waitFor(() => {
       expect(screen.getByText(/apagado com sucesso do vero/i)).toBeInTheDocument();

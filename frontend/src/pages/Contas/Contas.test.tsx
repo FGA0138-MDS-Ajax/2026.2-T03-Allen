@@ -7,6 +7,7 @@ vi.mock('../../servicos', () => ({
   listarContas: vi.fn(),
   cadastrarConta: vi.fn(),
   definirPagamentoConta: vi.fn(),
+  excluirConta: vi.fn(),
   limparSessao: vi.fn(),
   estaAutenticado: vi.fn(),
   ErroApi: class ErroApi extends Error {
@@ -145,7 +146,80 @@ describe('Página de Contas a Pagar (RF25, RF30, RF32)', () => {
         valor: 75.0,
         vencimento_em: expect.any(String),
         descricao: 'Água',
+        recorrente: false,
       });
+    });
+  });
+
+  it('permite cadastrar conta com recorrência ativada (RF26)', async () => {
+    vi.mocked(servicos.cadastrarConta).mockResolvedValueOnce({
+      id: '99',
+      descricao: 'Aluguel',
+      valor: 1200.0,
+      vencimento_em: '2026-11-15',
+      categoria_id: null,
+      status: 'a_vencer',
+      pagamento_em: null,
+      recorrente: true,
+      criado_em: '2026-11-01T10:00:00',
+    });
+
+    render(<Contas />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Cadastrar Nova Conta/i }));
+
+    // Digita 120000 = R$ 1.200,00
+    fireEvent.click(screen.getByRole('button', { name: '1' }));
+    fireEvent.click(screen.getByRole('button', { name: '2' }));
+    fireEvent.click(screen.getByRole('button', { name: '0' }));
+    fireEvent.click(screen.getByRole('button', { name: '0' }));
+    fireEvent.click(screen.getByRole('button', { name: '0' }));
+    fireEvent.click(screen.getByRole('button', { name: '0' }));
+
+    // Sugestão Aluguel
+    fireEvent.click(screen.getByRole('button', { name: '+ Aluguel' }));
+
+    // Marca o checkbox de recorrência
+    const checkboxRecorrente = screen.getByLabelText(/Repetir todo mês/i);
+    fireEvent.click(checkboxRecorrente);
+
+    fireEvent.click(screen.getByRole('button', { name: /Salvar Conta/i }));
+
+    await waitFor(() => {
+      expect(servicos.cadastrarConta).toHaveBeenCalledWith({
+        valor: 1200.0,
+        vencimento_em: expect.any(String),
+        descricao: 'Aluguel',
+        recorrente: true,
+      });
+    });
+  });
+
+  it('permite apagar uma conta com modal de confirmação', async () => {
+    vi.mocked(servicos.excluirConta).mockResolvedValueOnce();
+
+    render(<Contas />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Conta de Luz')).toBeInTheDocument();
+    });
+
+    // Clica no botão de lixeira da Conta de Luz
+    const btnExcluir = screen.getByRole('button', {
+      name: /Apagar conta Conta de Luz/i,
+    });
+    fireEvent.click(btnExcluir);
+
+    // Modal de confirmação deve aparecer
+    expect(screen.getByText('Tem certeza que deseja apagar?')).toBeInTheDocument();
+
+    // Clica em confirmar
+    const btnConfirmar = screen.getByRole('button', { name: /Sim, apagar conta/i });
+    fireEvent.click(btnConfirmar);
+
+    await waitFor(() => {
+      expect(servicos.excluirConta).toHaveBeenCalledWith('1');
+      expect(screen.getByText(/Conta "Conta de Luz" apagada com sucesso do Vero/i)).toBeInTheDocument();
     });
   });
 

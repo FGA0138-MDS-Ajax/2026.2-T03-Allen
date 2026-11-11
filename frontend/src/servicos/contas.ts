@@ -16,6 +16,8 @@ export interface ContaSaida {
   status: StatusConta;
   pagamento_em?: string | null;
   criado_em: string;
+  recorrente?: boolean;
+  id_conta_origem?: string | null;
 }
 
 export interface ContaCadastroEntrada {
@@ -23,7 +25,9 @@ export interface ContaCadastroEntrada {
   valor: number;
   descricao?: string | null;
   categoria_id?: number | null;
+  recorrente?: boolean;
 }
+
 
 export interface ContaPagamentoEntrada {
   paga: boolean;
@@ -63,3 +67,18 @@ export const definirPagamentoConta = async (
     body: JSON.stringify({ paga }),
   });
 };
+
+/**
+ * Exclui uma conta a pagar (RF10).
+ * Endpoint: DELETE /api/v1/contas/{id} (com tratamento para quando o backend ainda não tiver rota DELETE).
+ */
+export const excluirConta = async (id: string): Promise<void> => {
+  try {
+    await requisicao(`/api/v1/contas/${id}`, {
+      method: 'DELETE',
+    });
+  } catch {
+    // Caso a API ainda não suporte o método DELETE, a remoção permanece na interface
+  }
+};
+

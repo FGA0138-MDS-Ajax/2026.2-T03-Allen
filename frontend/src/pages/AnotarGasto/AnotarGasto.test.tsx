@@ -40,4 +40,30 @@ describe('Página AnotarGasto', () => {
     expect(screen.getByText('Tudo certo!')).toBeInTheDocument();
     expect(screen.getByText(/gasto de r\$\s*25,00 registrado com sucesso no vero/i)).toBeInTheDocument();
   });
+
+  it('permite alternar para entrada e salvar uma nova entrada de dinheiro', () => {
+    render(<AnotarGasto />);
+
+    // Alterna para entrada
+    fireEvent.click(screen.getByRole('button', { name: /\+ entrou dinheiro/i }));
+
+    expect(screen.getByText('Anotar recebimento')).toBeInTheDocument();
+    expect(screen.getByText('De onde veio esse dinheiro?')).toBeInTheDocument();
+
+    // Digita 1, 0, 0, 0, 0 -> R$ 100,00
+    fireEvent.click(screen.getByRole('button', { name: '1' }));
+    fireEvent.click(screen.getByRole('button', { name: '0' }));
+    fireEvent.click(screen.getByRole('button', { name: '0' }));
+    fireEvent.click(screen.getByRole('button', { name: '0' }));
+    fireEvent.click(screen.getByRole('button', { name: '0' }));
+
+    // Clica em Salvar recebimento
+    const btnSalvar = screen.getByRole('button', { name: /salvar recebimento/i });
+    fireEvent.click(btnSalvar);
+
+    expect(screen.getByText('Tudo certo!')).toBeInTheDocument();
+    expect(screen.getByText(/recebimento de r\$\s*100,00 registrado com sucesso no vero/i)).toBeInTheDocument();
+  });
+
 });
+

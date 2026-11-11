@@ -12,6 +12,7 @@ import {
   IconCheck,
   IconPlus,
   IconArrowLeft,
+  IconTrash,
   IconMarket,
   IconPharmacy,
   IconTransport,
@@ -23,6 +24,7 @@ import {
   listarContas,
   cadastrarConta,
   definirPagamentoConta,
+  excluirConta,
   estaAutenticado,
   ErroApi,
 } from '../../servicos';
@@ -94,6 +96,8 @@ export const Contas: React.FC = () => {
     return data.toISOString().split('T')[0];
   });
   const [salvando, setSalvando] = useState(false);
+  const [recorrente, setRecorrente] = useState(false);
+  const [contaParaExcluir, setContaParaExcluir] = useState<ContaSaida | null>(null);
 
   const carregarContas = async () => {
     if (!estaAutenticado()) {
@@ -129,11 +133,13 @@ export const Contas: React.FC = () => {
   const centavosAtuais = valorDigitado ? parseInt(valorDigitado, 10) : 0;
 
   const formatarMoeda = (valor: number) => {
-    return valor.toLocaleString('pt-BR', {
+    const v = Number.isFinite(valor) ? valor : 0;
+    return v.toLocaleString('pt-BR', {
       style: 'currency',
       currency: 'BRL',
     });
   };
+
 
   const digitar = (digito: string) => {
     if (valorDigitado.length < 8) {
@@ -163,12 +169,14 @@ export const Contas: React.FC = () => {
         vencimento_em: dataVencimento,
         valor: centavosAtuais / 100,
         descricao: descricao.trim() || undefined,
+        recorrente,
       });
 
       setMensagemSucesso('Conta cadastrada com sucesso!');
       setModoCadastro(false);
       setValorDigitado('');
       setDescricao('');
+      setRecorrente(false);
       await carregarContas();
     } catch (e) {
       if (e instanceof ErroApi) {
@@ -178,6 +186,27 @@ export const Contas: React.FC = () => {
       }
     } finally {
       setSalvando(false);
+    }
+  };
+
+  const confirmarExclusao = async () => {
+    if (!contaParaExcluir) return;
+
+    try {
+      setErro(null);
+      await excluirConta(contaParaExcluir.id);
+      setContas((lista) => lista.filter((c) => c.id !== contaParaExcluir.id));
+      setMensagemSucesso(
+        `Conta "${contaParaExcluir.descricao || 'sem descrição'}" apagada com sucesso do Vero.`
+      );
+    } catch (e) {
+      if (e instanceof ErroApi) {
+        setErro(e.detalhe);
+      } else {
+        setErro('Não foi possível apagar a conta.');
+      }
+    } finally {
+      setContaParaExcluir(null);
     }
   };
 
@@ -353,6 +382,20 @@ export const Contas: React.FC = () => {
                 />
               </div>
 
+              <div>
+                <label className={styles.checkboxContainer}>
+                  <input
+                    type="checkbox"
+                    className={styles.checkboxInput}
+                    checked={recorrente}
+                    onChange={(e) => setRecorrente(e.target.checked)}
+                  />
+                  <span className={styles.checkboxTexto}>
+                    🔁 Repetir todo mês (Conta fixa / recorrente)
+                  </span>
+                </label>
+              </div>
+
               <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
                 <Botao
                   variant="primary"
@@ -368,6 +411,7 @@ export const Contas: React.FC = () => {
                     setModoCadastro(false);
                     setValorDigitado('');
                     setDescricao('');
+                    setRecorrente(false);
                   }}
                   disabled={salvando}
                   fullWidth
@@ -495,9 +539,16 @@ export const Contas: React.FC = () => {
                                 {obterIconeConta(conta.descricao)}
                               </div>
                               <div className={styles.detalhesTexto}>
-                                <span className={styles.nomeConta}>
-                                  {conta.descricao || 'Conta sem descrição'}
-                                </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                  <span className={styles.nomeConta}>
+                                    {conta.descricao || 'Conta sem descrição'}
+                                  </span>
+                                  {conta.recorrente && (
+                                    <span className={styles.badgeRecorrente}>
+                                      🔁 Todo mês
+                                    </span>
+                                  )}
+                                </div>
                                 <span className={styles.dataVencimento}>
                                   Vencimento: <strong>{dataFormatada}</strong>
                                 </span>
@@ -556,6 +607,15 @@ export const Contas: React.FC = () => {
                                     <span>{pendenteId === conta.id ? 'Salvando...' : 'Desfazer pagamento'}</span>
                                   </button>
                                 )}
+
+                                <button
+                                  type="button"
+                                  className={styles.btnExcluir}
+                                  onClick={() => setContaParaExcluir(conta)}
+                                  aria-label={`Apagar conta ${conta.descricao || 'sem descrição'}`}
+                                >
+                                  <IconTrash size={18} aria-hidden="true" />
+                                </button>
                               </div>
                             </div>
                           </div>
@@ -569,6 +629,88 @@ export const Contas: React.FC = () => {
           )}
         </section>
       </main>
+
+      {contaParaExcluir && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="titulo-modal-excluir-conta"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(26, 26, 46, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 20,
+              padding: 24,
+              maxWidth: 420,
+              width: '100%',
+              boxShadow: '0 12px 36px rgba(0,0,0,0.2)',
+            }}
+          >
+            <h2
+              id="titulo-modal-excluir-conta"
+              style={{
+                fontFamily: 'var(--font-titulo)',
+                fontSize: 22,
+                color: 'var(--grafite-noturno)',
+                marginBottom: 8,
+              }}
+            >
+              Tem certeza que deseja apagar?
+            </h2>
+            <p style={{ fontSize: 16, color: 'var(--ardosia)', lineHeight: 1.5, marginBottom: 20 }}>
+              Você está prestes a apagar a conta{' '}
+              <strong>{contaParaExcluir.descricao || 'sem descrição'}</strong> no valor de{' '}
+              <strong>{formatarMoeda(Number(contaParaExcluir.valor))}</strong>. Essa ação não pode ser desfeita.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                type="button"
+                onClick={confirmarExclusao}
+                style={{
+                  minHeight: 50,
+                  borderRadius: 14,
+                  backgroundColor: '#EF4444',
+                  color: '#FFFFFF',
+                  fontWeight: 700,
+                  fontSize: 16,
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                Sim, apagar conta
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setContaParaExcluir(null)}
+                style={{
+                  minHeight: 50,
+                  borderRadius: 14,
+                  backgroundColor: '#F3F4F6',
+                  color: 'var(--grafite-noturno)',
+                  fontWeight: 700,
+                  fontSize: 16,
+                  border: '1px solid #D1D5DB',
+                  cursor: 'pointer',
+                }}
+              >
+                Não, manter conta
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

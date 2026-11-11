@@ -35,6 +35,84 @@
   margin-bottom: 18px;
 }
 
+.seletorTipo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.btnTipo {
+  min-height: 52px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  border: 2px solid #E9E4F8;
+  background-color: var(--nevoa);
+  color: var(--ardosia);
+  font-family: var(--font-corpo);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s ease-in-out;
+}
+
+.btnTipo:focus-visible {
+  outline: 3px solid var(--violeta-vero);
+  outline-offset: 2px;
+}
+
+.btnTipoAtivoGasto {
+  background-color: #FEE2E2;
+  border-color: #EF4444;
+  color: #991B1B;
+}
+
+.btnTipoAtivoEntrada {
+  background-color: #D1FAE5;
+  border-color: #10B981;
+  color: #065F46;
+}
+
+.gradeCategoriasEntrada {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.btnCategoriaEntrada {
+  min-height: 48px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 2px solid #E9E4F8;
+  background-color: var(--nevoa);
+  color: var(--grafite-noturno);
+  font-family: var(--font-corpo);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.btnCategoriaEntrada:focus-visible {
+  outline: 3px solid var(--violeta-vero);
+  outline-offset: 2px;
+}
+
+.btnCategoriaEntradaAtiva {
+  background-color: #D1FAE5;
+  border-color: #10B981;
+  color: #065F46;
+}
+
+
 .displayMonetario {
   width: 100%;
   min-height: 68px;

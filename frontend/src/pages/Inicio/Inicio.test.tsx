@@ -83,7 +83,9 @@ describe('Página Inicio (Dashboard do Vero com Gráfico e Origem do Saldo)', ()
   it('navega para a tela de anotar gasto ao clicar no botão de registrar gasto', () => {
     render(<Inicio />);
 
-    const btnRegistrar = screen.getByRole('button', { name: /anotar novo gasto ou entrada/i });
+    const [btnRegistrar] = screen.getAllByRole('button', { name: /anotar gasto\/recebimento/i });
+
+
     fireEvent.click(btnRegistrar);
 
     expect(mockNavegar).toHaveBeenCalledWith('/anotar-gasto');

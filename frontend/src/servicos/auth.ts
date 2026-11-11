@@ -4,7 +4,7 @@
  */
 
 import { extrairDigitos } from '../utils/telefone';
-import { requisicao, salvarToken } from './api';
+import { ErroApi, requisicao, salvarToken } from './api';
 
 export interface RespostaToken {
   access_token: string;
@@ -50,15 +50,29 @@ export const entrarComPin = async (
   pin: string
 ): Promise<RespostaToken> => {
   const digitosTelefone = extrairDigitos(telefone);
-
-  const resposta = await requisicao<RespostaToken>('/api/v1/auth/pin', {
-    method: 'POST',
-    body: JSON.stringify({
-      telefone: digitosTelefone,
-      pin,
-    }),
+  const corpo = JSON.stringify({
+    telefone: digitosTelefone,
+    pin,
   });
 
-  salvarToken(resposta.access_token);
-  return resposta;
+  try {
+    const resposta = await requisicao<RespostaToken>('/api/v1/auth/pin', {
+      method: 'POST',
+      body: corpo,
+    });
+    salvarToken(resposta.access_token);
+    return resposta;
+  } catch (erro) {
+    // Compatibilidade: se /api/v1/auth/pin retornar 404, tenta /api/v1/auth/login (PR #65 / #66)
+    if (erro instanceof ErroApi && erro.status === 404) {
+      const resposta = await requisicao<RespostaToken>('/api/v1/auth/login', {
+        method: 'POST',
+        body: corpo,
+      });
+      salvarToken(resposta.access_token);
+      return resposta;
+    }
+    throw erro;
+  }
 };
+

@@ -440,3 +440,73 @@
   cursor: not-allowed;
   transform: none;
 }
+
+.badgeRecorrente {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #ede9fe;
+  color: var(--violeta-profundo);
+  border: 1px solid #c4b5fd;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  width: fit-content;
+}
+
+.checkboxContainer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 2px solid #cbd5e1;
+  border-radius: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkboxContainer:hover {
+  border-color: var(--violeta-claro);
+}
+
+.checkboxInput {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--violeta-vero);
+  cursor: pointer;
+}
+
+.checkboxTexto {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--grafite-noturno);
+}
+
+.btnExcluir {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 2px solid #fecaca;
+  background-color: #fef2f2;
+  color: #dc2626;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.btnExcluir:hover:not(:disabled) {
+  background-color: #fee2e2;
+  border-color: #ef4444;
+  color: #b91c1c;
+}
+
+.btnExcluir:focus-visible {
+  outline: 3px solid #ef4444;
+  outline-offset: 2px;
+}
+

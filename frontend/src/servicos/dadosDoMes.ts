@@ -70,9 +70,21 @@ export function carregarEstadoMes(hoje: Hoje): EstadoMes {
   try {
     const salvo = localStorage.getItem(CHAVE_ARMAZENAMENTO);
     if (salvo) {
-      const parsed = JSON.parse(salvo) as EstadoMes;
+      const parsed = JSON.parse(salvo) as Partial<EstadoMes>;
       if (parsed.mes === hoje.mes && Array.isArray(parsed.itens)) {
-        return parsed;
+        return {
+          mes: parsed.mes,
+          meta:
+            typeof parsed.meta === 'number' && Number.isFinite(parsed.meta)
+              ? parsed.meta
+              : 0,
+          entradasFixas:
+            typeof parsed.entradasFixas === 'number' &&
+            Number.isFinite(parsed.entradasFixas)
+              ? parsed.entradasFixas
+              : totalEntradas(parsed.itens),
+          itens: parsed.itens,
+        };
       }
     }
   } catch {
@@ -80,6 +92,7 @@ export function carregarEstadoMes(hoje: Hoje): EstadoMes {
   }
   return estadoPadraoVazio(hoje);
 }
+
 
 export function salvarEstadoMes(estado: EstadoMes): void {
   try {
@@ -174,12 +187,17 @@ export function useDadosDoMes() {
       const dia = calcularHoje().dia;
       atualizar((atual) => ({
         ...atual,
+        entradasFixas:
+          tipo === 'entrada'
+            ? (Number(atual.entradasFixas) || 0) + centavos
+            : Number(atual.entradasFixas) || 0,
         itens: [...atual.itens, { id, dia, tipo, centavos, categoria }],
       }));
       return id;
     },
     [atualizar]
   );
+
 
   const definirMeta = useCallback(
     (centavos: number) => {
@@ -207,13 +225,20 @@ export function useDadosDoMes() {
 
   const removerLancamento = useCallback(
     (id: number) => {
-      atualizar((atual) => ({
-        ...atual,
-        itens: atual.itens.filter((i) => i.id !== id),
-      }));
+      atualizar((atual) => {
+        const itemRemovido = atual.itens.find((i) => i.id === id);
+        const deducaoEntrada =
+          itemRemovido && itemRemovido.tipo === 'entrada' ? itemRemovido.centavos : 0;
+        return {
+          ...atual,
+          entradasFixas: Math.max(0, (Number(atual.entradasFixas) || 0) - deducaoEntrada),
+          itens: atual.itens.filter((i) => i.id !== id),
+        };
+      });
     },
     [atualizar]
   );
+
 
   return {
     hoje,
