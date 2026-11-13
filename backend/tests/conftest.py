@@ -1,4 +1,9 @@
-"""Fixtures dos testes: usa Postgres (CI) ou SQLite (local) conforme DATABASE_URL."""
+"""Fixtures dos testes: banco Postgres de teste e cliente autenticado.
+
+Os testes rodam no Postgres apontado por DATABASE_URL (no CI, o serviço postgres
+do workflow). Cada teste roda numa transação desfeita no fim, então nada fica no
+banco. Não aponte para o Supabase.
+"""
 
 import os
 import uuid
@@ -7,30 +12,27 @@ from collections.abc import Iterator
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
 
 from app.main import app
 from app.modulos.contas.modelos import Conta  # noqa: F401  (registra a tabela)
 from app.modulos.identidade.modelos import Usuario
 from app.modulos.identidade.seguranca import criar_token, gerar_hash, hash_telefone
-from app.nucleo.banco import Base, obter_sessao
+from app.nucleo.banco import Base, obter_sessao, url_sqlalchemy
 from app.nucleo.config import settings
 
-URL_TESTE = os.getenv("DATABASE_URL", "sqlite://")
+URL_TESTE = url_sqlalchemy(settings.DATABASE_URL)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def engine():
-    """Cria engine novo para cada teste (isolamento total)."""
-    if URL_TESTE.startswith("sqlite"):
-        motor = create_engine(
-            URL_TESTE,
-            connect_args={"check_same_thread": False},
-            poolclass=StaticPool,
-        )
-    else:
-        motor = create_engine(URL_TESTE)
+    url = make_url(URL_TESTE)
+    if url.get_backend_name() != "postgresql":
+        pytest.exit("Os testes precisam de um Postgres em DATABASE_URL.", returncode=4)
+    if "supabase" in (url.host or ""):
+        pytest.exit("DATABASE_URL aponta para o Supabase; use um banco de teste.", 4)
+    motor = create_engine(url)
     Base.metadata.create_all(motor)
     yield motor
     motor.dispose()
