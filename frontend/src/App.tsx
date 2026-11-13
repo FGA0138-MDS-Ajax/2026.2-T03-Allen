@@ -7,6 +7,7 @@ import { Inicio } from './pages/Inicio/Inicio';
 import { AnotarGasto } from './pages/AnotarGasto/AnotarGasto';
 import { Extrato } from './pages/Extrato/Extrato';
 import { estaAutenticado } from './servicos';
+import { TourAudioProvider } from './components/TourAudio/TourAudioProvider';
 
 function ConteudoRotas() {
   const { rota } = useNavegacao();
@@ -39,9 +40,11 @@ function ConteudoRotas() {
 export default function App() {
   return (
     <RouterProvider>
-      <main>
-        <ConteudoRotas />
-      </main>
+      <TourAudioProvider>
+        <main>
+          <ConteudoRotas />
+        </main>
+      </TourAudioProvider>
     </RouterProvider>
   );
 }

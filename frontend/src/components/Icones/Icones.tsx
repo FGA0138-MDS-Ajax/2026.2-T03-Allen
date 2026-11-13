@@ -472,3 +472,82 @@ export const IconTrash: React.FC<IconProps> = ({
     <line x1="14" y1="11" x2="14" y2="17" />
   </svg>
 );
+
+export const IconPause: React.FC<IconProps> = ({
+  size = 24,
+  className = '',
+  ...props
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    aria-hidden="true"
+    className={className}
+    {...props}
+  >
+    <rect x="6" y="5" width="4" height="14" rx="1" />
+    <rect x="14" y="5" width="4" height="14" rx="1" />
+  </svg>
+);
+
+export const IconPlay: React.FC<IconProps> = ({
+  size = 24,
+  className = '',
+  ...props
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    aria-hidden="true"
+    className={className}
+    {...props}
+  >
+    <polygon points="7 4 20 12 7 20 7 4" />
+  </svg>
+);
+
+export const IconRepeat: React.FC<IconProps> = ({
+  size = 24,
+  className = '',
+  ...props
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    className={className}
+    {...props}
+  >
+    <polyline points="1 4 1 10 7 10" />
+    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+  </svg>
+);
+
+export const IconSkip: React.FC<IconProps> = ({
+  size = 24,
+  className = '',
+  ...props
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    aria-hidden="true"
+    className={className}
+    {...props}
+  >
+    <polygon points="4 5 14 12 4 19 4 5" />
+    <rect x="16" y="5" width="3" height="14" rx="1" />
+  </svg>
+);
