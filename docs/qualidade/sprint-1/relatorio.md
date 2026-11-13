@@ -27,7 +27,7 @@ em Docker e o frontend em build de produção.
 
 | Cartão | Coluna no Trello | Situação na QA |
 |---|---|---|
-| RF03 · Cadastro por celular | Pronto | ❌ API exige e-mail/senha (#54), sem código de verificação (#55) |
+| RF03 · Cadastro por celular | Pronto | ❌ API exige senha (#54), sem código de verificação (#55) |
 | RF01 · Acesso por PIN | Pronto | ⚠️ Hash e bloqueio ok na API, mas o login da tela aceita qualquer PIN (#56) e não há "Esqueci meu PIN" (#55) |
 | RF08 · Teclado numérico | Pronto | ✅ Todos os critérios |
 | RF09 · Categorias por ícones | Pronto | ⚠️ Rótulo pequeno (#59), lista fora do back-end (#57) |
@@ -50,7 +50,7 @@ em Docker e o frontend em build de produção.
 |---|---|---|
 | #56 | Crítica | Telas de cadastro, login e gasto não usam a API |
 | #57 | Crítica | Não existe API de lançamentos/saldo nem lista única de categorias |
-| #54 | Alta | Cadastro na API exige e-mail e senha |
+| #54 | Alta | Cadastro na API exige senha em vez do PIN |
 | #55 | Alta | Falta verificação do celular por código e "Esqueci meu PIN" na API |
 | #58 | Média | Links do menu superior com 32px de altura e fonte abaixo de 16px |
 | #59 | Média | Rótulos das categorias com 13px no celular |
@@ -70,5 +70,5 @@ em Docker e o frontend em build de produção.
 ## Riscos
 
 - **Cartões em Pronto sem passar no aceite:** a DoD exige validação da QA antes de mover para Pronto.
-- **Front e back divergentes:** o cadastro da tela (nome + celular) não bate com o da API (nome + celular + e-mail + senha). Precisam alinhar antes de integrar.
+- **Front e back divergentes:** o cadastro da tela (nome + celular) não bate com o da API (nome + celular + e-mail + senha). Pelo critério atualizado, os dois devem pedir nome + celular + e-mail + PIN. Precisam alinhar antes de integrar.
 - **Sem staging:** a inspeção do repositório é em 16/11, e a S1 ainda não foi validada no ambiente oficial.

@@ -5,6 +5,7 @@ do workflow). Cada teste roda numa transação desfeita no fim, então nada fica
 banco. Não aponte para o Supabase.
 """
 
+import os
 import uuid
 from collections.abc import Iterator
 
