@@ -1,4 +1,4 @@
-"""Entrada e saída do módulo de transações (RF10, RF17)."""
+"""Entrada e saída do módulo de transações (RF10, RF17, RF18)."""
 
 from datetime import date, datetime
 from decimal import Decimal
@@ -37,6 +37,8 @@ class OrigemTransacao(StrEnum):
     QRCODE_NF = "qrcode_nf"
     EXTRATO = "extrato"
     CONTA = "conta"
+    # Gasto fixo lançado sozinho na data da conta (RF18); o app mostra "automático"
+    RECORRENTE = "recorrente"
 
 
 def validar_valor(valor: Decimal) -> Decimal:
