@@ -23,18 +23,8 @@ def validar_pin(valor: str) -> str:
     return valor
 
 
-def validar_senha(valor: str) -> str:
-    if len(valor) < 8:
-        raise ValueError(Message.SENHA_CURTA.message)
-    # O bcrypt só aceita até 72 bytes
-    if len(valor.encode()) > 72:
-        raise ValueError(Message.SENHA_LONGA.message)
-    return valor
-
-
 Telefone = Annotated[str, AfterValidator(normalizar_telefone)]
 Pin = Annotated[str, AfterValidator(validar_pin)]
-Senha = Annotated[str, AfterValidator(validar_senha)]
 Nome = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)
 ]
@@ -44,21 +34,12 @@ class CadastroEntrada(BaseModel):
     nome: Nome
     telefone: Telefone
     email: EmailStr
-    senha: Senha
-
-
-class LoginSenhaEntrada(BaseModel):
-    telefone: Telefone
-    senha: str
+    pin: Pin
 
 
 class LoginPinEntrada(BaseModel):
     telefone: Telefone
     pin: str
-
-
-class DefinirPinEntrada(BaseModel):
-    pin: Pin
 
 
 class UsuarioSaida(BaseModel):

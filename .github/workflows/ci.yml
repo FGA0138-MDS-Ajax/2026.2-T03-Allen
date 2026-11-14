@@ -129,6 +129,44 @@ jobs:
       - name: Build
         run: npm run build
 
+  e2e:
+    name: E2E (fluxo principal, acessibilidade e 360px)
+    needs: [detect, frontend]
+    if: needs.detect.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build e start do frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+          npx next start -p 3000 &
+          npx --yes wait-on@8.0.3 --timeout 60000 http://localhost:3000/login
+      - name: Instalar Playwright
+        working-directory: e2e
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Rodar E2E (celular 360px e desktop)
+        working-directory: e2e
+        env:
+          BASE_URL: http://localhost:3000
+        run: npx playwright test
+      - name: Publicar relatório do E2E
+        if: always() && hashFiles('e2e/playwright-report/**') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-e2e
+          path: e2e/playwright-report
+          retention-days: 14
+
   docker:
     name: Build das imagens Docker
     needs: [detect, backend, frontend]
@@ -161,7 +199,7 @@ jobs:
   # Check único para a regra de proteção da main: fica vermelho se qualquer job falhar.
   ci-ok:
     name: CI ok
-    needs: [detect, backend, frontend, docker]
+    needs: [detect, backend, frontend, e2e, docker]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2

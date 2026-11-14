@@ -1,0 +1,68 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  background-color: var(--nevoa);
+  text-align: center;
+}
+
+.contentBox {
+  max-width: 560px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.brandLogo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--violeta-vero);
+  font-family: var(--font-titulo);
+  font-size: 48px;
+  font-weight: 900;
+  text-decoration: none;
+  margin-bottom: 8px;
+}
+
+.heroBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--lavanda);
+  color: var(--violeta-profundo);
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.heroTitle {
+  font-family: var(--font-titulo);
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 900;
+  color: var(--grafite-noturno);
+  line-height: 1.2;
+}
+
+.heroSubtitle {
+  font-size: 19px;
+  color: var(--ardosia);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.acoesContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 360px;
+  margin-top: 10px;
+}

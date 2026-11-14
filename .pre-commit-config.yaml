@@ -1,0 +1,15 @@
+# Bloqueia localmente commits com segredos ou falhas de segurança no Python.
+# Instalação: pip install pre-commit && pre-commit install
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.4
+    hooks:
+      - id: bandit
+        args: ["-c", "backend/pyproject.toml", "--severity-level", "medium"]
+        additional_dependencies: ["bandit[toml]"]
+        files: ^backend/

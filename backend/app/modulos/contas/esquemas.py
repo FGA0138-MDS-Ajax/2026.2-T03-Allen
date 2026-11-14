@@ -46,6 +46,20 @@ class ContaCadastroEntrada(BaseModel):
     categoria_id: int | None = None
 
 
+class ContaPagamentoEntrada(BaseModel):
+    """RF30: marca ou desfaz o pagamento de uma conta.
+
+    Um único campo booleano mantém idempotente e permite o mesmo
+    endpoint atender ao botão "Paga" e ao botão "Desfazer".
+    """
+
+    vencimento_em: date
+    valor: Valor
+    descricao: Descricao | None = None
+    categoria_id: int | None = None
+    recorrente: bool = False  # para repetir todos mes
+
+
 class ContaSaida(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -55,4 +69,7 @@ class ContaSaida(BaseModel):
     vencimento_em: date
     categoria_id: int | None
     status: StatusConta
+    pagamento_em: datetime | None
     criado_em: datetime
+    recorrente: bool
+    id_conta_origem: UUID | None = None

@@ -8,6 +8,13 @@ services:
       - ./backend:/app
     ports:
       - "8000:8000"
+    depends_on:
+      - valkey
+
+  # Valkey: eventos em tempo real entre a API e o app (D12, RF17)
+  valkey:
+    image: valkey/valkey:8.1-alpine
+    restart: unless-stopped
 
   #WhatsApp Evolution API (Serviços independentes para o assistente)
   evolution-api:
@@ -53,4 +60,3 @@ volumes:
   evolution_instances:
   postgres_evolution_data:
   valkey_evolution_data:
-    

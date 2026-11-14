@@ -120,7 +120,6 @@ async def processar_responder(remetente: str, texto: str):
     await enviar_mensagem(remetente, resposta)
 
 async def enviar_mensagem(destinatario: str, texto: str):
-    
     headers = {
         "apikey": settings.AUTHENTICATION_API_KEY,
         "Content-Type": "application/json"
