@@ -11,7 +11,28 @@ services:
     depends_on:
       - valkey
 
-  # Valkey: eventos em tempo real entre a API e o app (D12, RF17)
+  # Worker do Celery: executa as tarefas da fila (D6), como o lançamento dos gastos fixos (RF18)
+  worker:
+    build: ./backend
+    env_file: .env
+    volumes:
+      - ./backend:/app
+    command: celery -A app.nucleo.tarefas:fila worker --loglevel=info
+    depends_on:
+      - valkey
+
+  # Celery Beat: põe na fila as rotinas diárias, no fuso de Brasília
+  beat:
+    build: ./backend
+    env_file: .env
+    volumes:
+      - ./backend:/app
+    # Agenda fora da pasta montada, para não criar arquivo no repositório
+    command: celery -A app.nucleo.tarefas:fila beat --loglevel=info --schedule /tmp/celerybeat-schedule
+    depends_on:
+      - valkey
+
+  # Valkey: eventos em tempo real (D12, RF17) e fila do Celery (D6)
   valkey:
     image: valkey/valkey:8.1-alpine
     restart: unless-stopped
