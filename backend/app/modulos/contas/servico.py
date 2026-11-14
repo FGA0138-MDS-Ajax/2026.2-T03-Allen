@@ -1,15 +1,15 @@
-"""Regras de cadastro e pagamento de contas a pagar (RF25, RF30)."""
+"""Regras de cadastro e pagamento de contas a pagar (RF25, RF26, RF30)."""
 
 import uuid
 from datetime import UTC, datetime
 
-from app.modulos.contas.recorrencia import gerar_proxima_recorrencia
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.modulos.contas.esquemas import ContaCadastroEntrada
 from app.modulos.contas.modelos import Conta
+from app.modulos.contas.recorrencia import gerar_proxima_recorrencia
 from app.modulos.contas.saldo import ESTRATEGIA_SALDO
 
 
@@ -74,20 +74,23 @@ def definir_pagamento(
     if conta is None:
         raise ContaNaoEncontrada
 
-    mudou = False
-    if paga and conta.pagamento_em is None:
-        conta.pagamento_em = datetime.now(UTC)
-        mudou = True
-    elif not paga and conta.pagamento_em is not None:
+    if paga:
+        registrar_pagamento(sessao, conta)
+    elif conta.pagamento_em is not None:
         conta.pagamento_em = None
-        mudou = True
-
-    if mudou:
-        ESTRATEGIA_SALDO.ao_alterar_pagamento(conta, paga)
-
-        if paga and conta.recorrente:
-            gerar_proxima_recorrencia(sessao, conta)
+        ESTRATEGIA_SALDO.ao_alterar_pagamento(conta, False)
 
     sessao.commit()
     sessao.refresh(conta)
     return conta
+
+
+def registrar_pagamento(sessao: Session, conta: Conta) -> None:
+    """Marca a conta como paga; se ela é fixa, cria a do mês seguinte (RF26). Não
+    grava: quem chama faz o commit. Usado também pelo lançamento automático (RF18)."""
+    if conta.pagamento_em is not None:
+        return
+    conta.pagamento_em = datetime.now(UTC)
+    ESTRATEGIA_SALDO.ao_alterar_pagamento(conta, True)
+    if conta.recorrente:
+        gerar_proxima_recorrencia(sessao, conta)
