@@ -1,8 +1,8 @@
 """Adaptadores da porta de e-mail (PortaEmail).
 
 O ENVIO_EMAIL escolhe qual deles a API usa:
-- falso (padrão, desenvolvimento): não envia; mostra o e-mail no log do backend
-  (docker compose logs backend).
+- falso (padrão; só aceito com APP_ENV=development): não envia; mostra o e-mail no
+  log do backend (docker compose logs backend).
 - smtp: envia pelo servidor configurado nas variáveis SMTP_*.
 """
 
@@ -11,7 +11,7 @@ import smtplib
 from email.message import EmailMessage
 
 from app.nucleo.config import AdaptadorEmail, settings
-from app.nucleo.portas import PortaEmail
+from app.nucleo.portas import FalhaEnvioEmail, PortaEmail
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +35,7 @@ class EmailSmtp:
         except (OSError, smtplib.SMTPException) as erro:
             # Sem o endereço no log (RNF05)
             logger.warning("Não foi possível enviar o e-mail: %s", type(erro).__name__)
+            raise FalhaEnvioEmail from erro
 
 
 class EmailFalso:
