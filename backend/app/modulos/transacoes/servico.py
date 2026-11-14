@@ -1,18 +1,23 @@
-"""Registro, histórico e edição de transações (RF10, RF17).
+"""Registro, histórico e edição de transações (RF10, RF17) e lançamento automático
+dos gastos fixos (RF18).
 
 Este é o único módulo que grava transações (Documento de Arquitetura). Outros módulos,
 como o assistente do WhatsApp, registram chamando `registrar`.
 """
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.modulos.contas import servico as servico_contas
+from app.modulos.contas.modelos import Conta
 from app.modulos.transacoes.esquemas import (
+    OrigemTransacao,
+    TipoTransacao,
     TransacaoEdicaoEntrada,
     TransacaoRegistroEntrada,
     TransacaoSaida,
@@ -107,6 +112,55 @@ def excluir(sessao: Session, usuario_id: uuid.UUID, transacao_id: uuid.UUID) -> 
     lançamento automático não volta."""
     sessao.delete(_buscar(sessao, usuario_id, transacao_id))
     sessao.commit()
+
+
+def lancar_gastos_fixos(sessao: Session, hoje: date | None = None) -> int:
+    """RF18: lança como gasto cada conta fixa que venceu até hoje e ainda não foi paga,
+    com a data do vencimento, e marca a conta como paga (o que cria a do mês seguinte).
+    Devolve quantos lançamentos fez.
+
+    Rodar de novo não duplica: a transação e o pagamento são gravados no mesmo commit, e
+    a conta paga ou já ligada a uma transação não é lançada de novo. Duas execuções ao
+    mesmo tempo não pegam a mesma conta (SKIP LOCKED), e o banco aceita uma só
+    transação por conta (idConta único).
+    """
+    hoje = hoje or datetime.now(FUSO_BRASILIA).date()
+    lancadas = 0
+    while (conta := _proxima_conta_fixa_a_lancar(sessao, hoje)) is not None:
+        transacao = Transacao(
+            usuario_id=conta.usuario_id,
+            tipo=TipoTransacao.SAIDA,
+            valor=conta.valor,
+            data=conta.vencimento_em,
+            descricao=conta.descricao,
+            categoria_id=conta.categoria_id,
+            origem=OrigemTransacao.RECORRENTE,
+            conta_id=conta.id,
+        )
+        sessao.add(transacao)
+        servico_contas.registrar_pagamento(sessao, conta)
+        sessao.commit()
+        sessao.refresh(transacao)
+        _avisar_app(transacao)
+        lancadas += 1
+    return lancadas
+
+
+def _proxima_conta_fixa_a_lancar(sessao: Session, hoje: date) -> Conta | None:
+    ja_lancada = select(Transacao.id).where(Transacao.conta_id == Conta.id).exists()
+    comando = (
+        select(Conta)
+        .where(
+            Conta.recorrente.is_(True),
+            Conta.pagamento_em.is_(None),
+            Conta.vencimento_em <= hoje,
+            ~ja_lancada,
+        )
+        .order_by(Conta.vencimento_em)
+        .limit(1)
+        .with_for_update(skip_locked=True)
+    )
+    return sessao.scalar(comando)
 
 
 def _buscar(
