@@ -9,6 +9,8 @@ from app.modulos.assistente.extrator import TipoTransacao, processar_texto_mensa
 from app.modulos.assistente import mensagens
 from app.modulos.assistente.sessao import sessao_assistente
 from app.modulos.identidade.modelos import Usuario
+from app.modulos.identidade.esquemas import normalizar_telefone
+from app.modulos.identidade.seguranca import hash_telefone
 from app.nucleo.banco import SessaoLocal
 
 router = APIRouter()
@@ -56,17 +58,14 @@ async def receber_mensagem(
 
 def buscar_usuario_telefone(telefone: str) -> Usuario | None:
     try:
+        telefone_normalizado = normalizar_telefone(telefone)
+        hash_telefone = hash_telefone(telefone_normalizado)
         with SessaoLocal() as sessao:
-            stmt = select(Usuario).where(Usuario.telefone.like(f"%{telefone[-8:]}%"))
-            usuario = sessao.scalars(stmt).first()
-            if usuario:
-                return usuario
+            stmt = select(Usuario).where(Usuario.telefone == hash_telefone)
+            return sessao.scalars(stmt).first()
     except Exception as e:
-        print(f"[Aviso] Banco de dados indisponível ({e}).")
-
-    # Modo de teste: permite responder mesmo sem banco ou cadastro prévio
-    print(f"[Modo Teste] Simulando usuário para o telefone {telefone}")
-    return Usuario(nome="Usuário Teste", telefone=telefone, email="teste@vero.com", hash_senha="")
+        print(f"[Aviso] Erro ao buscar usuário no banco: ({e}).")
+        return None
 
 async def processar_responder(remetente: str, texto: str):
     telefone = remetente.split("@")[0] if "@" in remetente else remetente
@@ -132,6 +131,7 @@ async def enviar_mensagem(destinatario: str, texto: str):
         "text": texto
     }
 
+    # Tenta a URL configurada e alterna entre localhost e evolution-api para funcionar tanto localmente quanto no Docker
     urls = [f"{settings.EVOLUTION_URL}/message/sendText/{settings.INSTANCE_NAME}"]
     if "localhost" in settings.EVOLUTION_URL:
         urls.append(f"{settings.EVOLUTION_URL.replace('localhost', 'evolution-api')}/message/sendText/{settings.INSTANCE_NAME}")
@@ -139,7 +139,6 @@ async def enviar_mensagem(destinatario: str, texto: str):
         urls.append(f"{settings.EVOLUTION_URL.replace('evolution-api', 'localhost')}/message/sendText/{settings.INSTANCE_NAME}")
 
     async with httpx.AsyncClient() as client:
-        ultimo_erro = None
         for url in urls:
             try:
                 response = await client.post(url, json=body, headers=headers, timeout=10.0)
@@ -147,6 +146,4 @@ async def enviar_mensagem(destinatario: str, texto: str):
                 print(f"[Whatsapp] Resposta enviada com sucesso para {numero}")
                 return
             except Exception as e:
-                ultimo_erro = e
-
-        print(f"[Erro de envio] Falha ao enviar mensagem para {destinatario}: {ultimo_erro}")
+                print(f"[Erro de envio] Falha ao enviar mensagem para {numero} via {url}: {e}")
