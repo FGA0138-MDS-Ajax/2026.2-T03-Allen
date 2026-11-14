@@ -44,6 +44,8 @@ class ContaCadastroEntrada(BaseModel):
     valor: Valor
     descricao: Descricao | None = None
     categoria_id: int | None = None
+    # RF26: repete todo mês; o lançamento automático no saldo é o RF18
+    recorrente: bool = False
 
 
 class ContaPagamentoEntrada(BaseModel):
@@ -53,11 +55,7 @@ class ContaPagamentoEntrada(BaseModel):
     endpoint atender ao botão "Paga" e ao botão "Desfazer".
     """
 
-    vencimento_em: date
-    valor: Valor
-    descricao: Descricao | None = None
-    categoria_id: int | None = None
-    recorrente: bool = False  # para repetir todos mes
+    paga: bool
 
 
 class ContaSaida(BaseModel):

@@ -31,6 +31,7 @@ def cadastrar(
         valor=dados.valor,
         descricao=dados.descricao,
         categoria_id=dados.categoria_id,
+        recorrente=dados.recorrente,
     )
     sessao.add(conta)
     try:
