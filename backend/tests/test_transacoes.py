@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.modulos.identidade.modelos import Usuario
+from app.modulos.transacoes.mensagens import Message
 from app.modulos.transacoes.modelos import Transacao
 
 
@@ -82,17 +83,28 @@ def test_edita_valor_categoria_e_data(
     assert corpo["descricao"] == "Mercado"  # campo não enviado fica igual
 
 
-def test_edicao_nao_aceita_valor_em_branco(
-    sessao: Session, usuario: Usuario, cliente_logado: TestClient
+@pytest.mark.parametrize(
+    ("campo", "mensagem"),
+    [
+        ("valor", Message.VALOR_EM_BRANCO.message),
+        ("data", Message.DATA_EM_BRANCO.message),
+    ],
+)
+def test_edicao_em_branco_aponta_o_campo(
+    sessao: Session,
+    usuario: Usuario,
+    cliente_logado: TestClient,
+    campo: str,
+    mensagem: str,
 ) -> None:
     transacao = _transacao(sessao, usuario.id)
 
     resposta = cliente_logado.patch(
-        f"/api/v1/transacoes/{transacao.id}", json={"valor": None}
+        f"/api/v1/transacoes/{transacao.id}", json={campo: None}
     )
 
     assert resposta.status_code == 422
-    assert "não podem ficar em branco" in resposta.text
+    assert resposta.json()["erros"] == [{"campo": campo, "mensagem": mensagem}]
 
 
 def test_edicao_nao_aceita_valor_zero(

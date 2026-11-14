@@ -11,7 +11,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     StringConstraints,
-    model_validator,
+    field_validator,
 )
 
 from app.modulos.transacoes.mensagens import Message
@@ -78,12 +78,20 @@ class TransacaoEdicaoEntrada(BaseModel):
     descricao: Descricao | None = None
     categoria_id: int | None = None
 
-    @model_validator(mode="after")
-    def _valor_e_data_nao_ficam_vazios(self) -> "TransacaoEdicaoEntrada":
-        for campo in ("valor", "data"):
-            if campo in self.model_fields_set and getattr(self, campo) is None:
-                raise ValueError(Message.VALOR_E_DATA_OBRIGATORIOS.message)
-        return self
+    # Só roda para o campo enviado: o padrão None quer dizer "não mudar"
+    @field_validator("valor")
+    @classmethod
+    def _valor_nao_fica_em_branco(cls, valor: Decimal | None) -> Decimal:
+        if valor is None:
+            raise ValueError(Message.VALOR_EM_BRANCO.message)
+        return valor
+
+    @field_validator("data")
+    @classmethod
+    def _data_nao_fica_em_branco(cls, data: date | None) -> date:
+        if data is None:
+            raise ValueError(Message.DATA_EM_BRANCO.message)
+        return data
 
 
 class TransacaoSaida(BaseModel):
