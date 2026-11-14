@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styles from './BotaoAudio.module.css';
 import { IconSpeaker, IconStop } from '../Icones/Icones';
+import { criarFala, escolherVozPtBr } from '../../servicos/voz';
 
 export interface BotaoAudioProps {
   textoParaLer: string;
@@ -15,6 +16,11 @@ export const BotaoAudio: React.FC<BotaoAudioProps> = ({
 }) => {
   const [falando, setFalando] = useState(false);
 
+  // Pede a lista de vozes cedo: alguns navegadores só a carregam no primeiro pedido
+  useEffect(() => {
+    if ('speechSynthesis' in window) window.speechSynthesis.getVoices?.();
+  }, []);
+
   const executarLeitura = () => {
     if (!('speechSynthesis' in window)) {
       alert('Seu navegador não suporta leitura por áudio.');
@@ -28,9 +34,9 @@ export const BotaoAudio: React.FC<BotaoAudioProps> = ({
       return;
     }
 
-    const utterance = new SpeechSynthesisUtterance(textoParaLer);
-    utterance.lang = 'pt-BR';
-    utterance.rate = 0.9;
+    // Mesma voz da explicação em áudio (US13): a pt-BR mais natural do aparelho
+    const vozes = window.speechSynthesis.getVoices?.() ?? [];
+    const utterance = criarFala(textoParaLer, escolherVozPtBr(vozes));
 
     utterance.onstart = () => setFalando(true);
     utterance.onend = () => setFalando(false);

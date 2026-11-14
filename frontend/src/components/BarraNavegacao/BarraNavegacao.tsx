@@ -2,12 +2,14 @@ import React from 'react';
 import styles from './BarraNavegacao.module.css';
 import { useNavegacao } from '../../router';
 import { limparSessao } from '../../servicos';
+import { useTourAudio } from '../TourAudio/contextoTour';
 import {
   IconVero,
   IconBills,
   IconPlus,
   IconClock,
   IconLogout,
+  IconSpeaker,
 } from '../Icones/Icones';
 
 export interface BarraNavegacaoProps {
@@ -18,6 +20,7 @@ export const BarraNavegacao: React.FC<BarraNavegacaoProps> = ({
   rotaAtiva,
 }) => {
   const { navegar, rota } = useNavegacao();
+  const { abrirTour } = useTourAudio();
   const rotaAtual = rotaAtiva || rota;
 
   const sair = () => {
@@ -109,20 +112,37 @@ export const BarraNavegacao: React.FC<BarraNavegacaoProps> = ({
           </button>
         </nav>
 
-        <button
-          type="button"
-          className={styles.btnSair}
-          onClick={sair}
-          aria-label="Sair da sua conta no Vero"
-        >
-          <span
-            aria-hidden="true"
-            style={{ display: 'inline-flex', marginRight: 4 }}
+        <div className={styles.acoes}>
+          {/* Reabre o tour em áudio do primeiro acesso (US13) */}
+          <button
+            type="button"
+            className={styles.btnExplicacao}
+            onClick={abrirTour}
           >
-            <IconLogout size={18} />
-          </span>
-          <span>Sair</span>
-        </button>
+            <span
+              aria-hidden="true"
+              style={{ display: 'inline-flex', marginRight: 4 }}
+            >
+              <IconSpeaker size={18} />
+            </span>
+            <span>Ouvir explicação</span>
+          </button>
+
+          <button
+            type="button"
+            className={styles.btnSair}
+            onClick={sair}
+            aria-label="Sair da sua conta no Vero"
+          >
+            <span
+              aria-hidden="true"
+              style={{ display: 'inline-flex', marginRight: 4 }}
+            >
+              <IconLogout size={18} />
+            </span>
+            <span>Sair</span>
+          </button>
+        </div>
       </div>
     </header>
   );

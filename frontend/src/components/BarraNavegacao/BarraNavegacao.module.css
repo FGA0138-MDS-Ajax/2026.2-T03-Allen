@@ -78,6 +78,39 @@
   border-color: #d8d4e8;
 }
 
+.acoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btnExplicacao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  background-color: var(--lavanda);
+  color: var(--violeta-profundo);
+  font-family: var(--font-corpo);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnExplicacao:hover {
+  background-color: #ddd6fe;
+  border-color: var(--violeta-profundo);
+}
+
+.btnExplicacao:focus-visible {
+  outline: 3px solid var(--violeta-vero);
+  outline-offset: 2px;
+}
+
 .btnSair {
   display: inline-flex;
   align-items: center;
@@ -135,9 +168,10 @@
     text-align: center;
   }
 
-  .btnSair {
+  .btnSair,
+  .btnExplicacao {
     min-height: 48px;
-    padding: 8px 14px;
+    padding: 8px 12px;
     font-size: 16px;
   }
 }
