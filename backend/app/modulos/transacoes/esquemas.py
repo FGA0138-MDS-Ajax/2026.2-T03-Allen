@@ -1,4 +1,4 @@
-"""Entrada e saída do módulo de transações (RF17)."""
+"""Entrada e saída do módulo de transações (RF10, RF17)."""
 
 from datetime import date, datetime
 from decimal import Decimal
@@ -6,7 +6,13 @@ from enum import StrEnum
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, StringConstraints
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    StringConstraints,
+    model_validator,
+)
 
 from app.modulos.transacoes.mensagens import Message
 
@@ -59,6 +65,23 @@ class TransacaoRegistroEntrada(BaseModel):
     # Identificador de quem originou o registro (ex.: id da mensagem no WhatsApp).
     # Evita gravar duas vezes a mesma mensagem.
     chave_externa: str | None = None
+
+
+class TransacaoEdicaoEntrada(BaseModel):
+    """RF10: muda só os campos enviados. Descrição e categoria aceitam null para apagar;
+    valor e data, não."""
+
+    valor: Valor | None = None
+    data: date | None = None
+    descricao: Descricao | None = None
+    categoria_id: int | None = None
+
+    @model_validator(mode="after")
+    def _valor_e_data_nao_ficam_vazios(self) -> "TransacaoEdicaoEntrada":
+        for campo in ("valor", "data"):
+            if campo in self.model_fields_set and getattr(self, campo) is None:
+                raise ValueError(Message.VALOR_E_DATA_OBRIGATORIOS.message)
+        return self
 
 
 class TransacaoSaida(BaseModel):
