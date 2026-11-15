@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 @fila.task(name="transacoes.lancar_gastos_fixos")
 def lancar_gastos_fixos() -> int:
-    """RF18: disparada todo dia pelo Celery Beat (ver app/nucleo/tarefas.py)."""
+    """RF18 e RF37: disparada todo dia pelo Celery Beat (ver app/nucleo/tarefas.py)."""
     with SessaoLocal() as sessao:
         lancadas = servico.lancar_gastos_fixos(sessao)
     # Só a quantidade: sem usuário nem valores no log (RNF05)

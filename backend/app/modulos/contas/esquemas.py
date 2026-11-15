@@ -6,9 +6,17 @@ from enum import StrEnum
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, StringConstraints
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    StringConstraints,
+    ValidationInfo,
+    field_validator,
+)
 
 from app.modulos.contas.mensagens import Message
+from app.modulos.contas.parcelas import CENTAVO, Parcelamento
 
 # vrSaldo é decimal(12,2): no máximo 10 dígitos antes da vírgula
 VALOR_MAXIMO = Decimal("9999999999.99")
@@ -38,6 +46,8 @@ class ContaCadastroEntrada(BaseModel):
     """RF25: apenas data e valor são obrigatórios.
 
     Descrição e categoria são opcionais (card [S2] RF25: "nome ou ícone opcional").
+    Na compra parcelada (RF37), `vencimento_em` é a data da compra e `valor` é o total:
+    a 1ª parcela vence no mês seguinte.
     """
 
     vencimento_em: date
@@ -46,6 +56,29 @@ class ContaCadastroEntrada(BaseModel):
     categoria_id: int | None = None
     # RF26: repete todo mês; o lançamento automático no saldo é o RF18
     recorrente: bool = False
+    # RF37: número de parcelas da compra; vazio quando não é parcelada
+    parcelas: int | None = None
+
+    @field_validator("parcelas")
+    @classmethod
+    def _validar_parcelas(
+        cls, parcelas: int | None, info: ValidationInfo
+    ) -> int | None:
+        if parcelas is None:
+            return None
+        minimo, maximo = Parcelamento.MINIMO.value, Parcelamento.MAXIMO.value
+        if not minimo <= parcelas <= maximo:
+            raise ValueError(
+                Message.PARCELAS_FORA_DO_LIMITE.message.format(
+                    minimo=minimo, maximo=maximo
+                )
+            )
+        if info.data.get("recorrente"):
+            raise ValueError(Message.PARCELADA_E_FIXA.message)
+        valor = info.data.get("valor")
+        if valor is not None and valor < parcelas * CENTAVO:
+            raise ValueError(Message.VALOR_MENOR_QUE_PARCELAS.message)
+        return parcelas
 
 
 class ContaPagamentoEntrada(BaseModel):
@@ -71,11 +104,15 @@ class ContaSaida(BaseModel):
     criado_em: datetime
     recorrente: bool
     id_conta_origem: UUID | None = None
+    # RF37: "parcela de total_parcelas" (ex.: 2 de 3); vazio quando não é parcela
+    parcela: int | None = None
+    total_parcelas: int | None = None
 
 
-class ContaFixaVencida(BaseModel):
-    """O que o lançamento automático (RF18) precisa saber da conta fixa. O módulo de
-    transações recebe estes dados pelo serviço de contas, sem ler a tblConta."""
+class ContaAutomaticaVencida(BaseModel):
+    """O que o lançamento automático (RF18, RF37) precisa saber da conta fixa ou da
+    parcela. O módulo de transações recebe estes dados pelo serviço de contas, sem ler
+    a tblConta."""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -85,3 +122,5 @@ class ContaFixaVencida(BaseModel):
     vencimento_em: date
     descricao: str | None
     categoria_id: int | None
+    parcela: int | None
+    total_parcelas: int | None
