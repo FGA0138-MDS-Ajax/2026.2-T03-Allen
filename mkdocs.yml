@@ -1,0 +1,56 @@
+site_name: Vero
+site_description: Gestão financeira simples, acessível e sem linguagem contábil.
+repo_url: https://github.com/beatrizbranfb/Vero
+repo_name: beatrizbranfb/Vero
+docs_dir: docs
+use_directory_urls: true
+
+theme:
+  name: material
+  language: pt-BR
+  palette:
+    - media: '(prefers-color-scheme: light)'
+      scheme: default
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/weather-night
+        name: Modo escuro
+    - media: '(prefers-color-scheme: dark)'
+      scheme: slate
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/weather-sunny
+        name: Modo claro
+  features:
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - content.code.copy
+
+markdown_extensions:
+  - tables
+  - admonition
+  - toc:
+      permalink: true
+  - pymdownx.superfences
+  - pymdownx.details
+
+nav:
+  - Início: index.md
+  - Linguagem: linguagem.md
+  - Qualidade:
+      - Plano de testes: qualidade/plano-de-testes.md
+      - Sprint 1:
+          - Relatório: qualidade/sprint-1/relatorio.md
+          - Validação dos critérios: qualidade/sprint-1/validacao-criterios.md
+          - Roteiro de acessibilidade: qualidade/sprint-1/roteiro-acessibilidade.md
+      - Sprint 2:
+          - Relatório: qualidade/sprint-2/relatorio.md
+          - Validação dos critérios: qualidade/sprint-2/validacao-criterios.md
+          - Frases do assistente: qualidade/sprint-2/frases-assistente.md
+  - Testes:
+      - Registro de testes: testes/README.md
+      - PR 83 · RF05 tour em áudio: testes/pr-83-rf05-tour-audio.md
+      - PR 84 · RF07 QR Code: testes/pr-84-rf07-qrcode-nfce.md
