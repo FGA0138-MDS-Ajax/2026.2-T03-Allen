@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vero - Criar Conta</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --violeta-vero: #7C3AED;
+      --violeta-profundo: #5B21B6;
+      --violeta-claro: #A78BFA;
+      --grafite-noturno: #1A1A2E;
+      --ardosia: #4B4B63;
+      --lavanda: #EDE9FE;
+      --nevoa: #F7F5FF;
+      --branco: #FFFFFF;
+      --sucesso-texto: #15803D;
+      --sucesso-fundo: #DCFCE7;
+      --aviso-texto: #B45309;
+      --aviso-fundo: #FEF3C7;
+      --erro-texto: #B91C1C;
+      --erro-fundo: #FEE2E2;
+      --font-titulo: 'Nunito', sans-serif;
+      --font-corpo: 'Atkinson Hyperlegible', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      min-height: 100vh;
+      font-family: var(--font-corpo);
+      background-color: var(--nevoa);
+      color: var(--grafite-noturno);
+      font-size: 18px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body.modo-confirmacao {
+      background-color: var(--violeta-vero);
+      color: var(--branco);
+    }
+
+    .icon-24 {
+      width: 24px;
+      height: 24px;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      flex-shrink: 0;
+    }
+
+    .navbar {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px 20px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-titulo);
+      font-weight: 900;
+      font-size: 32px;
+      letter-spacing: -0.5px;
+      color: var(--grafite-noturno);
+      text-decoration: none;
+    }
+
+    body.modo-confirmacao .brand-logo {
+      color: var(--branco);
+    }
+
+    .page-wrapper {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 12px 20px 40px;
+      min-height: calc(100vh - 88px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cadastro-layout {
+      width: 100%;
+      max-width: 540px;
+      margin: 0 auto;
+    }
+
+    .hero-aside {
+      display: none;
+    }
+
+    @media (min-width: 900px) {
+      .cadastro-layout {
+        max-width: 1080px;
+        display: grid;
+        grid-template-columns: 1fr 520px;
+        gap: 48px;
+        align-items: center;
+      }
+
+      body.modo-confirmacao .cadastro-layout {
+        display: block;
+        max-width: 600px;
+      }
+
+      .hero-aside {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        padding-right: 16px;
+      }
+
+      body.modo-confirmacao .hero-aside {
+        display: none;
+      }
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      align-self: flex-start;
+      background: var(--lavanda);
+      color: var(--violeta-profundo);
+      font-weight: 700;
+      font-size: 16px;
+      padding: 8px 16px;
+      border-radius: 999px;
+    }
+
+    .hero-title {
+      font-family: var(--font-titulo);
+      font-weight: 900;
+      font-size: 44px;
+      line-height: 1.15;
+      color: var(--grafite-noturno);
+    }
+
+    .hero-description {
+      font-size: 20px;
+      color: var(--ardosia);
+    }
+
+    .hero-pillars {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 8px;
+    }
+
+    .pillar-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: var(--branco);
+      padding: 16px 20px;
+      border-radius: 18px;
+      border: 2px solid #E9E4F8;
+    }
+
+    .pillar-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: var(--lavanda);
+      color: var(--violeta-vero);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .pillar-text strong {
+      display: block;
+      font-size: 18px;
+      color: var(--grafite-noturno);
+    }
+
+    .pillar-text span {
+      font-size: 16px;
+      color: var(--ardosia);
+    }
+
+    .form-card {
+      background: var(--branco);
+      border-radius: 28px;
+      padding: 28px 24px;
+      box-shadow: 0 12px 36px rgba(26, 26, 46, 0.08);
+      border: 2px solid #E9E4F8;
+      display: flex;
+      flex-direction: column;
+    }
+
+    @media (min-width: 600px) {
+      .form-card {
+        padding: 36px 36px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .navbar {
+        padding: 16px 16px 8px;
+      }
+      .page-wrapper {
+        padding: 8px 16px 28px;
+        align-items: flex-start;
+      }
+      .form-card {
+        padding: 22px 18px;
+        border-radius: 24px;
+      }
+    }
+
+    body.modo-confirmacao .form-card {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      padding: 16px 0;
+    }
+
+    .progress-wrapper {
+      margin-bottom: 24px;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--ardosia);
+      margin-bottom: 8px;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 12px;
+      background: var(--lavanda);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--violeta-vero);
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+
+    .screen-title {
+      font-family: var(--font-titulo);
+      font-weight: 900;
+      font-size: 28px;
+      line-height: 1.2;
+      color: var(--grafite-noturno);
+      margin-bottom: 10px;
+    }
+
+    .screen-subtitle {
+      font-size: 18px;
+      color: var(--ardosia);
+      margin-bottom: 24px;
+    }
+
+    .field-group {
+      margin-bottom: 22px;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--grafite-noturno);
+      margin-bottom: 8px;
+    }
+
+    .input-accessible {
+      width: 100%;
+      min-height: 60px;
+      padding: 14px 18px;
+      font-family: var(--font-corpo);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--grafite-noturno);
+      background: var(--nevoa);
+      border: 3px solid var(--ardosia);
+      border-radius: 16px;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+
+    .input-accessible:focus {
+      outline: none;
+      background: var(--branco);
+      border-color: var(--violeta-vero);
+      box-shadow: 0 0 0 4px var(--lavanda);
+    }
+
+    .lgpd-card {
+      background: var(--nevoa);
+      border: 2px solid #D8D4E8;
+      border-radius: 18px;
+      padding: 18px;
+      margin-bottom: 24px;
+    }
+
+    .lgpd-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--grafite-noturno);
+      margin-bottom: 6px;
+    }
+
+    .lgpd-text {
+      font-size: 18px;
+      color: var(--ardosia);
+      margin-bottom: 14px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-height: 54px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: var(--lavanda);
+      color: var(--grafite-noturno);
+      font-weight: 700;
+      font-size: 18px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.15s;
+    }
+
+    .checkbox-label:hover {
+      border-color: var(--violeta-vero);
+    }
+
+    .checkbox-label input[type="checkbox"] {
+      width: 28px;
+      height: 28px;
+      accent-color: var(--violeta-vero);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .numeric-display {
+      width: 100%;
+      min-height: 72px;
+      background: var(--nevoa);
+      border: 3px solid var(--violeta-vero);
+      border-radius: 18px;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-corpo);
+      font-size: clamp(26px, 5vw, 34px);
+      font-weight: 700;
+      color: var(--grafite-noturno);
+      letter-spacing: 1px;
+      margin-bottom: 18px;
+      text-align: center;
+    }
+
+    .numeric-display.vazio {
+      color: var(--ardosia);
+      font-weight: 400;
+      border-color: #C4B5FD;
+    }
+
+    .pin-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .pin-boxes {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 12px;
+      width: 100%;
+    }
+
+    .pin-box {
+      width: 68px;
+      height: 72px;
+      border-radius: 18px;
+      background: var(--nevoa);
+      border: 3px solid var(--ardosia);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-corpo);
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--grafite-noturno);
+      transition: all 0.15s ease;
+    }
+
+    .pin-box.filled {
+      border-color: var(--violeta-vero);
+      background: var(--lavanda);
+      color: var(--violeta-profundo);
+    }
+
+    .btn-toggle-pin {
+      min-height: 48px;
+      padding: 8px 16px;
+      background: transparent;
+      border: 2px solid #D8D4E8;
+      border-radius: 12px;
+      font-family: var(--font-corpo);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--ardosia);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Teclas com 64px de altura minima conforme Brandbook secao 12 */
+    .keypad-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+
+    .keypad-btn {
+      height: 64px;
+      border-radius: 16px;
+      background: var(--nevoa);
+      border: 2px solid #D8D4E8;
+      font-family: var(--font-corpo);
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--grafite-noturno);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .keypad-btn:hover {
+      border-color: var(--violeta-vero);
+      background: var(--lavanda);
+    }
+
+    .keypad-btn:active {
+      transform: scale(0.96);
+      background: #DDD6FE;
+    }
+
+    .keypad-btn:focus-visible {
+      outline: 3px solid var(--violeta-vero);
+      outline-offset: 2px;
+    }
+
+    .keypad-btn.action-key {
+      font-size: 18px;
+      background: var(--lavanda);
+      color: var(--violeta-profundo);
+      border-color: #C4B5FD;
+    }
+
+    .status-banner {
+      padding: 14px 18px;
+      border-radius: 16px;
+      font-size: 18px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .status-banner.erro {
+      background: var(--erro-fundo);
+      color: var(--erro-texto);
+      border: 2px solid var(--erro-texto);
+    }
+
+    .btn-primary {
+      width: 100%;
+      min-height: 60px;
+      padding: 14px 20px;
+      border-radius: 16px;
+      background: var(--violeta-vero);
+      color: var(--branco);
+      border: none;
+      font-family: var(--font-corpo);
+      font-size: 20px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(124, 58, 237, 0.28);
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .btn-primary:hover {
+      background: var(--violeta-profundo);
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary:focus-visible {
+      outline: 3px solid var(--grafite-noturno);
+      outline-offset: 3px;
+    }
+
+    .btn-secondary {
+      width: 100%;
+      min-height: 54px;
+      padding: 12px 18px;
+      border-radius: 16px;
+      background: transparent;
+      color: var(--grafite-noturno);
+      border: 2px solid var(--ardosia);
+      font-family: var(--font-corpo);
+      font-size: 18px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: background 0.15s;
+    }
+
+    .btn-secondary:hover {
+      background: var(--lavanda);
+      border-color: var(--violeta-profundo);
+    }
+
+    .celebration-box {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .celebration-circle {
+      width: 104px;
+      height: 104px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+
+    .celebration-title {
+      font-family: var(--font-titulo);
+      font-weight: 900;
+      font-size: clamp(32px, 5vw, 42px);
+      color: var(--branco);
+      margin-bottom: 12px;
+    }
+
+    .celebration-subtitle {
+      font-size: 22px;
+      color: var(--lavanda);
+      max-width: 460px;
+      margin-bottom: 32px;
+    }
+
+    .celebration-actions {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .btn-white {
+      width: 100%;
+      min-height: 60px;
+      padding: 14px 20px;
+      border-radius: 16px;
+      background: var(--branco);
+      color: var(--violeta-profundo);
+      border: none;
+      font-family: var(--font-corpo);
+      font-size: 20px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+      text-decoration: none;
+    }
+
+    .btn-outline-white {
+      width: 100%;
+      min-height: 56px;
+      padding: 12px 20px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.12);
+      color: var(--branco);
+      border: 2px solid rgba(255, 255, 255, 0.65);
+      font-family: var(--font-corpo);
+      font-size: 18px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+
+    .btn-outline-white:hover {
+      background: rgba(255, 255, 255, 0.22);
+    }
+  </style>
+</head>
+<body>
+
+  <header class="navbar">
+    <a href="#" class="brand-logo" onclick="irParaPasso(1); return false;" aria-label="Vero - Voltar ao início">
+      <svg width="34" height="34" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+        <path id="logo-v-path" d="M6 18.5L14.5 27L30 9.5" stroke="#7C3AED" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>vero</span>
+    </a>
+  </header>
+
+  <main class="page-wrapper">
+    <div class="cadastro-layout">
+
+      <aside class="hero-aside" aria-label="Sobre a Vero">
+        <span class="hero-badge">
+          <svg class="icon-24" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 6L9 17l-5-5"/>
+          </svg>
+          <span>Seu dinheiro em dia, sem complicação</span>
+        </span>
+        <h1 class="hero-title">Controlar o dinheiro não deveria ser coisa de especialista.</h1>
+        <p class="hero-description">
+          A Vero ajuda você a saber quanto ainda tem disponível no mês e avisa antes de as contas vencerem, pelo celular ou pelo WhatsApp.
+        </p>
+
+        <div class="hero-pillars">
+          <div class="pillar-item">
+            <div class="pillar-icon" aria-hidden="true">
+              <svg class="icon-24" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+            </div>
+            <div class="pillar-text">
+              <strong>Letras e botões grandes</strong>
+              <span>Tudo visível e fácil de ler sem esforço.</span>
+            </div>
+          </div>
+          <div class="pillar-item">
+            <div class="pillar-icon" aria-hidden="true">
+              <svg class="icon-24" viewBox="0 0 24 24">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+              </svg>
+            </div>
+            <div class="pillar-text">
+              <strong>Simples e direto</strong>
+              <span>Sem termos contábeis ou telas complicadas.</span>
+            </div>
+          </div>
+          <div class="pillar-item">
+            <div class="pillar-icon" aria-hidden="true">
+              <svg class="icon-24" viewBox="0 0 24 24">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
+            <div class="pillar-text">
+              <strong>Seguro e confirmado por você</strong>
+              <span>Seus dados ficam protegidos em sigilo.</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <section class="form-card" id="form-card" aria-live="polite"></section>
+
+    </div>
+  </main>
+
+  <script>
+    const ICONES = {
+      cadeado: `<svg class="icon-24" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
+      alerta: `<svg class="icon-24" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+      certo: `<svg class="icon-24" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>`,
+      setaDireita: `<svg class="icon-24" viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`,
+      setaEsquerda: `<svg class="icon-24" viewBox="0 0 24 24" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>`,
+      apagar: `<svg class="icon-24" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>`,
+      olhoAberto: `<svg class="icon-24" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`,
+      olhoFechado: `<svg class="icon-24" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`
+    };
+
+    /* Textos isolados da camada visual conforme Padrao Apendice A */
+    const MENSAGENS = {
+      passoDe: (atual, total) => `Passo ${atual} de ${total}`,
+
+      passo1: {
+        titulo: "Olá! Como você gosta de ser chamado?",
+        subtitulo: "Digite seu nome ou apelido para começarmos.",
+        labelNome: "Seu nome",
+        placeholderNome: "Ex.: Dona Maria",
+        lgpdTitulo: "Seus dados ficam protegidos",
+        lgpdTexto: "A Vero guarda seu telefone com segredo e nunca vende suas informações. Você pode apagar sua conta quando quiser.",
+        lgpdConcordo: "Concordo em criar minha conta na Vero",
+        btnContinuar: "Continuar",
+        erroSemNome: "Não consegui ler seu nome. Pode escrever como gosta de ser chamado?",
+        erroSemLgpd: "Toque na caixinha acima para confirmar e continuar."
+      },
+
+      passo2: {
+        titulo: (nome) => `Prazer, ${nome}! Qual é o seu celular?`,
+        subtitulo: "Toque nos números abaixo para digitar seu celular com DDD.",
+        placeholderTelefone: "(__) _____-____",
+        btnConfirmar: "Confirmar meu celular",
+        btnVoltar: "Voltar e corrigir meu nome",
+        erroTelefone: "Parece que faltou algum número do celular. Pode conferir para mim?"
+      },
+
+      passo3: {
+        titulo: "Escolha uma senha de 4 números",
+        subtitulo: "Escolha 4 números fáceis de lembrar para entrar no aplicativo.",
+        mostrarNumeros: "Mostrar números",
+        esconderNumeros: "Esconder números",
+        btnCriar: "Pronto, criar minha conta",
+        btnVoltar: "Voltar para o celular",
+        erroPin: "Sua senha precisa ter 4 números. Toque em mais alguns números abaixo."
+      },
+
+      passo4: {
+        titulo: (nome) => `Pronto, ${nome}!`,
+        subtitulo: "Sua conta na Vero está criada e pronta para usar.",
+        btnIrInicio: "Ir para a tela inicial",
+        btnRecomecar: "Voltar para o início do cadastro"
+      }
+    };
+
+    const estado = {
+      passo: 1,
+      nome: "",
+      aceitouLgpd: false,
+      telefone: "",
+      pin: "",
+      mostrarPin: true,
+      erro: null
+    };
+
+    function formatarCelular(digitos) {
+      if (!digitos) return MENSAGENS.passo2.placeholderTelefone;
+      const d = digitos.slice(0, 11);
+      if (d.length <= 2) return `(${d}`;
+      if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+      return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+    }
+
+    function irParaPasso(novoPasso) {
+      estado.passo = novoPasso;
+      estado.erro = null;
+      renderizar();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function pressionarTecla(campo, tecla) {
+      estado.erro = null;
+      const limite = campo === "telefone" ? 11 : 4;
+      if (tecla === "apagar") {
+        estado[campo] = estado[campo].slice(0, -1);
+      } else if (tecla === "limpar") {
+        estado[campo] = "";
+      } else if (estado[campo].length < limite) {
+        estado[campo] += tecla;
+      }
+      renderizar();
+    }
+
+    function confirmarPasso1() {
+      const campoNome = document.getElementById("campo-nome");
+      if (campoNome) estado.nome = campoNome.value;
+
+      if (!estado.nome.trim()) {
+        estado.erro = MENSAGENS.passo1.erroSemNome;
+        renderizar();
+        return;
+      }
+      if (!estado.aceitouLgpd) {
+        estado.erro = MENSAGENS.passo1.erroSemLgpd;
+        renderizar();
+        return;
+      }
+      irParaPasso(2);
+    }
+
+    function confirmarPasso2() {
+      if (estado.telefone.length < 10) {
+        estado.erro = MENSAGENS.passo2.erroTelefone;
+        renderizar();
+        return;
+      }
+      irParaPasso(3);
+    }
+
+    function confirmarPasso3() {
+      if (estado.pin.length < 4) {
+        estado.erro = MENSAGENS.passo3.erroPin;
+        renderizar();
+        return;
+      }
+      irParaPasso(4);
+    }
+
+    function alternarVisibilidadePin() {
+      estado.mostrarPin = !estado.mostrarPin;
+      renderizar();
+    }
+
+    function renderizarProgresso(passoAtual) {
+      const percentual = Math.round((passoAtual / 3) * 100);
+      return `
+        <div class="progress-wrapper" aria-label="${MENSAGENS.passoDe(passoAtual, 3)}">
+          <div class="progress-header">
+            <span>${MENSAGENS.passoDe(passoAtual, 3)}</span>
+            <span>${percentual}%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" style="width: ${percentual}%"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderizarErro() {
+      if (!estado.erro) return "";
+      return `
+        <div class="status-banner erro" role="alert">
+          ${ICONES.alerta}
+          <span>${estado.erro}</span>
+        </div>
+      `;
+    }
+
+    function renderizarTeclado(campo) {
+      const numeros = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
+      return `
+        <div class="keypad-grid" role="group" aria-label="Teclado numérico">
+          ${numeros.map(n => `
+            <button type="button" class="keypad-btn" onclick="pressionarTecla('${campo}', '${n}')" aria-label="Número ${n}">
+              ${n}
+            </button>
+          `).join("")}
+          <button type="button" class="keypad-btn action-key" onclick="pressionarTecla('${campo}', 'limpar')" aria-label="Limpar tudo">
+            Limpar
+          </button>
+          <button type="button" class="keypad-btn" onclick="pressionarTecla('${campo}', '0')" aria-label="Número 0">
+            0
+          </button>
+          <button type="button" class="keypad-btn action-key" onclick="pressionarTecla('${campo}', 'apagar')" aria-label="Apagar último número">
+            ${ICONES.apagar}
+            <span>Apagar</span>
+          </button>
+        </div>
+      `;
+    }
+
+    function renderizar() {
+      const card = document.getElementById("form-card");
+      const logoPath = document.getElementById("logo-v-path");
+      const emConfirmacao = estado.passo === 4;
+
+      document.body.classList.toggle("modo-confirmacao", emConfirmacao);
+      logoPath.setAttribute("stroke", emConfirmacao ? "#FFFFFF" : "#7C3AED");
+
+      if (estado.passo === 1) {
+        card.innerHTML = `
+          ${renderizarProgresso(1)}
+          <h2 class="screen-title">${MENSAGENS.passo1.titulo}</h2>
+          <p class="screen-subtitle">${MENSAGENS.passo1.subtitulo}</p>
+          ${renderizarErro()}
+
+          <div class="field-group">
+            <label class="field-label" for="campo-nome">${MENSAGENS.passo1.labelNome}</label>
+            <input
+              id="campo-nome"
+              type="text"
+              class="input-accessible"
+              placeholder="${MENSAGENS.passo1.placeholderNome}"
+              value="${estado.nome.replace(/"/g, '&quot;')}"
+              oninput="estado.nome = this.value; if (estado.erro) { estado.erro = null; }"
+              autocomplete="given-name"
+            />
+          </div>
+
+          <div class="lgpd-card">
+            <div class="lgpd-header">
+              ${ICONES.cadeado}
+              <span>${MENSAGENS.passo1.lgpdTitulo}</span>
+            </div>
+            <p class="lgpd-text">${MENSAGENS.passo1.lgpdTexto}</p>
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                ${estado.aceitouLgpd ? "checked" : ""}
+                onchange="estado.aceitouLgpd = this.checked; estado.erro = null; renderizar();"
+              />
+              <span>${MENSAGENS.passo1.lgpdConcordo}</span>
+            </label>
+          </div>
+
+          <button type="button" class="btn-primary" onclick="confirmarPasso1()">
+            <span>${MENSAGENS.passo1.btnContinuar}</span>
+            ${ICONES.setaDireita}
+          </button>
+        `;
+      } else if (estado.passo === 2) {
+        const nomeExibicao = estado.nome.trim() || "amigo";
+        card.innerHTML = `
+          ${renderizarProgresso(2)}
+          <h2 class="screen-title">${MENSAGENS.passo2.titulo(nomeExibicao)}</h2>
+          <p class="screen-subtitle">${MENSAGENS.passo2.subtitulo}</p>
+          ${renderizarErro()}
+
+          <div class="numeric-display ${estado.telefone.length === 0 ? 'vazio' : ''}" aria-live="polite" aria-label="Celular digitado">
+            ${formatarCelular(estado.telefone)}
+          </div>
+
+          ${renderizarTeclado("telefone")}
+
+          <button type="button" class="btn-primary" onclick="confirmarPasso2()">
+            ${ICONES.certo}
+            <span>${MENSAGENS.passo2.btnConfirmar}</span>
+          </button>
+          <button type="button" class="btn-secondary" onclick="irParaPasso(1)">
+            ${ICONES.setaEsquerda}
+            <span>${MENSAGENS.passo2.btnVoltar}</span>
+          </button>
+        `;
+      } else if (estado.passo === 3) {
+        const caixas = [0, 1, 2, 3].map(i => {
+          const digito = estado.pin[i];
+          const preenchido = digito !== undefined;
+          const texto = preenchido ? (estado.mostrarPin ? digito : "•") : "";
+          return `<div class="pin-box ${preenchido ? 'filled' : ''}" aria-label="Dígito ${i + 1}">${texto}</div>`;
+        }).join("");
+
+        card.innerHTML = `
+          ${renderizarProgresso(3)}
+          <h2 class="screen-title">${MENSAGENS.passo3.titulo}</h2>
+          <p class="screen-subtitle">${MENSAGENS.passo3.subtitulo}</p>
+          ${renderizarErro()}
+
+          <div class="pin-container">
+            <div class="pin-boxes" aria-live="polite">
+              ${caixas}
+            </div>
+            <button type="button" class="btn-toggle-pin" onclick="alternarVisibilidadePin()">
+              ${estado.mostrarPin ? ICONES.olhoFechado : ICONES.olhoAberto}
+              <span>${estado.mostrarPin ? MENSAGENS.passo3.esconderNumeros : MENSAGENS.passo3.mostrarNumeros}</span>
+            </button>
+          </div>
+
+          ${renderizarTeclado("pin")}
+
+          <button type="button" class="btn-primary" onclick="confirmarPasso3()">
+            ${ICONES.certo}
+            <span>${MENSAGENS.passo3.btnCriar}</span>
+          </button>
+          <button type="button" class="btn-secondary" onclick="irParaPasso(2)">
+            ${ICONES.setaEsquerda}
+            <span>${MENSAGENS.passo3.btnVoltar}</span>
+          </button>
+        `;
+      } else if (estado.passo === 4) {
+        const nomeExibicao = estado.nome.trim() || "amigo";
+        card.innerHTML = `
+          <div class="celebration-box">
+            <div class="celebration-circle" aria-hidden="true">
+              <svg width="60" height="60" viewBox="0 0 36 36" fill="none">
+                <path d="M6 18.5L14.5 27L30 9.5" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+
+            <h2 class="celebration-title">${MENSAGENS.passo4.titulo(nomeExibicao)}</h2>
+            <p class="celebration-subtitle">${MENSAGENS.passo4.subtitulo}</p>
+
+            <div class="celebration-actions">
+              <button type="button" class="btn-white" onclick="irParaPasso(1)">
+                <span>${MENSAGENS.passo4.btnIrInicio}</span>
+                ${ICONES.setaDireita}
+              </button>
+
+              <button type="button" class="btn-outline-white" onclick="irParaPasso(1)">
+                ${ICONES.setaEsquerda}
+                <span>${MENSAGENS.passo4.btnRecomecar}</span>
+              </button>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    renderizar();
+  </script>
+</body>
+</html>
