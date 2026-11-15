@@ -13,6 +13,7 @@ export const LeitorQrCode: React.FC<LeitorQrCodeProps> = ({
   aoLerCodigo,
   aoFechar,
 }) => {
+  const modalRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const inputArquivoRef = useRef<HTMLInputElement | null>(null);
   const leitorRef = useRef<BrowserQRCodeReader | null>(null);
@@ -20,6 +21,7 @@ export const LeitorQrCode: React.FC<LeitorQrCodeProps> = ({
 
   const [iniciando, setIniciando] = useState(true);
   const [erroCamera, setErroCamera] = useState<string | null>(null);
+  const [erroFoto, setErroFoto] = useState<string | null>(null);
   const [lendoFoto, setLendoFoto] = useState(false);
 
   const encerrarCamera = () => {
@@ -35,6 +37,73 @@ export const LeitorQrCode: React.FC<LeitorQrCodeProps> = ({
       videoEl.srcObject = null;
     }
   };
+
+  const fecharModal = () => {
+    encerrarCamera();
+    aoFechar();
+  };
+
+  // Acessibilidade do modal: Esc para fechar, foco inicial e focus trap
+  useEffect(() => {
+    const focoAnterior = document.activeElement as HTMLElement | null;
+    const modal = modalRef.current;
+
+    const obterFocaveis = () => {
+      if (!modal) return [];
+      return Array.from(
+        modal.querySelectorAll<HTMLElement>(
+          'button:not(:disabled), [href], input:not(:disabled):not([type="file"]), [tabindex]:not([tabindex="-1"])'
+        )
+      );
+    };
+
+    const focaveisIniciais = obterFocaveis();
+    if (focaveisIniciais.length > 0) {
+      focaveisIniciais[0].focus();
+    } else {
+      modal?.focus();
+    }
+
+    const aoPressionarTecla = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        encerrarCamera();
+        aoFechar();
+        return;
+      }
+
+      if (e.key === 'Tab') {
+        const focaveis = obterFocaveis();
+        if (focaveis.length === 0) return;
+
+        const primeiro = focaveis[0];
+        const ultimo = focaveis[focaveis.length - 1];
+
+        if (e.shiftKey) {
+          if (
+            document.activeElement === primeiro ||
+            !modal?.contains(document.activeElement)
+          ) {
+            e.preventDefault();
+            ultimo.focus();
+          }
+        } else if (
+          document.activeElement === ultimo ||
+          !modal?.contains(document.activeElement)
+        ) {
+          e.preventDefault();
+          primeiro.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', aoPressionarTecla);
+    return () => {
+      document.removeEventListener('keydown', aoPressionarTecla);
+      focoAnterior?.focus?.();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     let ativo = true;
@@ -109,19 +178,19 @@ export const LeitorQrCode: React.FC<LeitorQrCodeProps> = ({
     if (!arquivo) return;
 
     setLendoFoto(true);
-    setErroCamera(null);
+    setErroFoto(null);
 
     const urlObjeto = URL.createObjectURL(arquivo);
     try {
-      const leitor = leitorRef.current || new BrowserQRCodeReader();
-      const resultado = await leitor.decodeFromImageUrl(urlObjeto);
+      const leitorFoto = new BrowserQRCodeReader();
+      const resultado = await leitorFoto.decodeFromImageUrl(urlObjeto);
       if (resultado) {
         jaLidoRef.current = true;
         encerrarCamera();
         aoLerCodigo(resultado.getText());
       }
     } catch {
-      setErroCamera(
+      setErroFoto(
         'Não conseguimos ler o QR Code nessa foto. Tente aproximar mais do código ou digite o valor manualmente.'
       );
     } finally {
@@ -138,7 +207,7 @@ export const LeitorQrCode: React.FC<LeitorQrCodeProps> = ({
       aria-modal="true"
       aria-labelledby="titulo-leitor-qr"
     >
-      <div className={styles.modal}>
+      <div className={styles.modal} ref={modalRef} tabIndex={-1}>
         <div className={styles.cabecalho}>
           <h2 id="titulo-leitor-qr" className={styles.titulo}>
             Ler QR Code da nota fiscal
@@ -150,6 +219,7 @@ export const LeitorQrCode: React.FC<LeitorQrCodeProps> = ({
         </div>
 
         {erroCamera && <AlertaStatus tipo="erro">{erroCamera}</AlertaStatus>}
+        {erroFoto && <AlertaStatus tipo="erro">{erroFoto}</AlertaStatus>}
 
         {!erroCamera && (
           <div className={styles.areaCamera}>
@@ -200,10 +270,7 @@ export const LeitorQrCode: React.FC<LeitorQrCodeProps> = ({
           <button
             type="button"
             className={styles.btnDigitar}
-            onClick={() => {
-              encerrarCamera();
-              aoFechar();
-            }}
+            onClick={fecharModal}
           >
             Digitar o valor manualmente
           </button>

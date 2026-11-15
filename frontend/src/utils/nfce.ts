@@ -53,6 +53,24 @@ export function formatarCnpj(cnpj: string): string {
   );
 }
 
+/**
+ * Converte texto monetário (ex.: "1.234,56", "85,50" ou "1234.56") em centavos.
+ */
+export function parsearValorMonetario(texto: string): number | null {
+  const limpo = texto.replace(/[^\d.,]/g, '').trim();
+  if (!limpo) return null;
+
+  let normalizado = limpo;
+  if (limpo.includes(',')) {
+    // Formato brasileiro: remove separadores de milhar (.) e troca vírgula decimal por ponto
+    normalizado = limpo.replace(/\./g, '').replace(',', '.');
+  }
+
+  const numero = Number(normalizado);
+  if (!Number.isFinite(numero) || numero <= 0) return null;
+  return Math.round(numero * 100);
+}
+
 function decodificarHexParaTexto(hex: string): string {
   try {
     if (!/^[0-9a-fA-F]+$/.test(hex) || hex.length % 2 !== 0) {
@@ -88,10 +106,7 @@ function extrairCentavos(
   if (typeof bruto === 'number') {
     return Number.isFinite(bruto) && bruto > 0 ? Math.round(bruto * 100) : null;
   }
-  const limpo = bruto.trim().replace(',', '.');
-  const num = Number(limpo);
-  if (!Number.isFinite(num) || num <= 0) return null;
-  return Math.round(num * 100);
+  return parsearValorMonetario(bruto);
 }
 
 function dataPadraoHoje(): string {
@@ -102,7 +117,10 @@ function dataPadraoHoje(): string {
   return `${ano}-${mes}-${dia}`;
 }
 
-function extrairDadosDaChave44(chave: string): {
+function extrairDadosDaChave44(
+  chave: string,
+  diaExplicito?: string
+): {
   uf: string;
   cnpj: string;
   dataEstimada: string;
@@ -116,10 +134,18 @@ function extrairDadosDaChave44(chave: string): {
   const hoje = new Date();
   const anoAtual = String(hoje.getFullYear());
   const mesAtual = String(hoje.getMonth() + 1).padStart(2, '0');
-  const dia =
+
+  let dia =
     ano === anoAtual && mes === mesAtual
       ? String(hoje.getDate()).padStart(2, '0')
       : '01';
+
+  if (diaExplicito) {
+    const diaNum = parseInt(diaExplicito, 10);
+    if (Number.isFinite(diaNum) && diaNum >= 1 && diaNum <= 31) {
+      dia = String(diaNum).padStart(2, '0');
+    }
+  }
 
   const mesValido = Number(mes) >= 1 && Number(mes) <= 12 ? mes : mesAtual;
 
@@ -131,9 +157,12 @@ function extrairDadosDaChave44(chave: string): {
 }
 
 /**
- * Interpreta o conteúdo lido de um QR Code de nota fiscal (NFC-e v1, v2 ou JSON de teste).
+ * Interpreta o conteúdo lido de um QR Code de nota fiscal (NFC-e v1, v2, contingência ou JSON em dev).
  */
-export function parsearQrCodeNfce(textoBruto: string): DadosNfce {
+export function parsearQrCodeNfce(
+  textoBruto: string,
+  permitirJsonTeste = import.meta.env.DEV
+): DadosNfce {
   const texto = textoBruto.trim();
   const hojeStr = dataPadraoHoje();
 
@@ -147,8 +176,8 @@ export function parsearQrCodeNfce(textoBruto: string): DadosNfce {
     };
   }
 
-  // 1. Suporte a payload JSON simplificado (útil para testes e integrações diretas)
-  if (texto.startsWith('{') && texto.endsWith('}')) {
+  // 1. Payload JSON simplificado (restrito ao modo de desenvolvimento/testes)
+  if (permitirJsonTeste && texto.startsWith('{') && texto.endsWith('}')) {
     try {
       const obj = JSON.parse(texto) as Record<string, unknown>;
       const centavos = extrairCentavos(
@@ -166,10 +195,10 @@ export function parsearQrCodeNfce(textoBruto: string): DadosNfce {
           typeof obj.data === 'string' ? obj.data : undefined
         ) || hojeStr;
 
-      if (nome || centavos) {
+      if (nome && centavos) {
         return {
           valido: true,
-          estabelecimento: nome || 'Estabelecimento identificado',
+          estabelecimento: nome,
           data,
           centavos,
           urlOriginal: texto,
@@ -180,7 +209,7 @@ export function parsearQrCodeNfce(textoBruto: string): DadosNfce {
     }
   }
 
-  // 2. Tentativa de leitura como URL de SEFAZ (NFC-e v1.0 ou v2.0)
+  // 2. Leitura como URL de SEFAZ (NFC-e v1.0, v2.0 online ou v2.0 contingência offline)
   let url: URL | null = null;
   try {
     url = new URL(texto);
@@ -192,18 +221,33 @@ export function parsearQrCodeNfce(textoBruto: string): DadosNfce {
     const params = url.searchParams;
     const parametroP = params.get('p');
 
-    // Layout 2.0: ?p=CHAVE44|VERSAO|AMBIENTE|...
+    // Layout 2.0:
+    // Online: ?p=CHAVE44|2|tpAmb|idCSC|cHashQRCode
+    // Contingência: ?p=CHAVE44|2|tpAmb|diaEmissao|vNF|digVal|idCSC|cHashQRCode
     if (parametroP) {
       const partes = parametroP.split('|');
       const possivelChave = (partes[0] || '').replace(/\D/g, '');
 
       if (possivelChave.length === 44) {
-        const { uf, cnpj, dataEstimada } = extrairDadosDaChave44(possivelChave);
-        const valorExtra = extrairCentavos(
-          params.get('vNF') || params.get('valor')
+        const ehContingencia =
+          partes.length >= 7 && /^\d{1,2}$/.test(partes[3] || '');
+        const diaContingencia = ehContingencia ? partes[3] : undefined;
+        const valorContingencia = ehContingencia
+          ? extrairCentavos(partes[4])
+          : null;
+
+        const { uf, cnpj, dataEstimada } = extrairDadosDaChave44(
+          possivelChave,
+          diaContingencia
         );
-        const nomeExtra =
-          params.get('estabelecimento') || params.get('xNome') || '';
+        const valorExtra =
+          valorContingencia ??
+          extrairCentavos(params.get('vNF') || params.get('valor'));
+        const nomeExtra = (
+          params.get('estabelecimento') ||
+          params.get('xNome') ||
+          ''
+        ).trim();
         const dataExtra = extrairDataDeTexto(params.get('dhEmi'));
 
         return {
@@ -211,7 +255,7 @@ export function parsearQrCodeNfce(textoBruto: string): DadosNfce {
           chaveAcesso: possivelChave,
           uf,
           cnpj,
-          estabelecimento: nomeExtra.trim() || `Compra (${uf}) · CNPJ ${cnpj}`,
+          estabelecimento: nomeExtra,
           data: dataExtra || dataEstimada,
           centavos: valorExtra,
           urlOriginal: texto,
@@ -240,7 +284,7 @@ export function parsearQrCodeNfce(textoBruto: string): DadosNfce {
         chaveAcesso: chNFe,
         uf,
         cnpj,
-        estabelecimento: xNome || `Compra (${uf}) · CNPJ ${cnpj}`,
+        estabelecimento: xNome,
         data: dhEmi || dataEstimada,
         centavos: vNF,
         urlOriginal: texto,
@@ -263,7 +307,7 @@ export function parsearQrCodeNfce(textoBruto: string): DadosNfce {
         chaveAcesso: matchChave[0],
         uf,
         cnpj,
-        estabelecimento: xNome || `Compra (${uf}) · CNPJ ${cnpj}`,
+        estabelecimento: xNome,
         data: dhEmi || dataEstimada,
         centavos: vNF,
         urlOriginal: texto,
@@ -275,7 +319,7 @@ export function parsearQrCodeNfce(textoBruto: string): DadosNfce {
     }
   }
 
-  // 3. Chave de acesso pura de 44 dígitos (código de barras/QR numérico)
+  // 3. Chave de acesso pura de 44 dígitos
   const apenasDigitos = texto.replace(/\D/g, '');
   if (apenasDigitos.length === 44 && texto.length <= 54) {
     const { uf, cnpj, dataEstimada } = extrairDadosDaChave44(apenasDigitos);
@@ -284,7 +328,7 @@ export function parsearQrCodeNfce(textoBruto: string): DadosNfce {
       chaveAcesso: apenasDigitos,
       uf,
       cnpj,
-      estabelecimento: `Compra (${uf}) · CNPJ ${cnpj}`,
+      estabelecimento: '',
       data: dataEstimada,
       centavos: null,
       urlOriginal: texto,
@@ -306,7 +350,9 @@ export function parsearQrCodeNfce(textoBruto: string): DadosNfce {
  * Sugere uma categoria de gasto do Vero com base no nome do estabelecimento.
  */
 export function sugerirCategoriaPorEstabelecimento(nome: string): string {
-  const n = nome.toLowerCase();
+  const n = nome.trim().toLowerCase();
+  if (!n) return 'outros';
+
   if (
     n.includes('mercado') ||
     n.includes('super') ||
@@ -346,5 +392,5 @@ export function sugerirCategoriaPorEstabelecimento(nome: string): string {
   ) {
     return 'casa';
   }
-  return 'mercado';
+  return 'outros';
 }

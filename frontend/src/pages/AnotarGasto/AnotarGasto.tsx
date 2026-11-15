@@ -14,8 +14,10 @@ import { useNavegacao } from '../../router';
 import { useDadosDoMes } from '../../servicos/dadosDoMes';
 import {
   parsearQrCodeNfce,
+  parsearValorMonetario,
   sugerirCategoriaPorEstabelecimento,
 } from '../../utils/nfce';
+import { calcularHoje } from '../../servicos/dadosDoMes';
 
 const NOMES_CATEGORIAS_GASTO: Record<string, string> = {
   mercado: 'Mercado',
@@ -48,10 +50,15 @@ export const AnotarGasto: React.FC = () => {
   const [leitorAberto, setLeitorAberto] = useState<boolean>(false);
   const [nfcePendente, setNfcePendente] = useState<{
     estabelecimento: string;
+    infoCnpj?: string;
     data: string;
     valorTexto: string;
     aviso?: string;
   } | null>(null);
+
+  const hojeAtual = calcularHoje();
+  const primeiroDiaMesAtual = `${hojeAtual.mes}-01`;
+  const hojeIso = `${hojeAtual.mes}-${String(hojeAtual.dia).padStart(2, '0')}`;
 
   const centavos = valorStr ? parseInt(valorStr, 10) : 0;
   const valorFormatado = (centavos / 100).toLocaleString('pt-BR', {
@@ -119,29 +126,50 @@ export const AnotarGasto: React.FC = () => {
     );
     setCategoriaGasto(catSugerida);
     setErro(null);
+
+    const dataForaDoMes =
+      dados.data < primeiroDiaMesAtual || dados.data > hojeIso;
+    const avisoData = dataForaDoMes
+      ? 'Atenção: a data desta nota não pertence ao mês atual até hoje. O Vero registra lançamentos apenas dentro do mês atual — ajuste a data abaixo se desejar lançar neste mês.'
+      : undefined;
+
+    const avisoCombinado = [dados.aviso, avisoData].filter(Boolean).join(' ');
+
     setNfcePendente({
       estabelecimento: dados.estabelecimento,
+      infoCnpj:
+        dados.cnpj && dados.uf
+          ? `Nota identificada (${dados.uf} · CNPJ ${dados.cnpj})`
+          : undefined,
       data: dados.data,
       valorTexto:
         dados.centavos !== null
           ? (dados.centavos / 100).toFixed(2).replace('.', ',')
           : '',
-      aviso: dados.aviso,
+      aviso: avisoCombinado || undefined,
     });
   };
 
   const confirmarNfce = () => {
     if (!nfcePendente) return;
-    const limpo = nfcePendente.valorTexto
-      .replace(/[^\d.,]/g, '')
-      .replace(',', '.');
-    const numero = parseFloat(limpo);
-    if (!Number.isFinite(numero) || numero <= 0) {
+
+    const centavosNfce = parsearValorMonetario(nfcePendente.valorTexto);
+    if (!centavosNfce || centavosNfce <= 0) {
       setErro('Informe um valor válido maior que zero para salvar a nota.');
       return;
     }
 
-    const centavosNfce = Math.round(numero * 100);
+    if (
+      !nfcePendente.data ||
+      nfcePendente.data < primeiroDiaMesAtual ||
+      nfcePendente.data > hojeIso
+    ) {
+      setErro(
+        'A data da nota precisa estar dentro do mês atual até hoje para entrar no saldo do mês.'
+      );
+      return;
+    }
+
     setValorStr(String(centavosNfce));
 
     const nomeCat = NOMES_CATEGORIAS_GASTO[categoriaGasto] || 'Gasto Geral';
@@ -233,7 +261,7 @@ export const AnotarGasto: React.FC = () => {
                   htmlFor="nfce-estabelecimento"
                   className={styles.rotuloNfce}
                 >
-                  Nome do estabelecimento
+                  Nome do estabelecimento (opcional)
                 </label>
                 <input
                   id="nfce-estabelecimento"
@@ -248,6 +276,11 @@ export const AnotarGasto: React.FC = () => {
                   }
                   placeholder="Ex: Supermercado, Farmácia"
                 />
+                {nfcePendente.infoCnpj && (
+                  <span style={{ fontSize: 14, color: 'var(--ardosia)' }}>
+                    {nfcePendente.infoCnpj}
+                  </span>
+                )}
               </div>
 
               <div className={styles.campoNfceGrupo}>
@@ -257,14 +290,17 @@ export const AnotarGasto: React.FC = () => {
                 <input
                   id="nfce-data"
                   type="date"
+                  min={primeiroDiaMesAtual}
+                  max={hojeIso}
                   className={styles.inputNfce}
                   value={nfcePendente.data}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    setErro(null);
                     setNfcePendente({
                       ...nfcePendente,
                       data: e.target.value,
-                    })
-                  }
+                    });
+                  }}
                 />
               </div>
 
