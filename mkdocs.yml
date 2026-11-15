@@ -1,7 +1,7 @@
 site_name: Vero
 site_description: Gestão financeira simples, acessível e sem linguagem contábil.
-repo_url: https://github.com/beatrizbranfb/Vero
-repo_name: beatrizbranfb/Vero
+repo_url: https://github.com/FGA0138-MDS-Ajax/2026.2-T03-Allen
+repo_name: FGA0138-MDS-Ajax/2026.2-T03-Allen
 docs_dir: docs
 use_directory_urls: true
 
@@ -39,7 +39,12 @@ markdown_extensions:
 
 nav:
   - Início: index.md
+  - Documento de Visão: visao.md
+  - Arquitetura: arquitetura/index.md
+  - Design (Brandbook): design/index.md
   - Linguagem: linguagem.md
+  - Desenvolvimento:
+      - Rodar em localhost: desenvolvimento/rodar-local.md
   - Qualidade:
       - Plano de testes: qualidade/plano-de-testes.md
       - Sprint 1:
@@ -54,3 +59,4 @@ nav:
       - Registro de testes: testes/README.md
       - PR 83 · RF05 tour em áudio: testes/pr-83-rf05-tour-audio.md
       - PR 84 · RF07 QR Code: testes/pr-84-rf07-qrcode-nfce.md
+      - Script rodar local (14/11): testes/2026-11-14-script-rodar-local.md
