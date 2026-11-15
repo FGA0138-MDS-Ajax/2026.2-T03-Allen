@@ -71,3 +71,17 @@ class ContaSaida(BaseModel):
     criado_em: datetime
     recorrente: bool
     id_conta_origem: UUID | None = None
+
+
+class ContaFixaVencida(BaseModel):
+    """O que o lançamento automático (RF18) precisa saber da conta fixa. O módulo de
+    transações recebe estes dados pelo serviço de contas, sem ler a tblConta."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    usuario_id: UUID
+    valor: Decimal
+    vencimento_em: date
+    descricao: str | None
+    categoria_id: int | None

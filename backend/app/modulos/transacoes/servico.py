@@ -14,7 +14,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.modulos.contas import servico as servico_contas
-from app.modulos.contas.modelos import Conta
 from app.modulos.transacoes.esquemas import (
     OrigemTransacao,
     TipoTransacao,
@@ -117,7 +116,8 @@ def excluir(sessao: Session, usuario_id: uuid.UUID, transacao_id: uuid.UUID) -> 
 def lancar_gastos_fixos(sessao: Session, hoje: date | None = None) -> int:
     """RF18: lança como gasto cada conta fixa que venceu até hoje e ainda não foi paga,
     com a data do vencimento, e marca a conta como paga (o que cria a do mês seguinte).
-    Devolve quantos lançamentos fez.
+    Devolve quantos lançamentos fez. As contas vêm do serviço de contas: este módulo
+    não lê a tblConta.
 
     Rodar de novo não duplica: a transação e o pagamento são gravados no mesmo commit, e
     a conta paga ou já ligada a uma transação não é lançada de novo. Duas execuções ao
@@ -126,7 +126,14 @@ def lancar_gastos_fixos(sessao: Session, hoje: date | None = None) -> int:
     """
     hoje = hoje or datetime.now(FUSO_BRASILIA).date()
     lancadas = 0
-    while (conta := _proxima_conta_fixa_a_lancar(sessao, hoje)) is not None:
+    # Contas que o usuário voltou a deixar em aberto depois do lançamento
+    ja_lancadas: set[uuid.UUID] = set()
+    while (
+        conta := servico_contas.proxima_conta_fixa_vencida(sessao, hoje, ja_lancadas)
+    ) is not None:
+        if _conta_ja_lancada(sessao, conta.id):
+            ja_lancadas.add(conta.id)
+            continue
         transacao = Transacao(
             usuario_id=conta.usuario_id,
             tipo=TipoTransacao.SAIDA,
@@ -138,7 +145,7 @@ def lancar_gastos_fixos(sessao: Session, hoje: date | None = None) -> int:
             conta_id=conta.id,
         )
         sessao.add(transacao)
-        servico_contas.registrar_pagamento(sessao, conta)
+        servico_contas.pagar_conta_fixa(sessao, conta.id)
         sessao.commit()
         sessao.refresh(transacao)
         _avisar_app(transacao)
@@ -146,21 +153,11 @@ def lancar_gastos_fixos(sessao: Session, hoje: date | None = None) -> int:
     return lancadas
 
 
-def _proxima_conta_fixa_a_lancar(sessao: Session, hoje: date) -> Conta | None:
-    ja_lancada = select(Transacao.id).where(Transacao.conta_id == Conta.id).exists()
-    comando = (
-        select(Conta)
-        .where(
-            Conta.recorrente.is_(True),
-            Conta.pagamento_em.is_(None),
-            Conta.vencimento_em <= hoje,
-            ~ja_lancada,
-        )
-        .order_by(Conta.vencimento_em)
-        .limit(1)
-        .with_for_update(skip_locked=True)
+def _conta_ja_lancada(sessao: Session, conta_id: uuid.UUID) -> bool:
+    return (
+        sessao.scalar(select(Transacao.id).where(Transacao.conta_id == conta_id))
+        is not None
     )
-    return sessao.scalar(comando)
 
 
 def _buscar(

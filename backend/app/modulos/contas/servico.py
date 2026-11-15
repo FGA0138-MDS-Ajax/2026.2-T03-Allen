@@ -1,13 +1,14 @@
 """Regras de cadastro e pagamento de contas a pagar (RF25, RF26, RF30)."""
 
 import uuid
-from datetime import UTC, datetime
+from collections.abc import Collection
+from datetime import UTC, date, datetime
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.modulos.contas.esquemas import ContaCadastroEntrada
+from app.modulos.contas.esquemas import ContaCadastroEntrada, ContaFixaVencida
 from app.modulos.contas.modelos import Conta
 from app.modulos.contas.recorrencia import gerar_proxima_recorrencia
 from app.modulos.contas.saldo import ESTRATEGIA_SALDO
@@ -94,3 +95,34 @@ def registrar_pagamento(sessao: Session, conta: Conta) -> None:
     ESTRATEGIA_SALDO.ao_alterar_pagamento(conta, True)
     if conta.recorrente:
         gerar_proxima_recorrencia(sessao, conta)
+
+
+def proxima_conta_fixa_vencida(
+    sessao: Session, hoje: date, ignorar: Collection[uuid.UUID] = ()
+) -> ContaFixaVencida | None:
+    """RF18: a conta fixa mais antiga que venceu até hoje e não foi paga. Fica travada
+    até o commit de quem chama; outra execução ao mesmo tempo pula para a seguinte
+    (SKIP LOCKED)."""
+    comando = (
+        select(Conta)
+        .where(
+            Conta.recorrente.is_(True),
+            Conta.pagamento_em.is_(None),
+            Conta.vencimento_em <= hoje,
+            Conta.id.not_in(ignorar),
+        )
+        .order_by(Conta.vencimento_em)
+        .limit(1)
+        .with_for_update(skip_locked=True)
+    )
+    conta = sessao.scalar(comando)
+    return ContaFixaVencida.model_validate(conta) if conta else None
+
+
+def pagar_conta_fixa(sessao: Session, conta_id: uuid.UUID) -> None:
+    """RF18: marca como paga a conta devolvida por `proxima_conta_fixa_vencida`. Não
+    grava: quem chama faz o commit junto com o lançamento."""
+    conta = sessao.get(Conta, conta_id)
+    if conta is None:
+        raise ContaNaoEncontrada
+    registrar_pagamento(sessao, conta)
