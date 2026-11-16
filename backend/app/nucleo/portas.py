@@ -7,6 +7,10 @@ em app/integracoes, e em desenvolvimento usam versões falsas (Quadro 7 do docum
 from typing import Protocol
 
 
+class FalhaEnvioEmail(Exception):
+    """O e-mail não foi enviado (ex.: servidor SMTP fora do ar)."""
+
+
 class PortaEmail(Protocol):
     def enviar(self, destinatario: str, assunto: str, texto: str) -> None:
-        """Envia um e-mail de texto simples. Não lança erro: falhas ficam no log."""
+        """Envia um e-mail de texto simples. Lança FalhaEnvioEmail se não conseguir."""
