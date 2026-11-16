@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Request, BackgroundTasks, Header, HTTPException, status
 import httpx
+import re
+import secrets
 from sqlalchemy import select
 from decimal import Decimal 
 
@@ -26,17 +28,17 @@ router = APIRouter()
 async def receber_mensagem(
     request: Request,
     background_tasks: BackgroundTasks,
-    apikey: str | None = Header(None, alias="apikey")
+    apikey: str | None = Header(None, alias="apikey"),
 ):
     payload = await request.json()
-    chave_recebida = apikey or payload.get("apikey") or request.query_params.get("apikey")
+    chave_recebida = apikey or payload.get("apikey")
 
-    if not chave_recebida or chave_recebida != settings.AUTHENTICATION_API_KEY:
+    if not chave_recebida or not secrets.compare_digest(chave_recebida, settings.AUTHENTICATION_API_KEY):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Acesso não autorizado: API Key inválida ou ausente."
+            detail="Acesso não autorizado: API Key inválida ou ausente.",
         )
-        
+
     event = payload.get("event", "")
 
     # Filtra apenas mensagens recebidas no evento
@@ -65,10 +67,10 @@ async def receber_mensagem(
 
 def buscar_usuario_telefone(telefone: str) -> Usuario | None:
     try:
-        telefone_normalizado = normalizar_telefone(telefone)
-        hash_telefone = hash_telefone(telefone_normalizado)
+        tel = normalizar_telefone(telefone)
+        hash_tel = hash_telefone(tel)
         with SessaoLocal() as sessao:
-            stmt = select(Usuario).where(Usuario.telefone == hash_telefone)
+            stmt = select(Usuario).where(Usuario.hash_telefone == hash_tel)
             return sessao.scalars(stmt).first()
     except Exception as e:
         print(f"[Aviso] Erro ao buscar usuário no banco: ({e}).")
