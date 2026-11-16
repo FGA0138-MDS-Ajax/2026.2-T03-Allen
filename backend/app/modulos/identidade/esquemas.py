@@ -12,6 +12,8 @@ def normalizar_telefone(valor: str) -> str:
     digitos = re.sub(r"\D", "", valor)
     if len(digitos) in (10, 11):
         digitos = "55" + digitos
+    if len(digitos) == 12 and digitos.startswith("55"):
+        digitos = digitos[:4] + "9" + digitos[4:]
     if not (len(digitos) in (12, 13) and digitos.startswith("55")):
         raise ValueError(Message.TELEFONE_INVALIDO.message)
     return digitos
