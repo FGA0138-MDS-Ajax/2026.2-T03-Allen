@@ -103,7 +103,9 @@ export const Extrato: React.FC = () => {
       lista.push({
         id: `lancamento-${item.id}`,
         lancamentoId: item.id,
-        titulo: item.categoria,
+        titulo: item.descricao
+          ? `${item.descricao} (${item.categoria})`
+          : item.categoria,
         categoria: item.categoria,
         tipo: item.tipo,
         dataTexto:
