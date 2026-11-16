@@ -29,6 +29,7 @@ FRASES_DE_TESTE_RF12 = [
     ("gastei 50 no açougue", TipoTransacao.GASTO, 5000, "Alimentação"),
     ("comprei leite por 5 reais", TipoTransacao.GASTO, 500, "Alimentação"),
     ("deu 200 no supermercado", TipoTransacao.GASTO, 20000, "Alimentação"),
+    ("paguei 60 no restaurante", TipoTransacao.GASTO, 6000, "Alimentação"),
     
     ("paguei 25 de uber", TipoTransacao.GASTO, 2500, "Transporte"),
     ("gastei 50 de gasolina", TipoTransacao.GASTO, 5000, "Transporte"),
@@ -41,7 +42,6 @@ FRASES_DE_TESTE_RF12 = [
     ("deu 90 na conta de gás", TipoTransacao.GASTO, 9000, "Moradia"),
 
     ("gastei 40 no cinema", TipoTransacao.GASTO, 4000, "Lazer"),
-    ("paguei 60 no restaurante", TipoTransacao.GASTO, 6000, "Lazer"),
     ("comprei presente de 100 reais", TipoTransacao.GASTO, 10000, "Lazer"),
 
     ("recebi 1500 da aposentadoria", TipoTransacao.RECEITA, 150000, "Aposentadoria"),
@@ -133,3 +133,48 @@ def test_rf15_linguagem_simples():
     assert "Anotado! Já registrei a sua entrada de R$ 1.500,00 de Aposentadoria." in confirmacao_sucesso_renda(150000, "Aposentadoria")
     assert "Tudo bem, não anotei nada. Quando quiser registrar, é só me mandar!" in registro_cancelado()
     assert "Como passei um tempinho sem resposta, acabei não anotando aquele valor por segurança.\n\nSe quiser registrar, pode me mandar novamente!" in confirmacao_expirada()
+
+FRASES_ISSUE_71_SUCESSO = [
+    ("gastei 1,250.00 no mercado", TipoTransacao.GASTO, 125000, "Alimentação"),
+    ("gastei 10.000 no conserto", TipoTransacao.GASTO, 1000000, "Outros"),
+    ("1250,5 no aluguel", TipoTransacao.GASTO, 125050, "Moradia"),
+    ("dia 12 gastei 35 na farmácia", TipoTransacao.GASTO, 3500, "Farmácia"),
+    ("comprei 2 pães por 10 reais", TipoTransacao.GASTO, 1000, "Alimentação"),
+    ("recebi o pagamento de 800", TipoTransacao.RECEITA, 80000, "Salário"),
+    ("recebi 100 do Claudeu", TipoTransacao.RECEITA, 10000, "Outras Receitas"),
+    ("gastei 35 reais e 50 centavos na farmácia", TipoTransacao.GASTO, 3550, "Farmácia"),
+]
+
+@pytest.mark.parametrize(
+    ("frase", "tipo_esperado", "valor_esperado", "categoria_esperada"),
+    FRASES_ISSUE_71_SUCESSO,
+)
+
+def test_rf12_casos_complexos_issue_71(
+    frase: str,
+    tipo_esperado: TipoTransacao,
+    valor_esperado: int,
+    categoria_esperada: str,
+):
+    resultado = processar_texto_mensagem(frase)
+    assert resultado.sucesso is True, f"Deveria ter sucesso na frase: '{frase}'"
+    assert resultado.tipo == tipo_esperado, f"Tipo incorreto na frase '{frase}'"
+    assert resultado.valor == valor_esperado, f"Valor incorreto na frase '{frase}'"
+    assert resultado.categoria == categoria_esperada, f"Categoria incorreta na frase '{frase}'"
+
+FRASES_ISSUE_71_RECUSA = [
+    "gastei 35 na farmácia e 20 na padaria",
+    "recebi 50 do meu filho e gastei 30 no mercado",
+    "vou gastar 100 amanhã",
+    "pretendo comprar um remédio de 50 reais semana que vem",
+    "gastei -35 na farmácia",
+    "gastei 0 no mercado",
+    "quanto eu tenho?",
+    "oi, tudo bem?",
+    "gastei na farmácia",
+]
+
+@pytest.mark.parametrize("frase", FRASES_ISSUE_71_RECUSA)
+def test_rf12_frases_recusadas_com_seguranca(frase: str):
+    resultado = processar_texto_mensagem(frase)
+    assert resultado.sucesso is False, f"A frase ambígua/inválida NÃO deveria ter sucesso: '{frase}'"
