@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request, BackgroundTasks, Header, HTTPException, status
 import httpx
 from sqlalchemy import select
+from decimal import Decimal 
 
 from app.nucleo.config import settings
 from app.modulos.assistente.mensagens import mensagem_nao_compreendida
@@ -11,6 +12,12 @@ from app.modulos.assistente.sessao import sessao_assistente
 from app.modulos.identidade.modelos import Usuario
 from app.modulos.identidade.esquemas import normalizar_telefone
 from app.modulos.identidade.seguranca import hash_telefone
+from app.modulos.transacoes import servico as servico_transacoes
+from app.modulos.transacoes.esquemas import (
+    OrigemTransacao,
+    TipoTransacao as TipoTransacaoBD,
+    TransacaoRegistroEntrada
+)
 from app.nucleo.banco import SessaoLocal
 
 router = APIRouter()
@@ -85,6 +92,31 @@ async def processar_responder(remetente: str, texto: str):
     if pendencia:
         if sessao_assistente.resposta_sim(texto):
             sessao_assistente.limpar_pendencia(telefone)
+
+            # Mapeia o tipo de transação do assistente para o tipo do banco
+            tipo_bd = (
+                TipoTransacaoBD.ENTRADA
+                if pendencia.tipo == TipoTransacao.RECEITA
+                else TipoTransacaoBD.SAIDA
+            )
+
+            valor_decimal = Decimal(pendencia.valor) / Decimal(100)
+
+            try:
+                with SessaoLocal() as sessao_db:
+                    servico_transacoes.registrar(
+                        sessao=sessao_db,
+                        usuario_id=usuario.id,
+                        dados=TransacaoRegistroEntrada(
+                            tipo=tipo_bd,
+                            valor=valor_decimal,
+                            origem=OrigemTransacao.WHATSAPP_TEXTO,
+                            descricao=pendencia.descricao or pendencia.categoria,
+                        ),
+                    )
+            except Exception as e:
+                print(f"[Erro] Falha ao registrar transação no banco: {e}")
+
             if pendencia.tipo == TipoTransacao.RECEITA:
                 resposta = mensagens.confirmacao_sucesso_renda(pendencia.valor, pendencia.categoria)
             else:
