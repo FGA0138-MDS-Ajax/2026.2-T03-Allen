@@ -12,6 +12,7 @@ Os relatórios de aceite de sprint continuam em `qualidade/` (ver o [plano de te
 |---|---|---|---|---|
 | 14/11/2026 | [pr-83-rf05-tour-audio.md](pr-83-rf05-tour-audio.md) | PR #83 · `feature/RF05-navegacao-audio` | #17 | ❌ Alterações pedidas |
 | 14/11/2026 | [pr-84-rf07-qrcode-nfce.md](pr-84-rf07-qrcode-nfce.md) | PR #84 · `feat/rf07-qrcode-nfce` | #18 | ❌ Alterações pedidas |
+| 14/11/2026 | [2026-11-14-script-rodar-local.md](2026-11-14-script-rodar-local.md) | PR #89 · `chore/script-rodar-local` | #88 | ✅ Aprovado |
 
 ## Como nomear
 
