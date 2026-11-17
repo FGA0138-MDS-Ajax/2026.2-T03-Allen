@@ -95,7 +95,7 @@
   background-color: var(--lavanda);
   color: var(--violeta-profundo);
   font-family: var(--font-corpo);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -122,7 +122,7 @@
   background: transparent;
   color: var(--grafite-noturno);
   font-family: var(--font-corpo);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;

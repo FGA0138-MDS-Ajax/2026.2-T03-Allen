@@ -28,7 +28,7 @@ export const BoasVindas: React.FC = () => {
 
         <div className={styles.acoesContainer}>
           <Botao variant="primary" fullWidth onClick={() => navegar('/entrar')}>
-            Fazer login
+            Entrar
           </Botao>
 
           <Botao
