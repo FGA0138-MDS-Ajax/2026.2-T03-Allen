@@ -1,9 +1,19 @@
+import secrets
 from enum import StrEnum
 from pathlib import Path
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent
+
+
+class Ambiente(StrEnum):
+    """Valores do APP_ENV."""
+
+    DESENVOLVIMENTO = "development"
+    STAGING = "staging"
+    PRODUCAO = "production"
 
 
 class AdaptadorEmail(StrEnum):
@@ -15,6 +25,8 @@ class AdaptadorEmail(StrEnum):
 
 class Settings(BaseSettings):
     APP_NAME: str = "Vero"
+    # Sem APP_ENV, a API se comporta como produção: só aceita o e-mail de verdade
+    APP_ENV: Ambiente = Ambiente.PRODUCAO
 
     DATABASE_URL: str
     SECRET_KEY: str
@@ -30,6 +42,9 @@ class Settings(BaseSettings):
     SMTP_SENHA: str = ""
     SMTP_TLS: bool = True
     EMAIL_REMETENTE: str = "Vero <nao-responda@vero.app>"
+    # Chave do hash do código de recuperação do PIN, separada da SECRET_KEY (que assina
+    # o token). Obrigatória fora do desenvolvimento.
+    CHAVE_CODIGO_RECUPERACAO: str = ""
 
     model_config = SettingsConfigDict(
         env_file=[
@@ -40,6 +55,25 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @model_validator(mode="after")
+    def _exigir_configuracao_fora_do_desenvolvimento(self) -> "Settings":
+        if self.APP_ENV == Ambiente.DESENVOLVIMENTO:
+            if not self.CHAVE_CODIGO_RECUPERACAO:
+                # Só em desenvolvimento: uma chave nova a cada vez que a API sobe
+                self.CHAVE_CODIGO_RECUPERACAO = secrets.token_hex(32)
+            return self
+        if self.ENVIO_EMAIL == AdaptadorEmail.FALSO:
+            raise ValueError(
+                "ENVIO_EMAIL=falso só é permitido com APP_ENV=development. "
+                "Fora do desenvolvimento, use ENVIO_EMAIL=smtp."
+            )
+        if not self.CHAVE_CODIGO_RECUPERACAO:
+            raise ValueError(
+                "Defina CHAVE_CODIGO_RECUPERACAO (diferente da SECRET_KEY) "
+                "fora do desenvolvimento."
+            )
+        return self
 
 
 settings = Settings()

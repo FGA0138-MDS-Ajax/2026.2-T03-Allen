@@ -64,7 +64,8 @@ class EsqueciPinEntrada(BaseModel):
 
 
 class EsqueciPinSaida(BaseModel):
-    enviado_para: str  # e-mail mascarado, ex.: j***@gmail.com
+    # Igual com ou sem conta, para não revelar quem usa o Vero (RNF05)
+    mensagem: str
     validade_minutos: int
 
 
