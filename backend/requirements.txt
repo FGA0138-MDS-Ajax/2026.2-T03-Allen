@@ -8,3 +8,4 @@ psycopg[binary]>=3.2
 bcrypt>=5.0
 pyjwt>=2.15
 valkey>=6.1
+celery[redis]>=5.5

@@ -5,7 +5,17 @@ from datetime import date, datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import BigInteger, Date, DateTime, ForeignKey, Numeric, Text, func, text
+from sqlalchemy import (
+    BigInteger,
+    Date,
+    DateTime,
+    ForeignKey,
+    Numeric,
+    Text,
+    false,
+    func,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.modulos.contas.esquemas import StatusConta
@@ -18,7 +28,10 @@ class Conta(Base):
     __tablename__ = "tblConta"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        "idConta", primary_key=True, default=uuid.uuid4, server_default=text("gen_random_uuid()")
+        "idConta",
+        primary_key=True,
+        default=uuid.uuid4,
+        server_default=text("gen_random_uuid()"),
     )
     usuario_id: Mapped[uuid.UUID] = mapped_column(
         "idUsuario", ForeignKey("tblUsuario.idUsuario")
@@ -34,6 +47,15 @@ class Conta(Base):
     # Preenchido quando a conta é marcada como paga (RF30, fora do RF25)
     pagamento_em: Mapped[datetime | None] = mapped_column(
         "dhPagamento", DateTime(timezone=True)
+    )
+
+    # Conta fixa mensal (RF26): ao ser paga, gera a do mês seguinte
+    recorrente: Mapped[bool] = mapped_column(
+        "icRecorrente", default=False, server_default=false()
+    )
+    # Primeira conta da série; vazio na própria primeira conta
+    id_conta_origem: Mapped[uuid.UUID | None] = mapped_column(
+        "idContaOrigem", ForeignKey("tblConta.idConta")
     )
 
     criado_em: Mapped[datetime] = mapped_column(

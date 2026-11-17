@@ -44,6 +44,8 @@ class ContaCadastroEntrada(BaseModel):
     valor: Valor
     descricao: Descricao | None = None
     categoria_id: int | None = None
+    # RF26: repete todo mês; o lançamento automático no saldo é o RF18
+    recorrente: bool = False
 
 
 class ContaPagamentoEntrada(BaseModel):
@@ -53,11 +55,7 @@ class ContaPagamentoEntrada(BaseModel):
     endpoint atender ao botão "Paga" e ao botão "Desfazer".
     """
 
-    vencimento_em: date
-    valor: Valor
-    descricao: Descricao | None = None
-    categoria_id: int | None = None
-    recorrente: bool = False  # para repetir todos mes
+    paga: bool
 
 
 class ContaSaida(BaseModel):
@@ -73,3 +71,17 @@ class ContaSaida(BaseModel):
     criado_em: datetime
     recorrente: bool
     id_conta_origem: UUID | None = None
+
+
+class ContaFixaVencida(BaseModel):
+    """O que o lançamento automático (RF18) precisa saber da conta fixa. O módulo de
+    transações recebe estes dados pelo serviço de contas, sem ler a tblConta."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    usuario_id: UUID
+    valor: Decimal
+    vencimento_em: date
+    descricao: str | None
+    categoria_id: int | None
