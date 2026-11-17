@@ -168,3 +168,76 @@
 .btnCancelar:hover {
   background-color: var(--nevoa);
 }
+
+.btnQrCode {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 54px;
+  padding: 12px 18px;
+  margin-bottom: 18px;
+  border-radius: 16px;
+  border: 2px solid var(--violeta-vero);
+  background-color: var(--lavanda);
+  color: var(--violeta-profundo);
+  font-family: var(--font-corpo);
+  font-size: 18px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btnQrCode:hover {
+  background-color: #e6defb;
+  transform: translateY(-1px);
+}
+
+.btnQrCode:focus-visible {
+  outline: 3px solid var(--violeta-vero);
+  outline-offset: 2px;
+}
+
+.painelConfirmacaoNfce {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.campoNfceGrupo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rotuloNfce {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--grafite-noturno);
+}
+
+.inputNfce {
+  font-family: var(--font-corpo);
+  font-size: 18px;
+  padding: 12px 14px;
+  min-height: 50px;
+  border-radius: 12px;
+  border: 2px solid #cbd5e1;
+  color: var(--grafite-noturno);
+  background-color: #ffffff;
+  width: 100%;
+}
+
+.inputNfce:focus {
+  outline: none;
+  border-color: var(--violeta-vero);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+}
+
+.inputValorNfce {
+  font-family: var(--font-titulo);
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--violeta-profundo);
+}
