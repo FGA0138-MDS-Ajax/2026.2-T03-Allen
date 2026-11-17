@@ -88,8 +88,10 @@ async def processar_responder(remetente: str, texto: str):
     pendencia, expirou = sessao_assistente.obter_pendencia(telefone)
 
     if expirou:
+        if sessao_assistente.resposta_sim(texto) or sessao_assistente.resposta_nao(texto):
+            await enviar_mensagem(remetente, mensagens.confirmacao_expirada())
+            return
         await enviar_mensagem(remetente, mensagens.confirmacao_expirada())
-        return
 
     if pendencia:
         if sessao_assistente.resposta_sim(texto):
@@ -127,6 +129,37 @@ async def processar_responder(remetente: str, texto: str):
             return
 
         if sessao_assistente.resposta_nao(texto):
+            correcao = processar_texto_mensagem(texto)
+
+            nova_categoria = (
+                correcao.categoria
+                if correcao.categoria not in {"Outros", "Outras Receitas"}
+                else pendencia.categoria
+            )
+
+            novo_valor = (
+                correcao.valor
+                if correcao.valor is not None
+                else pendencia.valor
+            )
+
+            if correcao.valor is not None or nova_categoria != pendencia.categoria:
+                sessao_assistente.salvar_pendencia(
+                    telefone=telefone,
+                    tipo=pendencia.tipo,
+                    valor=novo_valor,
+                    categoria=nova_categoria,
+                    descricao=pendencia.descricao,
+                )
+
+                if pendencia.tipo == TipoTransacao.RECEITA:
+                    resposta = mensagens.confirmacao_renda(novo_valor, nova_categoria)
+                else:
+                    resposta = mensagens.confirmacao_gasto(novo_valor, nova_categoria)
+                
+                await enviar_mensagem(remetente, resposta)
+                return
+
             sessao_assistente.limpar_pendencia(telefone)
             await enviar_mensagem(remetente, mensagens.registro_cancelado())
             return
