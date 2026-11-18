@@ -15,7 +15,8 @@ from app.nucleo.config import settings
 class Agenda(Enum):
     """Horários das rotinas diárias, no fuso de Brasília."""
 
-    # Logo depois da meia-noite, para o gasto fixo cair no dia do vencimento (RF18)
+    # Logo depois da meia-noite, para o gasto fixo e a parcela caírem no dia do
+    # vencimento (RF18, RF37)
     GASTOS_FIXOS = crontab(hour=0, minute=10)
 
 

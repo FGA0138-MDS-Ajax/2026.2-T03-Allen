@@ -53,10 +53,13 @@ class Conta(Base):
     recorrente: Mapped[bool] = mapped_column(
         "icRecorrente", default=False, server_default=false()
     )
-    # Primeira conta da série; vazio na própria primeira conta
+    # Primeira conta da série (conta fixa) ou da compra (parcela); vazio na primeira
     id_conta_origem: Mapped[uuid.UUID | None] = mapped_column(
         "idContaOrigem", ForeignKey("tblConta.idConta")
     )
+    # Parcela de compra parcelada (RF37): número dela e total da compra
+    parcela: Mapped[int | None] = mapped_column("nuParcela")
+    total_parcelas: Mapped[int | None] = mapped_column("nuTotalParcelas")
 
     criado_em: Mapped[datetime] = mapped_column(
         "dhCriacao", DateTime(timezone=True), server_default=func.now()

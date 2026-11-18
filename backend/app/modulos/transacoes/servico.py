@@ -1,5 +1,5 @@
 """Registro, histórico e edição de transações (RF10, RF17) e lançamento automático
-dos gastos fixos (RF18).
+dos gastos fixos (RF18) e das parcelas de compras parceladas (RF37).
 
 Este é o único módulo que grava transações (Documento de Arquitetura). Outros módulos,
 como o assistente do WhatsApp, registram chamando `registrar`.
@@ -14,6 +14,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.modulos.contas import servico as servico_contas
+from app.modulos.contas.esquemas import ContaAutomaticaVencida
 from app.modulos.transacoes.esquemas import (
     OrigemTransacao,
     TipoTransacao,
@@ -114,10 +115,10 @@ def excluir(sessao: Session, usuario_id: uuid.UUID, transacao_id: uuid.UUID) -> 
 
 
 def lancar_gastos_fixos(sessao: Session, hoje: date | None = None) -> int:
-    """RF18: lança como gasto cada conta fixa que venceu até hoje e ainda não foi paga,
-    com a data do vencimento, e marca a conta como paga (o que cria a do mês seguinte).
-    Devolve quantos lançamentos fez. As contas vêm do serviço de contas: este módulo
-    não lê a tblConta.
+    """RF18 e RF37: lança como gasto cada conta fixa ou parcela que venceu até hoje e
+    ainda não foi paga, com a data do vencimento, e marca a conta como paga (a conta
+    fixa cria a do mês seguinte). Devolve quantos lançamentos fez. As contas vêm do
+    serviço de contas: este módulo não lê a tblConta.
 
     Rodar de novo não duplica: a transação e o pagamento são gravados no mesmo commit, e
     a conta paga ou já ligada a uma transação não é lançada de novo. Duas execuções ao
@@ -129,7 +130,9 @@ def lancar_gastos_fixos(sessao: Session, hoje: date | None = None) -> int:
     # Contas que o usuário voltou a deixar em aberto depois do lançamento
     ja_lancadas: set[uuid.UUID] = set()
     while (
-        conta := servico_contas.proxima_conta_fixa_vencida(sessao, hoje, ja_lancadas)
+        conta := servico_contas.proxima_conta_automatica_vencida(
+            sessao, hoje, ja_lancadas
+        )
     ) is not None:
         if _conta_ja_lancada(sessao, conta.id):
             ja_lancadas.add(conta.id)
@@ -139,18 +142,26 @@ def lancar_gastos_fixos(sessao: Session, hoje: date | None = None) -> int:
             tipo=TipoTransacao.SAIDA,
             valor=conta.valor,
             data=conta.vencimento_em,
-            descricao=conta.descricao,
+            descricao=_descricao_do_lancamento(conta),
             categoria_id=conta.categoria_id,
             origem=OrigemTransacao.RECORRENTE,
             conta_id=conta.id,
         )
         sessao.add(transacao)
-        servico_contas.pagar_conta_fixa(sessao, conta.id)
+        servico_contas.pagar_conta_automatica(sessao, conta.id)
         sessao.commit()
         sessao.refresh(transacao)
         _avisar_app(transacao)
         lancadas += 1
     return lancadas
+
+
+def _descricao_do_lancamento(conta: ContaAutomaticaVencida) -> str | None:
+    """Na parcela, mostra qual é, como no extrato do cartão: "Geladeira (2/3)"."""
+    if conta.parcela is None:
+        return conta.descricao
+    numero = f"({conta.parcela}/{conta.total_parcelas})"
+    return f"{conta.descricao} {numero}" if conta.descricao else f"Parcela {numero}"
 
 
 def _conta_ja_lancada(sessao: Session, conta_id: uuid.UUID) -> bool:
