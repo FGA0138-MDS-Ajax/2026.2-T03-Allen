@@ -83,13 +83,12 @@ def esqueci_pin(
     sessao: Session = Depends(obter_sessao),
     email: PortaEmail = Depends(obter_email),
 ) -> EsqueciPinSaida:
-    """Envia um código de 6 dígitos para o e-mail do cadastro."""
+    """Envia um código de 6 dígitos para o e-mail do cadastro.
+
+    A resposta é a mesma com ou sem conta, para não revelar quem usa o Vero (RNF05).
+    """
     try:
-        usuario, codigo = recuperacao.pedir_codigo(sessao, dados.telefone)
-    except recuperacao.CelularSemConta:
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND, Message.CELULAR_SEM_CONTA.message
-        ) from None
+        resultado = recuperacao.pedir_codigo(sessao, dados.telefone)
     except recuperacao.EspereNovoCodigo as erro:
         segundos = erro.segundos_restantes
         raise HTTPException(
@@ -105,12 +104,21 @@ def esqueci_pin(
         raise _recuperacao_indisponivel() from None
 
     minutos = int(recuperacao.Limites.VALIDADE_CODIGO.value.total_seconds() // 60)
-    texto = Message.EMAIL_CODIGO.message.format(
-        nome=usuario.nome, codigo=codigo, minutos=minutos
-    )
-    tarefas.add_task(email.enviar, usuario.email, Message.EMAIL_ASSUNTO.message, texto)
+    if resultado is not None:
+        usuario, codigo = resultado
+        texto = Message.EMAIL_CODIGO.message.format(
+            nome=usuario.nome, codigo=codigo, minutos=minutos
+        )
+        tarefas.add_task(
+            recuperacao.enviar_codigo,
+            email,
+            usuario,
+            dados.telefone,
+            Message.EMAIL_ASSUNTO.message,
+            texto,
+        )
     return EsqueciPinSaida(
-        enviado_para=recuperacao.mascarar_email(usuario.email),
+        mensagem=Message.CODIGO_ENVIADO.message.format(minutos=minutos),
         validade_minutos=minutos,
     )
 

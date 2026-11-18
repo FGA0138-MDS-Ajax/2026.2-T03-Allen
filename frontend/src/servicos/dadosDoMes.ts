@@ -8,6 +8,7 @@ export interface Lancamento {
   tipo: TipoLancamento;
   centavos: number;
   categoria: string;
+  descricao?: string;
 }
 
 export interface PontoSaldo {
@@ -227,16 +228,35 @@ export function useDadosDoMes() {
   }, []);
 
   const adicionarLancamento = useCallback(
-    (tipo: TipoLancamento, centavos: number, categoria: string) => {
+    (
+      tipo: TipoLancamento,
+      centavos: number,
+      categoria: string,
+      descricao?: string,
+      diaCustom?: number
+    ) => {
       const id = Date.now();
-      const dia = calcularHoje().dia;
+      const dia =
+        diaCustom && diaCustom >= 1 && diaCustom <= 31
+          ? diaCustom
+          : calcularHoje().dia;
       atualizar((atual) => ({
         ...atual,
         entradasFixas:
           tipo === 'entrada'
             ? (Number(atual.entradasFixas) || 0) + centavos
             : Number(atual.entradasFixas) || 0,
-        itens: [...atual.itens, { id, dia, tipo, centavos, categoria }],
+        itens: [
+          ...atual.itens,
+          {
+            id,
+            dia,
+            tipo,
+            centavos,
+            categoria,
+            ...(descricao ? { descricao } : {}),
+          },
+        ],
       }));
       return id;
     },

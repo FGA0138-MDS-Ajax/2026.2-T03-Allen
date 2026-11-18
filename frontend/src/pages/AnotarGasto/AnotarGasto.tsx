@@ -7,9 +7,17 @@ import {
   SeletorCategoria,
   AlertaStatus,
   ConfirmacaoSucesso,
+  LeitorQrCode,
+  IconQrCode,
 } from '../../components';
 import { useNavegacao } from '../../router';
 import { useDadosDoMes } from '../../servicos/dadosDoMes';
+import {
+  parsearQrCodeNfce,
+  parsearValorMonetario,
+  sugerirCategoriaPorEstabelecimento,
+} from '../../utils/nfce';
+import { calcularHoje } from '../../servicos/dadosDoMes';
 
 const NOMES_CATEGORIAS_GASTO: Record<string, string> = {
   mercado: 'Mercado',
@@ -39,6 +47,18 @@ export const AnotarGasto: React.FC = () => {
     null
   );
   const [erro, setErro] = useState<string | null>(null);
+  const [leitorAberto, setLeitorAberto] = useState<boolean>(false);
+  const [nfcePendente, setNfcePendente] = useState<{
+    estabelecimento: string;
+    infoCnpj?: string;
+    data: string;
+    valorTexto: string;
+    aviso?: string;
+  } | null>(null);
+
+  const hojeAtual = calcularHoje();
+  const primeiroDiaMesAtual = `${hojeAtual.mes}-01`;
+  const hojeIso = `${hojeAtual.mes}-${String(hojeAtual.dia).padStart(2, '0')}`;
 
   const centavos = valorStr ? parseInt(valorStr, 10) : 0;
   const valorFormatado = (centavos / 100).toLocaleString('pt-BR', {
@@ -91,6 +111,83 @@ export const AnotarGasto: React.FC = () => {
     setSucesso(false);
   };
 
+  const aoLerQrCode = (textoLido: string) => {
+    setLeitorAberto(false);
+    const dados = parsearQrCodeNfce(textoLido);
+    if (!dados.valido) {
+      setErro(
+        'Esse QR Code não parece ser de uma nota fiscal (NFC-e). Você pode tentar outra foto ou digitar o valor abaixo.'
+      );
+      return;
+    }
+
+    const catSugerida = sugerirCategoriaPorEstabelecimento(
+      dados.estabelecimento
+    );
+    setCategoriaGasto(catSugerida);
+    setErro(null);
+
+    const dataForaDoMes =
+      dados.data < primeiroDiaMesAtual || dados.data > hojeIso;
+    const avisoData = dataForaDoMes
+      ? 'Atenção: a data desta nota não pertence ao mês atual até hoje. O Vero registra lançamentos apenas dentro do mês atual — ajuste a data abaixo se desejar lançar neste mês.'
+      : undefined;
+
+    const avisoCombinado = [dados.aviso, avisoData].filter(Boolean).join(' ');
+
+    setNfcePendente({
+      estabelecimento: dados.estabelecimento,
+      infoCnpj:
+        dados.cnpj && dados.uf
+          ? `Nota identificada (${dados.uf} · CNPJ ${dados.cnpj})`
+          : undefined,
+      data: dados.data,
+      valorTexto:
+        dados.centavos !== null
+          ? (dados.centavos / 100).toFixed(2).replace('.', ',')
+          : '',
+      aviso: avisoCombinado || undefined,
+    });
+  };
+
+  const confirmarNfce = () => {
+    if (!nfcePendente) return;
+
+    const centavosNfce = parsearValorMonetario(nfcePendente.valorTexto);
+    if (!centavosNfce || centavosNfce <= 0) {
+      setErro('Informe um valor válido maior que zero para salvar a nota.');
+      return;
+    }
+
+    if (
+      !nfcePendente.data ||
+      nfcePendente.data < primeiroDiaMesAtual ||
+      nfcePendente.data > hojeIso
+    ) {
+      setErro(
+        'A data da nota precisa estar dentro do mês atual até hoje para entrar no saldo do mês.'
+      );
+      return;
+    }
+
+    setValorStr(String(centavosNfce));
+
+    const nomeCat = NOMES_CATEGORIAS_GASTO[categoriaGasto] || 'Gasto Geral';
+    const diaData = parseInt(nfcePendente.data.split('-')[2] || '0', 10);
+    const id = adicionarLancamento(
+      'gasto',
+      centavosNfce,
+      nomeCat,
+      nfcePendente.estabelecimento.trim() || undefined,
+      diaData > 0 ? diaData : undefined
+    );
+
+    setUltimoLancamentoId(id);
+    setNfcePendente(null);
+    setSucesso(true);
+    setErro(null);
+  };
+
   return (
     <div className={styles.pageContainer}>
       <BarraNavegacao rotaAtiva="/anotar-gasto" />
@@ -133,12 +230,18 @@ export const AnotarGasto: React.FC = () => {
           </div>
 
           <h1 className={styles.tituloTela}>
-            {tipo === 'gasto' ? 'Anotar novo gasto' : 'Anotar recebimento'}
+            {nfcePendente
+              ? 'Confira os dados da nota fiscal'
+              : tipo === 'gasto'
+                ? 'Anotar novo gasto'
+                : 'Anotar recebimento'}
           </h1>
           <p className={styles.subtituloTela}>
-            {tipo === 'gasto'
-              ? 'Digite o valor do gasto usando o teclado:'
-              : 'Digite o valor recebido que entrou na sua conta:'}
+            {nfcePendente
+              ? 'Veja se as informações lidas estão certas antes de salvar:'
+              : tipo === 'gasto'
+                ? 'Leia o QR Code da nota ou digite o valor usando o teclado:'
+                : 'Digite o valor recebido que entrou na sua conta:'}
           </p>
 
           {erro && (
@@ -147,91 +250,217 @@ export const AnotarGasto: React.FC = () => {
             </div>
           )}
 
-          {/* Display monetário */}
-          <div
-            className={styles.displayMonetario}
-            aria-label={`Valor ${tipo === 'gasto' ? 'do gasto' : 'da entrada'}: ${valorFormatado}`}
-            role="region"
-            style={{
-              borderColor: tipo === 'gasto' ? 'var(--violeta-vero)' : '#10B981',
-            }}
-          >
-            {tipo === 'entrada' && '+ '}
-            {valorFormatado}
-          </div>
+          {nfcePendente ? (
+            <div className={styles.painelConfirmacaoNfce}>
+              {nfcePendente.aviso && (
+                <AlertaStatus tipo="aviso">{nfcePendente.aviso}</AlertaStatus>
+              )}
 
-          {/* Teclado numérico com suporte ativo a teclado físico */}
-          <TecladoNumerico
-            onDigito={digitar}
-            onApagar={apagar}
-            onLimpar={limpar}
-            capturarTeclado={true}
-          />
+              <div className={styles.campoNfceGrupo}>
+                <label
+                  htmlFor="nfce-estabelecimento"
+                  className={styles.rotuloNfce}
+                >
+                  Nome do estabelecimento (opcional)
+                </label>
+                <input
+                  id="nfce-estabelecimento"
+                  type="text"
+                  className={styles.inputNfce}
+                  value={nfcePendente.estabelecimento}
+                  onChange={(e) =>
+                    setNfcePendente({
+                      ...nfcePendente,
+                      estabelecimento: e.target.value,
+                    })
+                  }
+                  placeholder="Ex: Supermercado, Farmácia"
+                />
+                {nfcePendente.infoCnpj && (
+                  <span style={{ fontSize: 14, color: 'var(--ardosia)' }}>
+                    {nfcePendente.infoCnpj}
+                  </span>
+                )}
+              </div>
 
-          {tipo === 'gasto' ? (
-            <>
-              <h2 className={styles.subtituloCategoria}>
-                Escolha a categoria:
-              </h2>
-              <SeletorCategoria
-                categoriaSelecionada={categoriaGasto}
-                onSelecionar={(id) => setCategoriaGasto(id)}
-              />
-            </>
+              <div className={styles.campoNfceGrupo}>
+                <label htmlFor="nfce-data" className={styles.rotuloNfce}>
+                  Data da compra
+                </label>
+                <input
+                  id="nfce-data"
+                  type="date"
+                  min={primeiroDiaMesAtual}
+                  max={hojeIso}
+                  className={styles.inputNfce}
+                  value={nfcePendente.data}
+                  onChange={(e) => {
+                    setErro(null);
+                    setNfcePendente({
+                      ...nfcePendente,
+                      data: e.target.value,
+                    });
+                  }}
+                />
+              </div>
+
+              <div className={styles.campoNfceGrupo}>
+                <label htmlFor="nfce-valor" className={styles.rotuloNfce}>
+                  Valor total da nota (R$)
+                </label>
+                <input
+                  id="nfce-valor"
+                  type="text"
+                  inputMode="decimal"
+                  className={`${styles.inputNfce} ${styles.inputValorNfce}`}
+                  value={nfcePendente.valorTexto}
+                  onChange={(e) =>
+                    setNfcePendente({
+                      ...nfcePendente,
+                      valorTexto: e.target.value,
+                    })
+                  }
+                  placeholder="Ex: 85,50"
+                />
+              </div>
+
+              <div>
+                <h2 className={styles.subtituloCategoria}>
+                  Escolha a categoria:
+                </h2>
+                <SeletorCategoria
+                  categoriaSelecionada={categoriaGasto}
+                  onSelecionar={(id) => setCategoriaGasto(id)}
+                />
+              </div>
+
+              <div className={styles.acoes}>
+                <Botao variant="primary" fullWidth onClick={confirmarNfce}>
+                  Confirmar e salvar gasto
+                </Botao>
+                <button
+                  type="button"
+                  className={styles.btnCancelar}
+                  onClick={() => {
+                    setNfcePendente(null);
+                    setErro(null);
+                  }}
+                >
+                  Voltar para digitação manual
+                </button>
+              </div>
+            </div>
           ) : (
             <>
-              <h2 className={styles.subtituloCategoria}>
-                De onde veio esse dinheiro?
-              </h2>
+              {tipo === 'gasto' && (
+                <button
+                  type="button"
+                  className={styles.btnQrCode}
+                  onClick={() => {
+                    setErro(null);
+                    setLeitorAberto(true);
+                  }}
+                >
+                  <IconQrCode size={24} />
+                  <span>Ler QR Code da nota fiscal</span>
+                </button>
+              )}
+
+              {/* Display monetário */}
               <div
-                className={styles.gradeCategoriasEntrada}
-                role="group"
-                aria-label="Categorias de entrada"
+                className={styles.displayMonetario}
+                aria-label={`Valor ${tipo === 'gasto' ? 'do gasto' : 'da entrada'}: ${valorFormatado}`}
+                role="region"
+                style={{
+                  borderColor:
+                    tipo === 'gasto' ? 'var(--violeta-vero)' : '#10B981',
+                }}
               >
-                {[
-                  { id: 'salario', rotulo: 'Salário / Renda' },
-                  { id: 'beneficio', rotulo: 'Aposentadoria' },
-                  { id: 'extra', rotulo: 'Trabalho extra' },
-                  { id: 'outros', rotulo: 'Outro motivo' },
-                ].map((cat) => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    className={`${styles.btnCategoriaEntrada} ${
-                      categoriaEntrada === cat.id
-                        ? styles.btnCategoriaEntradaAtiva
-                        : ''
-                    }`}
-                    onClick={() => setCategoriaEntrada(cat.id)}
-                    aria-pressed={categoriaEntrada === cat.id}
+                {tipo === 'entrada' && '+ '}
+                {valorFormatado}
+              </div>
+
+              {/* Teclado numérico com suporte ativo a teclado físico */}
+              <TecladoNumerico
+                onDigito={digitar}
+                onApagar={apagar}
+                onLimpar={limpar}
+                capturarTeclado={!leitorAberto && !nfcePendente}
+              />
+
+              {tipo === 'gasto' ? (
+                <>
+                  <h2 className={styles.subtituloCategoria}>
+                    Escolha a categoria:
+                  </h2>
+                  <SeletorCategoria
+                    categoriaSelecionada={categoriaGasto}
+                    onSelecionar={(id) => setCategoriaGasto(id)}
+                  />
+                </>
+              ) : (
+                <>
+                  <h2 className={styles.subtituloCategoria}>
+                    De onde veio esse dinheiro?
+                  </h2>
+                  <div
+                    className={styles.gradeCategoriasEntrada}
+                    role="group"
+                    aria-label="Categorias de entrada"
                   >
-                    {cat.rotulo}
-                  </button>
-                ))}
+                    {[
+                      { id: 'salario', rotulo: 'Salário / Renda' },
+                      { id: 'beneficio', rotulo: 'Aposentadoria' },
+                      { id: 'extra', rotulo: 'Trabalho extra' },
+                      { id: 'outros', rotulo: 'Outro motivo' },
+                    ].map((cat) => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        className={`${styles.btnCategoriaEntrada} ${
+                          categoriaEntrada === cat.id
+                            ? styles.btnCategoriaEntradaAtiva
+                            : ''
+                        }`}
+                        onClick={() => setCategoriaEntrada(cat.id)}
+                        aria-pressed={categoriaEntrada === cat.id}
+                      >
+                        {cat.rotulo}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              <div className={styles.acoes}>
+                <Botao
+                  variant="primary"
+                  fullWidth
+                  disabled={centavos <= 0}
+                  onClick={salvar}
+                >
+                  {tipo === 'gasto' ? 'Salvar gasto' : 'Salvar recebimento'}
+                </Botao>
+
+                <button
+                  type="button"
+                  className={styles.btnCancelar}
+                  onClick={() => navegar('/inicio')}
+                >
+                  Cancelar
+                </button>
               </div>
             </>
           )}
-
-          <div className={styles.acoes}>
-            <Botao
-              variant="primary"
-              fullWidth
-              disabled={centavos <= 0}
-              onClick={salvar}
-            >
-              {tipo === 'gasto' ? 'Salvar gasto' : 'Salvar recebimento'}
-            </Botao>
-
-            <button
-              type="button"
-              className={styles.btnCancelar}
-              onClick={() => navegar('/inicio')}
-            >
-              Cancelar
-            </button>
-          </div>
         </div>
       </main>
+
+      {leitorAberto && (
+        <LeitorQrCode
+          aoLerCodigo={aoLerQrCode}
+          aoFechar={() => setLeitorAberto(false)}
+        />
+      )}
 
       {/* Modal Acessível de Confirmação com Opção de Desfazer */}
       <ConfirmacaoSucesso

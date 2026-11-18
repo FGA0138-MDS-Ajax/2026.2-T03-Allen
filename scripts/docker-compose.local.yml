@@ -1,0 +1,34 @@
+# Complemento do docker-compose.yml para rodar tudo em localhost, sem Supabase.
+# Usado pelo scripts/rodar-local.sh; não precisa ser chamado direto.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: vero
+      POSTGRES_PASSWORD: vero
+      POSTGRES_DB: vero
+    ports:
+      - "5433:5432"
+    volumes:
+      - vero-pg-local:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vero -d vero"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  backend:
+    # Sobrepõe o .env: banco local e e-mail falso (o código do PIN sai no log)
+    environment:
+      DATABASE_URL: postgresql://vero:vero@postgres:5432/vero
+      VALKEY_URL: redis://valkey:6379/0
+      ENVIO_EMAIL: falso
+      APP_ENV: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_started
+
+volumes:
+  vero-pg-local:
