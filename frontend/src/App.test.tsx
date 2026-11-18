@@ -32,7 +32,7 @@ describe('App', () => {
       screen.getByText('Suas finanças na palma da sua mão.')
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /fazer login/i })
+      screen.getByRole('button', { name: /^entrar$/i })
     ).toBeInTheDocument();
   });
 

@@ -11,22 +11,14 @@ import {
   IconQrCode,
 } from '../../components';
 import { useNavegacao } from '../../router';
-import { useDadosDoMes } from '../../servicos/dadosDoMes';
+import { NovoLancamento, useDadosDoMes } from '../../servicos/dadosDoMes';
+import { ErroApi } from '../../servicos/api';
 import {
   parsearQrCodeNfce,
   parsearValorMonetario,
   sugerirCategoriaPorEstabelecimento,
 } from '../../utils/nfce';
 import { calcularHoje } from '../../servicos/dadosDoMes';
-
-const NOMES_CATEGORIAS_GASTO: Record<string, string> = {
-  mercado: 'Mercado',
-  farmacia: 'Farmácia',
-  contas: 'Contas',
-  transporte: 'Transporte',
-  casa: 'Casa',
-  outros: 'Outros',
-};
 
 const NOMES_CATEGORIAS_ENTRADA: Record<string, string> = {
   salario: 'Salário / Renda',
@@ -43,9 +35,10 @@ export const AnotarGasto: React.FC = () => {
   const [categoriaGasto, setCategoriaGasto] = useState<string>('mercado');
   const [categoriaEntrada, setCategoriaEntrada] = useState<string>('salario');
   const [sucesso, setSucesso] = useState<boolean>(false);
-  const [ultimoLancamentoId, setUltimoLancamentoId] = useState<number | null>(
+  const [ultimoLancamentoId, setUltimoLancamentoId] = useState<string | null>(
     null
   );
+  const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [leitorAberto, setLeitorAberto] = useState<boolean>(false);
   const [nfcePendente, setNfcePendente] = useState<{
@@ -83,7 +76,29 @@ export const AnotarGasto: React.FC = () => {
     setErro(null);
   };
 
-  const salvar = () => {
+  /** Grava na API. Só mostra "Tudo certo!" depois que o servidor confirmou. */
+  const gravar = async (novo: NovoLancamento): Promise<boolean> => {
+    if (salvando) return false;
+    setSalvando(true);
+    try {
+      const salvo = await adicionarLancamento(novo);
+      setUltimoLancamentoId(salvo.id);
+      setErro(null);
+      setSucesso(true);
+      return true;
+    } catch (e) {
+      setErro(
+        e instanceof ErroApi && e.status !== 0 && e.status < 500
+          ? e.detalhe
+          : 'Não foi possível salvar agora. Verifique a internet e tente de novo.'
+      );
+      return false;
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const salvar = async () => {
     if (centavos <= 0) {
       setErro(
         `Digite um valor maior que zero para ${tipo === 'gasto' ? 'o gasto' : 'a entrada'}.`
@@ -91,22 +106,27 @@ export const AnotarGasto: React.FC = () => {
       return;
     }
 
-    const nomeCat =
+    await gravar(
       tipo === 'gasto'
-        ? NOMES_CATEGORIAS_GASTO[categoriaGasto] || 'Gasto Geral'
-        : NOMES_CATEGORIAS_ENTRADA[categoriaEntrada] || 'Entrada Geral';
-
-    const id = adicionarLancamento(tipo, centavos, nomeCat);
-    setUltimoLancamentoId(id);
-
-    setSucesso(true);
-    setErro(null);
+        ? { tipo, centavos, categoriaCodigo: categoriaGasto }
+        : {
+            tipo,
+            centavos,
+            descricao: NOMES_CATEGORIAS_ENTRADA[categoriaEntrada],
+          }
+    );
   };
 
-  const desfazer = () => {
+  const desfazer = async () => {
     if (ultimoLancamentoId) {
-      removerLancamento(ultimoLancamentoId);
-      setUltimoLancamentoId(null);
+      try {
+        await removerLancamento(ultimoLancamentoId);
+        setUltimoLancamentoId(null);
+      } catch {
+        setErro(
+          'Não foi possível desfazer agora. Apague o lançamento pelo Extrato.'
+        );
+      }
     }
     setSucesso(false);
   };
@@ -150,7 +170,7 @@ export const AnotarGasto: React.FC = () => {
     });
   };
 
-  const confirmarNfce = () => {
+  const confirmarNfce = async () => {
     if (!nfcePendente) return;
 
     const centavosNfce = parsearValorMonetario(nfcePendente.valorTexto);
@@ -172,20 +192,15 @@ export const AnotarGasto: React.FC = () => {
 
     setValorStr(String(centavosNfce));
 
-    const nomeCat = NOMES_CATEGORIAS_GASTO[categoriaGasto] || 'Gasto Geral';
-    const diaData = parseInt(nfcePendente.data.split('-')[2] || '0', 10);
-    const id = adicionarLancamento(
-      'gasto',
-      centavosNfce,
-      nomeCat,
-      nfcePendente.estabelecimento.trim() || undefined,
-      diaData > 0 ? diaData : undefined
-    );
-
-    setUltimoLancamentoId(id);
-    setNfcePendente(null);
-    setSucesso(true);
-    setErro(null);
+    const salvou = await gravar({
+      tipo: 'gasto',
+      centavos: centavosNfce,
+      categoriaCodigo: categoriaGasto,
+      descricao: nfcePendente.estabelecimento.trim() || undefined,
+      data: nfcePendente.data,
+      origem: 'qrcode_nf',
+    });
+    if (salvou) setNfcePendente(null);
   };
 
   return (
@@ -335,8 +350,13 @@ export const AnotarGasto: React.FC = () => {
               </div>
 
               <div className={styles.acoes}>
-                <Botao variant="primary" fullWidth onClick={confirmarNfce}>
-                  Confirmar e salvar gasto
+                <Botao
+                  variant="primary"
+                  fullWidth
+                  disabled={salvando}
+                  onClick={confirmarNfce}
+                >
+                  {salvando ? 'Salvando…' : 'Confirmar e salvar gasto'}
                 </Botao>
                 <button
                   type="button"
@@ -436,10 +456,14 @@ export const AnotarGasto: React.FC = () => {
                 <Botao
                   variant="primary"
                   fullWidth
-                  disabled={centavos <= 0}
+                  disabled={centavos <= 0 || salvando}
                   onClick={salvar}
                 >
-                  {tipo === 'gasto' ? 'Salvar gasto' : 'Salvar recebimento'}
+                  {salvando
+                    ? 'Salvando…'
+                    : tipo === 'gasto'
+                      ? 'Salvar gasto'
+                      : 'Salvar recebimento'}
                 </Botao>
 
                 <button
