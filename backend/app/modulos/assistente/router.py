@@ -59,7 +59,7 @@ async def receber_mensagem(
             )
 
             if texto:
-                print(f"\n[Whatsapp] Mensagem de {remetente}: {texto}")
+                print(f"\n[Whatsapp] Mensagem recebida via webhook.")
                 # Processa a resposta em background para responder ao webhook
                 background_tasks.add_task(processar_responder, remetente, texto)
 
@@ -210,7 +210,7 @@ async def enviar_mensagem(destinatario: str, texto: str):
             try:
                 response = await client.post(url, json=body, headers=headers, timeout=10.0)
                 response.raise_for_status()
-                print(f"[Whatsapp] Resposta enviada com sucesso para {numero}")
+                print(f"[Whatsapp] Resposta enviada com sucesso via {url}.")
                 return
             except Exception as e:
-                print(f"[Erro de envio] Falha ao enviar mensagem para {numero} via {url}: {e}")
+                print(f"[Erro de envio] Falha ao enviar mensagem via {url}: {e}")
