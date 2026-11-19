@@ -26,7 +26,7 @@ Legenda: ✅ passou · ❌ falhou (abrir issue) · ⚠️ passou em parte · ⏳
 | # | Critério | Status | Issue / observação |
 |---|---|---|---|
 | 1 | Botão abre a câmera e lê o QR Code da NFC-e | ⏳ | Usa `getUserMedia` + `@zxing/library`, com alternativa de tirar foto. A câmera **só abre em HTTPS**: pelo IP da rede (`http://192.168...`) só sobra a foto. Ver preparação do roteiro |
-| 2 | Extrai valor total, data e nome do estabelecimento e mostra para confirmar | ❌ | #98. A tela de confirmação existe e é editável. Mas no QR 2.0 *online*, o mais comum (DF, SP), o código só traz a chave: **sem valor e sem nome da loja**, e a data vem como **dia 01** do mês da chave. Só o QR de contingência e o antigo v1 trazem o valor. Ninguém consulta a SEFAZ (decisão pendente desde a revisão do PR #84) |
+| 2 | Extrai valor total, data e nome do estabelecimento e mostra para confirmar | ❌ | A tela de confirmação existe e é editável, e a data vem certa (hoje, se a nota é do mês; de outro mês, avisa e pede para ajustar). Mas no QR 2.0 *online*, o mais comum (DF, SP), o código só traz a chave: **sem valor e sem nome da loja**. Ninguém consulta a SEFAZ (decisão de escopo pendente desde a revisão do PR #84). Não é bug de código: a #98, aberta sobre a data e a descrição, foi fechada como falso positivo |
 | 3 | Se falhar: mensagem simples + opção de digitar | ✅ | QR que não é de nota → "não reconhecido" e volta para o teclado. Valor vazio ou zero e data fora do mês são barrados com mensagem. "SEFAZ fora do ar" não se aplica porque não há consulta |
 | 4 | Spike técnico: validar a consulta à NFC-e antes da sprint | ❌ | Não há registro do spike no repositório nem na issue |
 
@@ -34,7 +34,7 @@ Executado (parser isolado no Node, `utils/nfce.ts`):
 
 | Entrada | Resultado |
 |---|---|
-| QR 2.0 online DF `?p=<chave>\|2\|1\|1\|<hash>` | válido, UF DF, CNPJ ok, `centavos: null`, `estabelecimento: ""`, data `AAAA-MM-01` |
+| QR 2.0 online DF `?p=<chave>\|2\|1\|1\|<hash>` | válido, UF DF, CNPJ ok, `centavos: null`, `estabelecimento: ""`. Data: hoje se a chave é do mês atual; dia 01 (com aviso na tela) se for de outro mês |
 | QR 2.0 online SP | igual ao DF |
 | QR 2.0 contingência GO `...\|15\|87.90\|...` | válido, R$ 87,90, dia 15 |
 | QR v1 com `vNF=1234.56` | válido, R$ 1.234,56 |

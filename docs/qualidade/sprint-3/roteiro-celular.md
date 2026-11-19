@@ -58,8 +58,9 @@ farmácia ou restaurante). Não fotografar nem anexar a nota no repositório: o 
 | N2 | | | | | | | | |
 | N3 | | | | | | | | |
 
-O esperado pela análise de código, para comparar: nota do DF com QR 2.0 online → lê, mas **valor e loja vazios** e
-data no dia 01. Se a nota for de contingência (impressa sem internet), o valor e o dia vêm preenchidos.
+O esperado pela análise de código, para comparar: nota do DF com QR 2.0 online → lê, mas **valor e loja vazios**; a
+data vem como hoje se a nota é do mês. Se a nota for de contingência (impressa sem internet), o valor e o dia vêm
+preenchidos.
 
 ## Resultado
 
