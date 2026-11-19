@@ -197,7 +197,7 @@ def ambiente_assistente(monkeypatch):
     monkeypatch.setattr(
         router_module,
         "buscar_usuario_telefone",
-        lambda telefone: type("UsuarioTeste", (), {"id": "usuario-teste"})(),
+        lambda telefone: type("UsuarioTeste", (), {"id": "usuario-teste", "nome": "Teste"})(),
     )
 
     async def enviar(destinatario, texto):
@@ -279,3 +279,21 @@ def test_rf15_processa_apos_expiracao(ambiente_assistente):
     assert pendencia.valor == 2000
     assert pendencia.categoria == "Alimentação"
     assert mensagens[-1] == confirmacao_gasto(2000, "Alimentação")
+
+@pytest.mark.parametrize(
+    "mensagem",
+    [
+        "Olá! Acabei de criar minha conta no Vero.",
+        "Olá! Gostaria de anotar um gasto no Vero.",
+        "Oi",
+        "Olá",
+        "Bom dia",
+    ],
+)
+def test_rf15_saudacoes(ambiente_assistente, mensagem):
+    _, _, mensagens, _, enviar = ambiente_assistente
+
+    enviar(mensagem)
+
+    assert len(mensagens) == 1
+    assert "Seja muito bem-vindo(a) ao Vero!" in mensagens[0]

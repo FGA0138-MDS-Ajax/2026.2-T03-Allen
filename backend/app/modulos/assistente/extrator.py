@@ -38,6 +38,48 @@ VERBOS_RECEITA = ["recebi", "recebeu", "receber", "recebimento", "caiu", "ganhei
 VERBOS_GASTO = ["gastei", "gastou", "gasto", "comprei", "comprou", "comprar", "paguei", "pagou", "foi", "deu", "custou", "despesa", "perdi"]
 MARCADORES_FUTURO = ["vou gastar", "vou pagar", "vou comprar", "pretendo", "amanha", "amanhã", "semana que vem", "mes que vem", "mês que vem"]
 
+PADROES_BOAS_VINDAS = [
+    "acabei de criar",
+    "criar minha conta",
+    "criei minha conta",
+    "primeiro acesso",
+    "gostaria de anotar",
+    "anotar um gasto",
+    "como funciona",
+    "ajuda",
+]
+
+SAUDACOES = {
+    "oi",
+    "ola",
+    "ola vero",
+    "oi vero",
+    "bom dia",
+    "boa tarde",
+    "boa noite",
+    "opa",
+    "e ai",
+    "eai",
+    "ola assistente",
+}
+
+def eh_saudacao(texto: str) -> bool:
+    texto_norm = normalizar_texto(texto.strip())
+    texto_limpo = re.sub(r"[^\w\s]", "", texto_norm).strip()
+
+    if texto_limpo in SAUDACOES:
+        return True
+
+    for padrao in PADROES_BOAS_VINDAS:
+        if padrao in texto_norm:
+            return True
+
+    tokens = texto_limpo.split()
+    if len(tokens) <= 3 and any(t in {"oi", "ola", "opa"} for t in tokens):
+        return True
+
+    return False
+
 def normalizar_texto(texto: str) -> str:
     texto = texto.lower()
     return "".join(

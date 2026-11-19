@@ -6,9 +6,7 @@ from sqlalchemy import select
 from decimal import Decimal 
 
 from app.nucleo.config import settings
-from app.modulos.assistente.mensagens import mensagem_nao_compreendida
-from app.modulos.assistente.mensagens import usuario_nao_encontrado
-from app.modulos.assistente.extrator import TipoTransacao, processar_texto_mensagem
+from app.modulos.assistente.extrator import TipoTransacao, eh_saudacao, processar_texto_mensagem
 from app.modulos.assistente import mensagens
 from app.modulos.assistente.sessao import sessao_assistente
 from app.modulos.identidade.modelos import Usuario
@@ -81,13 +79,13 @@ async def processar_responder(remetente: str, texto: str):
 
     usuario = buscar_usuario_telefone(telefone)
     if not usuario:
-        resposta = usuario_nao_encontrado()
+        resposta = mensagens.usuario_nao_encontrado()
         await enviar_mensagem(remetente, resposta)
         return
 
     pendencia, expirou = sessao_assistente.obter_pendencia(telefone)
 
-    if pendencia is None and (sessao_assistente.resposta_sim(texto) or sessao_assistente.resposta_nao(texto)):
+    if pendencia is None and expirou is True and (sessao_assistente.resposta_sim(texto) or sessao_assistente.resposta_nao(texto)):
         await enviar_mensagem(remetente, mensagens.confirmacao_expirada())
         return
     
@@ -167,7 +165,12 @@ async def processar_responder(remetente: str, texto: str):
     intencao = processar_texto_mensagem(texto)
 
     if not intencao.sucesso or intencao.valor is None:
-        resposta = mensagem_nao_compreendida()
+        if eh_saudacao(texto):
+            nome_usuario = getattr(usuario, "nome", "") or ""
+            primeiro_nome = nome_usuario.split()[0] if nome_usuario.split() else None
+            resposta = mensagens.boas_vindas(primeiro_nome)
+        else:
+            resposta = mensagens.mensagem_nao_compreendida()
     else:
         sessao_assistente.salvar_pendencia(
             telefone = telefone,
