@@ -10,7 +10,12 @@ from sqlalchemy.orm import Session
 
 from app.modulos.identidade.esquemas import CadastroEntrada
 from app.modulos.identidade.modelos import Usuario
-from app.modulos.identidade.seguranca import HASH_FICTICIO, conferir_hash, gerar_hash, hash_telefone
+from app.modulos.identidade.seguranca import (
+    HASH_FICTICIO,
+    conferir_hash,
+    gerar_hash,
+    hash_telefone,
+)
 
 
 class Attempts(Enum):

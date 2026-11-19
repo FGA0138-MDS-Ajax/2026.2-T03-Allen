@@ -34,26 +34,9 @@ def upgrade() -> None:
             sa.ForeignKey("tblConta.idConta", name="tblconta_idcontaorigem_foreign"),
             nullable=True,
         ),
-TIPOS = ("entrada", "saida")
-ORIGENS = (
-    "manual",
-    "whatsapp_texto",
-    "whatsapp_audio",
-    "whatsapp_foto",
-    "qrcode_nf",
-    "extrato",
-    "conta",
-)
-
-
-def upgrade() -> None:
-    sa.Column("recorrente", sa.Boolean(), nullable=False, server_default=sa.false())
-    sa.Column(
-        "idContaOrigem", sa.Uuid(), sa.ForeignKey("tblConta.idConta"), nullable=True
     )
 
 
 def downgrade() -> None:
     op.drop_column("tblConta", "idContaOrigem")
     op.drop_column("tblConta", "icRecorrente")
-    pass
