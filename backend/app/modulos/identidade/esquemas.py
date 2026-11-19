@@ -25,8 +25,15 @@ def validar_pin(valor: str) -> str:
     return valor
 
 
+def validar_codigo(valor: str) -> str:
+    if not re.fullmatch(r"\d{6}", valor):
+        raise ValueError(Message.CODIGO_FORMATO.message)
+    return valor
+
+
 Telefone = Annotated[str, AfterValidator(normalizar_telefone)]
 Pin = Annotated[str, AfterValidator(validar_pin)]
+Codigo = Annotated[str, AfterValidator(validar_codigo)]
 Nome = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)
 ]
@@ -52,6 +59,27 @@ class UsuarioSaida(BaseModel):
     telefone: str
     email: str
     tem_pin: bool
+
+
+class EsqueciPinEntrada(BaseModel):
+    telefone: Telefone
+
+
+class EsqueciPinSaida(BaseModel):
+    # Igual com ou sem conta, para não revelar quem usa o Vero (RNF05)
+    mensagem: str
+    validade_minutos: int
+
+
+class RedefinirPinEntrada(BaseModel):
+    telefone: Telefone
+    codigo: Codigo
+    novo_pin: Pin
+
+
+class TrocarPinEntrada(BaseModel):
+    pin_atual: str
+    novo_pin: Pin
 
 
 class TokenSaida(BaseModel):

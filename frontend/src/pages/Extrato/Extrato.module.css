@@ -219,8 +219,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 40px;
-  min-height: 40px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 10px;
   border: 1px solid transparent;
   background-color: transparent;
@@ -242,4 +242,103 @@
   text-align: center;
   border: 2px dashed #d8d4e8;
   color: var(--ardosia);
+}
+
+/* Modal de edição do lançamento (RF10) */
+.overlayModal {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(26, 26, 46, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+.janelaModal {
+  background-color: var(--branco);
+  border-radius: 20px;
+  padding: 24px;
+  max-width: 480px;
+  width: 100%;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.2);
+}
+
+.tituloModal {
+  font-family: var(--font-titulo);
+  font-size: 22px;
+  color: var(--grafite-noturno);
+  margin: 0 0 6px;
+}
+
+.rotuloCampo {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--grafite-noturno);
+  margin-top: 6px;
+}
+
+.campoModal {
+  font-family: var(--font-corpo);
+  font-size: 18px;
+  padding: 12px 14px;
+  min-height: 50px;
+  border-radius: 12px;
+  border: 2px solid #cbd5e1;
+  color: var(--grafite-noturno);
+  background-color: var(--branco);
+  width: 100%;
+}
+
+.campoModal:focus-visible {
+  outline: 3px solid var(--violeta-vero);
+  outline-offset: 2px;
+  border-color: var(--violeta-vero);
+}
+
+.acoesModal {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.btnSalvarModal,
+.btnCancelarModal {
+  min-height: 50px;
+  border-radius: 14px;
+  font-family: var(--font-corpo);
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.btnSalvarModal {
+  background-color: var(--violeta-vero);
+  color: var(--branco);
+  border: none;
+}
+
+.btnSalvarModal:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.btnCancelarModal {
+  background-color: #f3f4f6;
+  color: var(--grafite-noturno);
+  border: 1px solid #d1d5db;
+}
+
+.btnSalvarModal:focus-visible,
+.btnCancelarModal:focus-visible {
+  outline: 3px solid var(--violeta-vero);
+  outline-offset: 2px;
 }

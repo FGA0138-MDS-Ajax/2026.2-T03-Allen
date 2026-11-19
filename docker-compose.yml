@@ -13,20 +13,41 @@ services:
       - postgres
 
   # PostgreSQL local para a API Vero (desenvolvimento/testes)
-  # postgres:
-  #  container_name: postgres-vero
-  #  image: postgres:16-alpine
-  #  restart: unless-stopped
-  #  ports:
-  #    - "5432:5432"
-  #  environment:
-  #    POSTGRES_USER: vero
-  #    POSTGRES_PASSWORD: vero_dev
-  #    POSTGRES_DB: vero_db
-  #  volumes:
-  #    - postgres_app_data:/var/lib/postgresql/data
+  postgres:
+    container_name: postgres-vero
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: vero
+      POSTGRES_PASSWORD: vero_dev
+      POSTGRES_DB: vero_db
+    volumes:
+      - postgres_app_data:/var/lib/postgresql/data
 
-  # Valkey: eventos em tempo real entre a API e o app (D12, RF17)
+  # Worker do Celery: executa as tarefas da fila (D6), como o lançamento dos gastos fixos (RF18)
+  worker:
+    build: ./backend
+    env_file: .env
+    volumes:
+      - ./backend:/app
+    command: celery -A app.nucleo.tarefas:fila worker --loglevel=info
+    depends_on:
+      - valkey
+
+  # Celery Beat: põe na fila as rotinas diárias, no fuso de Brasília
+  beat:
+    build: ./backend
+    env_file: .env
+    volumes:
+      - ./backend:/app
+    # Agenda fora da pasta montada, para não criar arquivo no repositório
+    command: celery -A app.nucleo.tarefas:fila beat --loglevel=info --schedule /tmp/celerybeat-schedule
+    depends_on:
+      - valkey
+
+  # Valkey: eventos em tempo real (D12, RF17) e fila do Celery (D6)
   valkey:
     image: valkey/valkey:8.1-alpine
     restart: unless-stopped
@@ -75,4 +96,4 @@ volumes:
   evolution_instances:
   postgres_evolution_data:
   valkey_evolution_data:
-  # postgres_app_data:
+  postgres_app_data:

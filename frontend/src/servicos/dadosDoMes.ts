@@ -1,13 +1,40 @@
-import { useState, useEffect, useCallback } from 'react';
+/**
+ * Dados do mês do usuário: lançamentos, saldo e meta (RF08, RF10, RF19, RF22).
+ *
+ * Lançamentos e saldo vêm da API. O aparelho guarda só a meta de saldo, que é uma
+ * preferência, e não um dado financeiro (Documento de Arquitetura).
+ */
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  anotarTransacao,
+  centavosParaValor,
+  editarTransacao,
+  excluirTransacao,
+  listarTransacoes,
+  obterSaldoMes,
+  OrigemApp,
+  SaldoMes,
+  TransacaoSaida,
+  valorParaCentavos,
+} from './transacoes';
+import { CategoriaApi, listarCategorias } from './categorias';
 
 export type TipoLancamento = 'gasto' | 'entrada';
 
 export interface Lancamento {
-  id: number;
+  id: string;
+  data: string; // AAAA-MM-DD
   dia: number;
   tipo: TipoLancamento;
   centavos: number;
+  /** Nome para mostrar: a categoria, ou o motivo do recebimento. */
   categoria: string;
+  categoriaId: number | null;
+  /** Código da categoria (escolhe o ícone), se houver. */
+  categoriaCodigo?: string;
+  descricao?: string;
+  origem: string;
 }
 
 export interface PontoSaldo {
@@ -21,14 +48,40 @@ export interface Hoje {
   diasNoMes: number;
 }
 
+/** Totais do mês em centavos. */
+export interface ResumoMes {
+  entradas: number;
+  gastos: number;
+  contas: number;
+  saldo: number;
+}
+
 export interface EstadoMes {
   mes: string;
   meta: number; // centavos
-  entradasFixas: number; // centavos da renda mensal do usuário
   itens: Lancamento[];
 }
 
-const CHAVE_ARMAZENAMENTO = 'vero-dados-do-mes';
+export interface NovoLancamento {
+  tipo: TipoLancamento;
+  centavos: number;
+  /** Código da categoria de gasto (ex.: "mercado"). */
+  categoriaCodigo?: string;
+  /** Texto livre: motivo do recebimento ou nome do estabelecimento. */
+  descricao?: string;
+  data?: string;
+  origem?: OrigemApp;
+}
+
+export interface MudancaLancamento {
+  centavos?: number;
+  data?: string;
+  categoriaCodigo?: string;
+}
+
+const CHAVE_META = 'vero-meta-do-mes';
+// Versões antigas guardavam os lançamentos no aparelho; não guardamos mais
+const CHAVE_ANTIGA = 'vero-dados-do-mes';
 export const PASSO_ESCALA = 10000; // R$ 100,00 entre marcas
 
 export function calcularHoje(): Hoje {
@@ -40,102 +93,62 @@ export function calcularHoje(): Hoje {
   };
 }
 
-export function estadoPadraoVazio(hoje: Hoje): EstadoMes {
-  return {
-    mes: hoje.mes,
-    meta: 0,
-    entradasFixas: 0,
-    itens: [],
-  };
-}
-
-export function estadoPadraoExemplo(hoje: Hoje): EstadoMes {
-  const diaMax = (d: number) => Math.min(d, hoje.dia);
-  return {
-    mes: hoje.mes,
-    meta: 200000, // R$ 2.000,00 de meta
-    entradasFixas: 330000, // R$ 3.300,00 de salário/renda mensal
-    itens: [
-      {
-        id: 1,
-        dia: diaMax(1),
-        tipo: 'entrada',
-        centavos: 330000,
-        categoria: 'Salário / Renda',
-      },
-      {
-        id: 2,
-        dia: diaMax(3),
-        tipo: 'gasto',
-        centavos: 25000,
-        categoria: 'Contas',
-      },
-      {
-        id: 3,
-        dia: diaMax(5),
-        tipo: 'gasto',
-        centavos: 18000,
-        categoria: 'Mercado',
-      },
-      {
-        id: 4,
-        dia: diaMax(7),
-        tipo: 'gasto',
-        centavos: 9000,
-        categoria: 'Transporte',
-      },
-      {
-        id: 5,
-        dia: Math.max(1, hoje.dia - 1),
-        tipo: 'gasto',
-        centavos: 4500,
-        categoria: 'Farmácia',
-      },
-      {
-        id: 6,
-        dia: hoje.dia,
-        tipo: 'gasto',
-        centavos: 12000,
-        categoria: 'Mercado',
-      },
-    ],
-  };
-}
-
-export function carregarEstadoMes(hoje: Hoje): EstadoMes {
+function lerMeta(mes: string): number {
   try {
-    const salvo = localStorage.getItem(CHAVE_ARMAZENAMENTO);
-    if (salvo) {
-      const parsed = JSON.parse(salvo) as Partial<EstadoMes>;
-      if (parsed.mes === hoje.mes && Array.isArray(parsed.itens)) {
-        return {
-          mes: parsed.mes,
-          meta:
-            typeof parsed.meta === 'number' && Number.isFinite(parsed.meta)
-              ? parsed.meta
-              : 0,
-          entradasFixas:
-            typeof parsed.entradasFixas === 'number' &&
-            Number.isFinite(parsed.entradasFixas)
-              ? parsed.entradasFixas
-              : totalEntradas(parsed.itens),
-          itens: parsed.itens,
-        };
-      }
+    localStorage.removeItem(CHAVE_ANTIGA);
+    const salvo = JSON.parse(localStorage.getItem(CHAVE_META) || 'null');
+    if (salvo && salvo.mes === mes && Number.isFinite(salvo.centavos)) {
+      return salvo.centavos;
     }
   } catch {
-    // Caso localStorage não esteja acessível
+    // Armazenamento indisponível: segue sem meta
   }
-  return estadoPadraoVazio(hoje);
+  return 0;
 }
 
-export function salvarEstadoMes(estado: EstadoMes): void {
+function gravarMeta(mes: string, centavos: number): void {
   try {
-    localStorage.setItem(CHAVE_ARMAZENAMENTO, JSON.stringify(estado));
+    localStorage.setItem(CHAVE_META, JSON.stringify({ mes, centavos }));
   } catch {
-    // Falha silenciosa
+    // Armazenamento indisponível: a meta vale só nesta visita
   }
 }
+
+/** Converte a transação da API para o formato das telas. */
+export function paraLancamento(
+  t: TransacaoSaida,
+  categorias: CategoriaApi[]
+): Lancamento {
+  const categoria = categorias.find((c) => c.id === t.categoria_id);
+  const tipo: TipoLancamento = t.tipo === 'entrada' ? 'entrada' : 'gasto';
+  return {
+    id: t.id,
+    data: t.data,
+    dia: Number(t.data.slice(8, 10)),
+    tipo,
+    centavos: valorParaCentavos(t.valor),
+    categoria:
+      categoria?.nome ||
+      t.descricao ||
+      (tipo === 'entrada' ? 'Recebimento' : 'Gasto'),
+    categoriaId: t.categoria_id,
+    categoriaCodigo: categoria?.codigo,
+    descricao: categoria && t.descricao ? t.descricao : undefined,
+    origem: t.origem,
+  };
+}
+
+function paraResumo(s: SaldoMes): ResumoMes {
+  return {
+    entradas: valorParaCentavos(s.entradas),
+    gastos: valorParaCentavos(s.gastos),
+    contas: valorParaCentavos(s.contas),
+    saldo: valorParaCentavos(s.saldo),
+  };
+}
+
+const MENSAGEM_FALHA =
+  'Não foi possível carregar seus dados agora. Verifique a internet e tente de novo.';
 
 export function saldoPorDia(itens: Lancamento[], ateDia: number): PontoSaldo[] {
   const pontos: PontoSaldo[] = [];
@@ -207,95 +220,121 @@ export function puloDosRotulos(
 }
 
 export function useDadosDoMes() {
-  const [hoje, setHoje] = useState<Hoje>(() => calcularHoje());
-  const [estado, setEstado] = useState<EstadoMes>(() =>
-    carregarEstadoMes(calcularHoje())
-  );
+  const [hoje] = useState<Hoje>(() => calcularHoje());
+  const [itens, setItens] = useState<Lancamento[]>([]);
+  const [resumo, setResumo] = useState<ResumoMes>({
+    entradas: 0,
+    gastos: 0,
+    contas: 0,
+    saldo: 0,
+  });
+  const [meta, setMeta] = useState<number>(() => lerMeta(calcularHoje().mes));
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+  const categoriasRef = useRef<CategoriaApi[]>([]);
+
+  const recarregar = useCallback(async () => {
+    try {
+      const [categorias, transacoes, saldo] = await Promise.all([
+        listarCategorias().catch(() => categoriasRef.current),
+        listarTransacoes(),
+        obterSaldoMes(hoje.mes),
+      ]);
+      categoriasRef.current = categorias;
+      setItens(
+        transacoes
+          .filter((t) => t.data.startsWith(hoje.mes))
+          .map((t) => paraLancamento(t, categorias))
+      );
+      setResumo(paraResumo(saldo));
+      setErro(null);
+    } catch {
+      setErro(MENSAGEM_FALHA);
+    } finally {
+      setCarregando(false);
+    }
+  }, [hoje.mes]);
 
   useEffect(() => {
-    const agora = calcularHoje();
-    setHoje(agora);
-    setEstado(carregarEstadoMes(agora));
-  }, []);
+    void recarregar();
+  }, [recarregar]);
 
-  const atualizar = useCallback((mudar: (atual: EstadoMes) => EstadoMes) => {
-    setEstado((atual) => {
-      const novo = mudar(atual);
-      salvarEstadoMes(novo);
-      return novo;
-    });
-  }, []);
-
-  const adicionarLancamento = useCallback(
-    (tipo: TipoLancamento, centavos: number, categoria: string) => {
-      const id = Date.now();
-      const dia = calcularHoje().dia;
-      atualizar((atual) => ({
-        ...atual,
-        entradasFixas:
-          tipo === 'entrada'
-            ? (Number(atual.entradasFixas) || 0) + centavos
-            : Number(atual.entradasFixas) || 0,
-        itens: [...atual.itens, { id, dia, tipo, centavos, categoria }],
-      }));
-      return id;
+  const idDaCategoria = useCallback(
+    async (codigo?: string): Promise<number | null> => {
+      if (!codigo) return null;
+      if (!categoriasRef.current.length) {
+        categoriasRef.current = await listarCategorias();
+      }
+      return categoriasRef.current.find((c) => c.codigo === codigo)?.id ?? null;
     },
-    [atualizar]
+    []
+  );
+
+  /** Grava na API e atualiza a tela. Lança `ErroApi` se a gravação falhar. */
+  const adicionarLancamento = useCallback(
+    async (novo: NovoLancamento): Promise<Lancamento> => {
+      const categoriaId =
+        novo.tipo === 'gasto'
+          ? await idDaCategoria(novo.categoriaCodigo)
+          : null;
+      const salva = await anotarTransacao({
+        tipo: novo.tipo === 'entrada' ? 'entrada' : 'saida',
+        valor: centavosParaValor(novo.centavos),
+        origem: novo.origem ?? 'manual',
+        data: novo.data,
+        descricao: novo.descricao?.trim() || null,
+        categoria_id: categoriaId,
+      });
+      await recarregar();
+      return paraLancamento(salva, categoriasRef.current);
+    },
+    [idDaCategoria, recarregar]
+  );
+
+  const editarLancamento = useCallback(
+    async (id: string, mudanca: MudancaLancamento): Promise<void> => {
+      await editarTransacao(id, {
+        ...(mudanca.centavos !== undefined
+          ? { valor: centavosParaValor(mudanca.centavos) }
+          : {}),
+        ...(mudanca.data ? { data: mudanca.data } : {}),
+        ...(mudanca.categoriaCodigo
+          ? { categoria_id: await idDaCategoria(mudanca.categoriaCodigo) }
+          : {}),
+      });
+      await recarregar();
+    },
+    [idDaCategoria, recarregar]
+  );
+
+  const removerLancamento = useCallback(
+    async (id: string): Promise<void> => {
+      await excluirTransacao(id);
+      await recarregar();
+    },
+    [recarregar]
   );
 
   const definirMeta = useCallback(
     (centavos: number) => {
-      atualizar((atual) => ({ ...atual, meta: centavos }));
+      setMeta(centavos);
+      gravarMeta(hoje.mes, centavos);
     },
-    [atualizar]
+    [hoje.mes]
   );
 
-  const definirRenda = useCallback(
-    (centavos: number) => {
-      atualizar((atual) => {
-        // Atualiza a renda fixa e ajusta a entrada do dia 1
-        const itensAtualizados = atual.itens.map((item) =>
-          item.id === 1 && item.tipo === 'entrada'
-            ? { ...item, centavos }
-            : item
-        );
-        return {
-          ...atual,
-          entradasFixas: centavos,
-          itens: itensAtualizados,
-        };
-      });
-    },
-    [atualizar]
-  );
-
-  const removerLancamento = useCallback(
-    (id: number) => {
-      atualizar((atual) => {
-        const itemRemovido = atual.itens.find((i) => i.id === id);
-        const deducaoEntrada =
-          itemRemovido && itemRemovido.tipo === 'entrada'
-            ? itemRemovido.centavos
-            : 0;
-        return {
-          ...atual,
-          entradasFixas: Math.max(
-            0,
-            (Number(atual.entradasFixas) || 0) - deducaoEntrada
-          ),
-          itens: atual.itens.filter((i) => i.id !== id),
-        };
-      });
-    },
-    [atualizar]
-  );
+  const estado: EstadoMes = { mes: hoje.mes, meta, itens };
 
   return {
     hoje,
     estado,
+    resumo,
+    carregando,
+    erro,
+    recarregar,
     adicionarLancamento,
+    editarLancamento,
     removerLancamento,
     definirMeta,
-    definirRenda,
   };
 }

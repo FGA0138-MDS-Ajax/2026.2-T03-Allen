@@ -9,3 +9,4 @@ bcrypt>=5.0
 pyjwt>=2.15
 valkey>=6.1
 rapidfuzz>=3.0.0
+celery[redis]>=5.5
