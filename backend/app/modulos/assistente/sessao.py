@@ -62,7 +62,7 @@ class GerenciadorSessao:
                 dados["criado"] = dados["criado"].isoformat()
                 self._valkey.setex(
                     self._chave(telefone),
-                    TEMPO_EXPIRACAO_SEGUNDOS,
+                    24 * 3600,
                     json.dumps(dados),
                 )
                 return
@@ -72,11 +72,19 @@ class GerenciadorSessao:
         self._sessoes_memoria[telefone] = pendencia
 
     def obter_pendencia(self, telefone: str) -> tuple[RegistroPendente | None, bool]:
+        agora = datetime.now(timezone.utc)
+        
         if self._valkey:
             try:
                 conteudo = self._valkey.get(self._chave(telefone))
                 if conteudo:
                     dados = json.loads(conteudo)
+                    criado = datetime.fromisoformat(dados["criado"])
+
+                    if agora - criado > timedelta(seconds=TEMPO_EXPIRACAO_SEGUNDOS):
+                        self.limpar_pendencia(telefone)
+                        return None, True
+                    
                     return (
                         RegistroPendente(
                             tipo=TipoTransacao(dados["tipo"]),
@@ -94,7 +102,6 @@ class GerenciadorSessao:
         if not pendencia:
             return None, False
 
-        agora = datetime.now(timezone.utc)
         if agora - pendencia.criado > timedelta(seconds=TEMPO_EXPIRACAO_SEGUNDOS):
             del self._sessoes_memoria[telefone]
             return None, True

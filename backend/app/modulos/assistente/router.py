@@ -87,12 +87,10 @@ async def processar_responder(remetente: str, texto: str):
 
     pendencia, expirou = sessao_assistente.obter_pendencia(telefone)
 
-    if expirou:
-        if sessao_assistente.resposta_sim(texto) or sessao_assistente.resposta_nao(texto):
-            await enviar_mensagem(remetente, mensagens.confirmacao_expirada())
-            return
+    if pendencia is None and (sessao_assistente.resposta_sim(texto) or sessao_assistente.resposta_nao(texto)):
         await enviar_mensagem(remetente, mensagens.confirmacao_expirada())
-
+        return
+    
     if pendencia:
         if sessao_assistente.resposta_sim(texto):
             sessao_assistente.limpar_pendencia(telefone)
