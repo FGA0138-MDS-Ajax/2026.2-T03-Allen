@@ -10,6 +10,21 @@ services:
       - "8000:8000"
     depends_on:
       - valkey
+      - postgres
+
+  # PostgreSQL local para a API Vero (desenvolvimento/testes)
+  # postgres:
+  #  container_name: postgres-vero
+  #  image: postgres:16-alpine
+  #  restart: unless-stopped
+  #  ports:
+  #    - "5432:5432"
+  #  environment:
+  #    POSTGRES_USER: vero
+  #    POSTGRES_PASSWORD: vero_dev
+  #    POSTGRES_DB: vero_db
+  #  volumes:
+  #    - postgres_app_data:/var/lib/postgresql/data
 
   # Valkey: eventos em tempo real entre a API e o app (D12, RF17)
   valkey:
@@ -60,3 +75,4 @@ volumes:
   evolution_instances:
   postgres_evolution_data:
   valkey_evolution_data:
+  # postgres_app_data:
