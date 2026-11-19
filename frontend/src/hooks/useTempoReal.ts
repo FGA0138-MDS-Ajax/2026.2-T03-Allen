@@ -16,46 +16,77 @@ export function useTempoReal(
   aoReceberTransacao?: (evento: EventoTransacaoCriada) => void
 ) {
   const wsRef = useRef<WebSocket | null>(null);
+  const aoReceberRef = useRef(aoReceberTransacao);
+
+  useEffect(() => {
+    aoReceberRef.current = aoReceberTransacao;
+  }, [aoReceberTransacao]);
 
   useEffect(() => {
     const token = obterToken();
     if (!token) return;
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host =
-      import.meta.env.VITE_WS_URL ||
-      `${protocol}//${window.location.hostname}:8000/ws`;
+    let ativo = true;
+    let reconexao: number | undefined;
 
-    try {
-      const ws = new WebSocket(host);
-      wsRef.current = ws;
+    const criarUrl = () => {
+      if (import.meta.env.VITE_WS_URL) return import.meta.env.VITE_WS_URL;
 
-      ws.onopen = () => {
-        ws.send(JSON.stringify({ token }));
-      };
+      const apiUrl = import.meta.env.VITE_API_URL;
+      if (apiUrl && /^https?:/.test(apiUrl)) {
+        const api = new URL(apiUrl);
+        return `${api.protocol === 'https:' ? 'wss:' : 'ws:'}//${api.host}/ws`;
+      }
 
-      ws.onmessage = (event) => {
-        try {
-          const mensagem = JSON.parse(event.data);
-          if (mensagem.tipo === 'transacao_criada' && aoReceberTransacao) {
-            aoReceberTransacao(mensagem);
+      const protocol =
+        window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      return `${protocol}//${window.location.host}/ws`;
+    };
+
+    const conectar = () => {
+      if (!ativo) return;
+    
+      try {
+        const ws = new WebSocket(criarUrl());
+        wsRef.current = ws;
+
+        ws.onopen = () => {
+          ws.send(JSON.stringify({ token }));
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const mensagem = JSON.parse(event.data);
+            if (mensagem.tipo === 'transacao_criada' && aoReceberRef.current) {
+              aoReceberRef.current(mensagem);
+            }
+          } catch {
+
           }
-        } catch {
-          // Ignora mensagens malformadas
-        }
-      };
+        };
 
-      ws.onerror = () => {
-        // Conexão silenciosa caso o backend/ws não esteja rodando
-      };
+        ws.onclose = () => {
+          if (wsRef.current === ws) wsRef.current = null;
+          if (ativo) reconexao = window.setTimeout(conectar, 3000);
+        };
 
-      return () => {
-        ws.close();
-      };
-    } catch {
-      // Falha silenciosa se WebSocket não estiver disponível
-    }
-  }, [aoReceberTransacao]);
+        ws.onerror = () => { 
+
+        };
+      } catch {
+
+      }
+    };
+
+    conectar();
+
+    return () => {
+      ativo = false;
+      if (reconexao !== undefined) window.clearTimeout(reconexao);
+      wsRef.current?.close();
+      wsRef.current = null;
+    };
+  }, []);
 
   return wsRef;
 }
