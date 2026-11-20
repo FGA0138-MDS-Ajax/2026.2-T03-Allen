@@ -56,4 +56,3 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_column("tblConta", "idContaOrigem")
     op.drop_column("tblConta", "icRecorrente")
-    pass

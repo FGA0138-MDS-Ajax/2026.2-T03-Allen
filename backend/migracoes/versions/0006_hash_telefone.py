@@ -47,9 +47,12 @@ def upgrade() -> None:
 
     # Pega SECRET_KEY do settings (precisa estar no ambiente)
     import os
+
     secret = os.getenv("SECRET_KEY")
     if not secret:
-        raise RuntimeError("SECRET_KEY não definida no ambiente. Export antes de rodar a migration.")
+        raise RuntimeError(
+            "SECRET_KEY não definida no ambiente. Export antes de rodar a migration."
+        )
 
     bind.execute(
         sa.text(
@@ -74,8 +77,6 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     # Recria nuTelefone (não dá para reverter o hash -> texto)
-    op.add_column(
-        "tblUsuario", sa.Column("nuTelefone", sa.String(255), nullable=True)
-    )
+    op.add_column("tblUsuario", sa.Column("nuTelefone", sa.String(255), nullable=True))
     op.drop_constraint("tblusuario_hashtel_unique", "tblUsuario", type_="unique")
     op.drop_column("tblUsuario", "hashTelefone")

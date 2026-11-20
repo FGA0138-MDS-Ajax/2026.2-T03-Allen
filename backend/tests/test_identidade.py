@@ -130,7 +130,7 @@ class TestLoginPin:
 
     @pytest.fixture
     def usuario_com_pin(self, sessao: Session) -> Usuario:
-        from app.modulos.identidade.seguranca import gerar_hash, hash_telefone
+        from app.modulos.identidade.seguranca import hash_telefone
 
         u = Usuario(
             id=uuid.uuid4(),

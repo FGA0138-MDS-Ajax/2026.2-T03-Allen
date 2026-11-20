@@ -7,7 +7,12 @@ import {
   IconRepeat,
   IconSkip,
 } from '../Icones/Icones';
-import { PASSOS_TOUR, PassoTour } from '../../servicos/tourAudio';
+import {
+  ESPERA_INICIO_FALA_MS,
+  PASSOS_TOUR,
+  PassoTour,
+  tempoMaximoFalaMs,
+} from '../../servicos/tourAudio';
 import { criarFala, escolherVozPtBr } from '../../servicos/voz';
 
 export interface TourAudioProps {
@@ -36,8 +41,11 @@ export const TourAudio: React.FC<TourAudioProps> = ({
   const [falando, setFalando] = useState(false);
   // Muda a cada "Repetir" para falar o mesmo passo de novo
   const [repeticao, setRepeticao] = useState(0);
+  // O navegador recusou falar sem um toque na tela
+  const [bloqueado, setBloqueado] = useState(false);
   const tituloRef = useRef<HTMLHeadingElement>(null);
-  const [voz, setVoz] = useState<SpeechSynthesisVoice | null>(null);
+  // Em ref, e não em estado: as vozes chegarem não pode reiniciar a fala atual
+  const vozRef = useRef<SpeechSynthesisVoice | null>(null);
 
   const ultimo = passo === passos.length - 1;
   const vozDisponivel = temVoz();
@@ -48,7 +56,9 @@ export const TourAudio: React.FC<TourAudioProps> = ({
     const sintese = window.speechSynthesis;
     if (typeof sintese.getVoices !== 'function') return;
 
-    const atualizar = () => setVoz(escolherVozPtBr(sintese.getVoices()));
+    const atualizar = () => {
+      vozRef.current = escolherVozPtBr(sintese.getVoices());
+    };
     atualizar();
     sintese.addEventListener?.('voiceschanged', atualizar);
     return () => sintese.removeEventListener?.('voiceschanged', atualizar);
@@ -58,6 +68,7 @@ export const TourAudio: React.FC<TourAudioProps> = ({
     if (aberto) {
       setPasso(0);
       setPausado(false);
+      setBloqueado(false);
     }
   }, [aberto]);
 
@@ -71,28 +82,61 @@ export const TourAudio: React.FC<TourAudioProps> = ({
     const sintese = window.speechSynthesis;
     // Falas canceladas (pausar, pular, fechar) não podem avançar o tour
     let ativa = true;
-    let proximo: ReturnType<typeof setTimeout> | undefined;
+    let comecou = false;
+    let terminou = false;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const texto = passos[passo].texto;
 
-    sintese.cancel();
-    const fala = criarFala(passos[passo].texto, voz);
-    fala.onstart = () => {
-      if (ativa) setFalando(true);
-    };
-    fala.onend = () => {
-      if (!ativa) return;
+    // Fim da fala (normal, por erro ou por tempo esgotado): segue para o próximo passo
+    const terminar = () => {
+      if (!ativa || terminou) return;
+      terminou = true;
       setFalando(false);
       if (passo < passos.length - 1) {
-        proximo = setTimeout(() => setPasso((p) => p + 1), pausaEntrePassosMs);
+        timers.push(
+          setTimeout(() => setPasso((p) => p + 1), pausaEntrePassosMs)
+        );
       }
     };
-    fala.onerror = () => {
-      if (ativa) setFalando(false);
+
+    // Navegador recusou falar sem toque: pausa e pede um toque em "Continuar"
+    const marcarBloqueado = () => {
+      if (!ativa || terminou) return;
+      terminou = true;
+      setFalando(false);
+      setBloqueado(true);
+      setPausado(true);
+    };
+
+    sintese.cancel();
+    const fala = criarFala(texto, vozRef.current);
+    fala.onstart = () => {
+      if (!ativa) return;
+      comecou = true;
+      setFalando(true);
+      setBloqueado(false);
+    };
+    fala.onend = terminar;
+    fala.onerror = (evento?: SpeechSynthesisErrorEvent) => {
+      if (!ativa) return;
+      const erro = evento?.error;
+      // Cancelamentos vêm do próprio tour (pausar, pular, fechar)
+      if (erro === 'interrupted' || erro === 'canceled') return;
+      if (erro === 'not-allowed') marcarBloqueado();
+      else terminar();
     };
     sintese.speak(fala);
 
+    timers.push(
+      setTimeout(() => {
+        if (!comecou) marcarBloqueado();
+      }, ESPERA_INICIO_FALA_MS),
+      setTimeout(terminar, tempoMaximoFalaMs(texto))
+    );
+
     return () => {
       ativa = false;
-      if (proximo) clearTimeout(proximo);
+      timers.forEach(clearTimeout);
       sintese.cancel();
       setFalando(false);
     };
@@ -104,14 +148,17 @@ export const TourAudio: React.FC<TourAudioProps> = ({
     passos,
     pausaEntrePassosMs,
     vozDisponivel,
-    voz,
   ]);
 
   if (!aberto) return null;
 
-  const pausarOuContinuar = () => setPausado((p) => !p);
+  const pausarOuContinuar = () => {
+    setBloqueado(false);
+    setPausado((p) => !p);
+  };
 
   const repetir = () => {
+    setBloqueado(false);
     setPausado(false);
     setRepeticao((r) => r + 1);
   };
@@ -168,6 +215,13 @@ export const TourAudio: React.FC<TourAudioProps> = ({
         <p id="tour-legenda" className={styles.legenda}>
           {atual.texto}
         </p>
+
+        {vozDisponivel && bloqueado && (
+          <p className={styles.avisoSemVoz} role="status">
+            O som não começou sozinho. Toque em Continuar para ouvir a
+            explicação, ou leia o texto acima.
+          </p>
+        )}
 
         {!vozDisponivel && (
           <p className={styles.avisoSemVoz}>

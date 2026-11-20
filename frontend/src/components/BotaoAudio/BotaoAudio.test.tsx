@@ -55,4 +55,14 @@ describe('Componente BotaoAudio', () => {
     expect(fala.lang).toBe('pt-BR');
     expect(fala.voice).toBe(vozNatural);
   });
+
+  it('tem rótulo acessível curto e específico (#101)', () => {
+    render(
+      <BotaoAudio
+        textoParaLer="Você tem mil reais."
+        rotuloAcessivel="Ouvir saldo"
+      />
+    );
+    expect(screen.getByRole('button', { name: 'Ouvir saldo' })).toBeVisible();
+  });
 });

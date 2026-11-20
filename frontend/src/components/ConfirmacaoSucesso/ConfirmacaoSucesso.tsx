@@ -44,6 +44,7 @@ export const ConfirmacaoSucesso: React.FC<ConfirmacaoSucessoProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirmacao-titulo"
+      aria-describedby="confirmacao-mensagem"
     >
       <div className={styles.modal}>
         <div className={styles.iconeCirculo} aria-hidden="true">
@@ -59,7 +60,10 @@ export const ConfirmacaoSucesso: React.FC<ConfirmacaoSucessoProps> = ({
           Tudo certo!
         </h2>
 
-        <p className={styles.mensagem}>{mensagem}</p>
+        {/* Lida junto com o título quando o foco entra no diálogo (RF20 / #100) */}
+        <p id="confirmacao-mensagem" className={styles.mensagem}>
+          {mensagem}
+        </p>
 
         <div className={styles.acoes}>
           <button
