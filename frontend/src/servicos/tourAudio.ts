@@ -54,6 +54,15 @@ export const PASSOS_TOUR: PassoTour[] = [
   },
 ];
 
+/** Se a fala não começar nesse tempo, o navegador bloqueou o áudio (ex.: Safari sem toque). */
+export const ESPERA_INICIO_FALA_MS = 2500;
+
+/**
+ * Tempo máximo esperado para falar um texto. Algumas vozes do Chrome cortam
+ * falas longas sem disparar `onend`; passado esse tempo, o tour segue mesmo assim.
+ */
+export const tempoMaximoFalaMs = (texto: string) => 4000 + texto.length * 110;
+
 export const tourJaVisto = (): boolean => {
   try {
     return localStorage.getItem(CHAVE_TOUR_VISTO) === 'true';

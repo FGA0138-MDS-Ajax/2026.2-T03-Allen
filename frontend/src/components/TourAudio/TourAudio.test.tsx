@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { TourAudio } from './TourAudio';
+import {
+  ESPERA_INICIO_FALA_MS,
+  tempoMaximoFalaMs,
+} from '../../servicos/tourAudio';
 
 const passos = [
   { titulo: 'Primeiro passo', texto: 'Explicação do primeiro passo.' },
@@ -14,7 +18,7 @@ class FalaFalsa {
   rate = 1;
   onstart: (() => void) | null = null;
   onend: (() => void) | null = null;
-  onerror: (() => void) | null = null;
+  onerror: ((evento: { error: string }) => void) | null = null;
   constructor(texto: string) {
     this.texto = texto;
   }
@@ -45,6 +49,10 @@ describe('Componente TourAudio (US13)', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     delete (window as unknown as Record<string, unknown>).speechSynthesis;
+    const extras = speechSynthesisFalso as unknown as Record<string, unknown>;
+    delete extras.getVoices;
+    delete extras.addEventListener;
+    delete extras.removeEventListener;
   });
 
   it('não renderiza nada quando fechado', () => {
@@ -113,6 +121,88 @@ describe('Componente TourAudio (US13)', () => {
     fireEvent.click(screen.getByRole('button', { name: /pular/i }));
     fireEvent.click(screen.getByRole('button', { name: /concluir/i }));
     expect(onFechar).toHaveBeenCalledTimes(2);
+  });
+
+  describe('falhas da fala (#99)', () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    it('se o navegador não deixar falar sem toque, avisa e pede Continuar', () => {
+      // Safari sem interação: speak não dispara nenhum evento
+      speechSynthesisFalso.speak.mockImplementationOnce((fala: FalaFalsa) => {
+        falas.push(fala);
+      });
+      render(<TourAudio aberto onFechar={() => {}} passos={passos} />);
+
+      act(() => {
+        vi.advanceTimersByTime(ESPERA_INICIO_FALA_MS);
+      });
+      expect(screen.getByText(/toque em continuar/i)).toBeVisible();
+
+      const falasAntes = falas.length;
+      fireEvent.click(screen.getByRole('button', { name: /continuar/i }));
+      expect(falas.length).toBe(falasAntes + 1);
+      expect(ultimaFala().texto).toBe('Explicação do primeiro passo.');
+      expect(screen.queryByText(/toque em continuar/i)).toBeNull();
+    });
+
+    it('erro "not-allowed" também pede Continuar', () => {
+      render(<TourAudio aberto onFechar={() => {}} passos={passos} />);
+      act(() => {
+        ultimaFala().onerror?.({ error: 'not-allowed' });
+      });
+      expect(screen.getByText(/toque em continuar/i)).toBeVisible();
+      expect(screen.getByText('Explicação do primeiro passo.')).toBeVisible();
+    });
+
+    it('outro erro de fala não trava: avança para o próximo passo', () => {
+      render(
+        <TourAudio
+          aberto
+          onFechar={() => {}}
+          passos={passos}
+          pausaEntrePassosMs={500}
+        />
+      );
+      act(() => {
+        ultimaFala().onerror?.({ error: 'synthesis-failed' });
+        vi.advanceTimersByTime(500);
+      });
+      expect(screen.getByText('Explicação do segundo passo.')).toBeVisible();
+    });
+
+    it('se o onend nunca chegar, avança depois do tempo máximo da fala', () => {
+      render(
+        <TourAudio
+          aberto
+          onFechar={() => {}}
+          passos={passos}
+          pausaEntrePassosMs={500}
+        />
+      );
+      act(() => {
+        vi.advanceTimersByTime(tempoMaximoFalaMs(passos[0].texto) + 500);
+      });
+      expect(screen.getByText('Explicação do segundo passo.')).toBeVisible();
+    });
+
+    it('as vozes chegarem depois não reinicia a fala do passo', () => {
+      let aoMudarVozes: (() => void) | undefined;
+      Object.assign(speechSynthesisFalso, {
+        getVoices: () => [
+          { name: 'Google', lang: 'pt-BR', localService: false },
+        ],
+        addEventListener: (_: string, fn: () => void) => {
+          aoMudarVozes = fn;
+        },
+        removeEventListener: () => {},
+      });
+      render(<TourAudio aberto onFechar={() => {}} passos={passos} />);
+      const falasAntes = falas.length;
+
+      act(() => aoMudarVozes?.());
+      expect(falas.length).toBe(falasAntes);
+    });
   });
 
   it('sem leitura em voz alta, mostra só a legenda e deixa avançar', () => {
