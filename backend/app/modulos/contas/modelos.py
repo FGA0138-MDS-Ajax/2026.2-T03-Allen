@@ -76,3 +76,15 @@ class Conta(Base):
 
     def __str__(self) -> str:
         return f"{self.descricao or 'Conta'} — {self.valor}"
+
+
+class Categoria(Base):
+    __tablename__ = "tblCategoria"
+
+    id: Mapped[int] = mapped_column(
+        "idCategoria", BigInteger, primary_key=True
+    )
+
+    nome: Mapped[str] = mapped_column(
+        "noCategoria", String(255), nullable=False
+    )
