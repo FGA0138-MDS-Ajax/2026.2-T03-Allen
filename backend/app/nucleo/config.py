@@ -1,12 +1,10 @@
 import secrets
 from enum import StrEnum
 from pathlib import Path
-
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent
-
 
 class Ambiente(StrEnum):
     """Valores do APP_ENV."""
@@ -15,19 +13,18 @@ class Ambiente(StrEnum):
     STAGING = "staging"
     PRODUCAO = "production"
 
-
 class AdaptadorEmail(StrEnum):
     """Valores do ENVIO_EMAIL."""
 
     FALSO = "falso"
     SMTP = "smtp"
 
-
 class Settings(BaseSettings):
     APP_NAME: str = "Vero"
     # Sem APP_ENV, a API se comporta como produção: só aceita o e-mail de verdade
     APP_ENV: Ambiente = Ambiente.PRODUCAO
 
+    # Autenticação e Banco
     DATABASE_URL: str
     SECRET_KEY: str
     JWT_ALGORITMO: str = "HS256"
@@ -45,6 +42,11 @@ class Settings(BaseSettings):
     # Chave do hash do código de recuperação do PIN, separada da SECRET_KEY (que assina
     # o token). Obrigatória fora do desenvolvimento.
     CHAVE_CODIGO_RECUPERACAO: str = ""
+
+    # WhatsApp / Evolution API
+    EVOLUTION_URL: str
+    AUTHENTICATION_API_KEY: str
+    INSTANCE_NAME: str
 
     model_config = SettingsConfigDict(
         env_file=[
@@ -74,6 +76,5 @@ class Settings(BaseSettings):
                 "fora do desenvolvimento."
             )
         return self
-
 
 settings = Settings()

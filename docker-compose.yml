@@ -10,6 +10,21 @@ services:
       - "8000:8000"
     depends_on:
       - valkey
+      - postgres
+
+  # PostgreSQL local para a API Vero (desenvolvimento/testes)
+  postgres:
+    container_name: postgres-vero
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: vero
+      POSTGRES_PASSWORD: vero_dev
+      POSTGRES_DB: vero_db
+    volumes:
+      - postgres_app_data:/var/lib/postgresql/data
 
   # Worker do Celery: executa as tarefas da fila (D6), como o lançamento dos gastos fixos (RF18)
   worker:
@@ -36,3 +51,49 @@ services:
   valkey:
     image: valkey/valkey:8.1-alpine
     restart: unless-stopped
+
+  #WhatsApp Evolution API (Serviços independentes para o assistente)
+  evolution-api:
+    container_name: evolution-api
+    image: evoapicloud/evolution-api:latest
+    restart: always
+    ports:
+      - "8080:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    env_file:
+      - .env
+    depends_on:
+      - postgres-evolution
+      - valkey-evolution
+    volumes:
+      - evolution_instances:/evolution/instances
+
+  postgres-evolution:
+    container_name: postgres-evolution
+    image: postgres:15
+    command: ["postgres", "-c", "max_connections=1000"]
+    restart: always
+    ports:
+      - "5433:5432" # 5433 para não conflitar com o banco da API
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_evolution_data:/var/lib/postgresql/data
+  
+  valkey-evolution:
+    container_name: valkey-evolution
+    image: valkey/valkey:8-bookworm
+    command: >
+      valkey-server --port 6379 --appendonly yes
+    restart: always
+    volumes:
+      - valkey_evolution_data:/data
+    ports:
+      - "6379:6379"
+
+volumes:
+  evolution_instances:
+  postgres_evolution_data:
+  valkey_evolution_data:
+  postgres_app_data:
