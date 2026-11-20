@@ -175,6 +175,10 @@ describe('Página Inicio (Dashboard do Vero com Gráfico e Origem do Saldo)', ()
     await waitFor(() =>
       expect(transacoes.excluirTransacao).toHaveBeenCalledWith('g1')
     );
+    // RF20 / #100: apagar também mostra a confirmação padrão
+    expect(
+      await screen.findByText(/gasto de r\$\s*[\d.,]+ com mercado apagado/i)
+    ).toBeVisible();
   });
 
   it('avisa quando não consegue carregar os dados', async () => {

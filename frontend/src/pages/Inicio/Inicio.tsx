@@ -41,6 +41,8 @@ export const Inicio: React.FC = () => {
     removerLancamento,
   } = useDadosDoMes();
   const [erroExclusao, setErroExclusao] = useState<string | null>(null);
+  // Confirmação visual depois de apagar um gasto (RF20 / #100)
+  const [mensagemSucesso, setMensagemSucesso] = useState<string | null>(null);
 
   // Transação nova (app, WhatsApp ou lançamento automático): recarrega da API (RF17)
   useTempoReal(() => {
@@ -194,6 +196,9 @@ export const Inicio: React.FC = () => {
           {/* Coluna da Esquerda: Saldo Disponível, Origem e Ações */}
           <div className={styles.coluna}>
             {erroDados && <AlertaStatus tipo="erro">{erroDados}</AlertaStatus>}
+            {mensagemSucesso && (
+              <AlertaStatus tipo="sucesso">{mensagemSucesso}</AlertaStatus>
+            )}
 
             {/* Card Principal: Saldo Disponível com Origem Clara */}
             <section className={styles.card} aria-labelledby="titulo-saldo">
@@ -626,6 +631,9 @@ export const Inicio: React.FC = () => {
                   try {
                     await removerLancamento(gastoParaExcluir.id);
                     setErroExclusao(null);
+                    setMensagemSucesso(
+                      `Gasto de ${formatarMoeda(gastoParaExcluir.centavos)} com ${gastoParaExcluir.categoria} apagado.`
+                    );
                     setGastoParaExcluir(null);
                   } catch {
                     setErroExclusao(

@@ -22,4 +22,16 @@ describe('Componente AlertaStatus', () => {
     expect(alerta).toHaveTextContent(/senha incorreta/i);
     expect(screen.getByLabelText('Erro')).toBeInTheDocument();
   });
+
+  it('região viva continua a mesma quando o texto muda (#100)', () => {
+    const { rerender } = render(
+      <AlertaStatus tipo="sucesso">Primeira mensagem</AlertaStatus>
+    );
+    const regiao = screen.getByRole('status');
+    expect(regiao).toHaveAttribute('aria-live', 'polite');
+
+    rerender(<AlertaStatus tipo="sucesso">Segunda mensagem</AlertaStatus>);
+    expect(screen.getByRole('status')).toBe(regiao);
+    expect(regiao).toHaveTextContent('Segunda mensagem');
+  });
 });
