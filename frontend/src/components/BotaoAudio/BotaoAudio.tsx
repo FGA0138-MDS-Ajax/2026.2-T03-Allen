@@ -50,7 +50,7 @@ export const BotaoAudio: React.FC<BotaoAudioProps> = ({
       type="button"
       onClick={executarLeitura}
       className={`${styles.botaoAudio} ${falando ? styles.falando : ''} ${className}`}
-      aria-label={`${rotuloAcessivel}: ${textoParaLer}`}
+      aria-label={rotuloAcessivel}
       title={rotuloAcessivel}
     >
       <span aria-hidden="true" style={{ display: 'inline-flex' }}>

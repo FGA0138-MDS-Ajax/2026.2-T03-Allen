@@ -19,6 +19,7 @@ import {
 } from '../../components';
 import { useNavegacao } from '../../router';
 import { useTempoReal } from '../../hooks/useTempoReal';
+import { reaisPorExtenso } from '../../utils/valorPorExtenso';
 import { listarContas, ContaSaida } from '../../servicos';
 import {
   useDadosDoMes,
@@ -183,7 +184,8 @@ export const Inicio: React.FC = () => {
     setAvisoMeta(`Meta de saldo salva: ${formatarMoeda(centavos)}.`);
   };
 
-  const textoAudio = `Você ainda tem disponível no mês: ${formatarMoeda(
+  // Por extenso: a voz lê "mil duzentos e cinquenta reais", não "R$ 1.250,00" (RF21)
+  const textoAudio = `Você ainda tem disponível no mês: ${reaisPorExtenso(
     saldoDisponivelCentavos
   )}. ${mensagemDisponivel(fracao)}`;
 
@@ -206,7 +208,10 @@ export const Inicio: React.FC = () => {
                 <h1 id="titulo-saldo" className={styles.rotuloSaldo}>
                   Você ainda tem disponível no mês:
                 </h1>
-                <BotaoAudio textoParaLer={textoAudio} />
+                <BotaoAudio
+                  textoParaLer={textoAudio}
+                  rotuloAcessivel="Ouvir saldo"
+                />
               </div>
 
               <div
