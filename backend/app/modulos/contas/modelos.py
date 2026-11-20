@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy import (
     BigInteger,
+    String,
     Date,
     DateTime,
     ForeignKey,

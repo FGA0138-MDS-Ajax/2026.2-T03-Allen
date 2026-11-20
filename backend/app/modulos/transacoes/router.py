@@ -14,6 +14,7 @@ from app.modulos.transacoes.esquemas import (
     SaldoMesSaida,
     TransacaoEdicaoEntrada,
     TransacaoSaida,
+    TransacaoRegistroEntrada,
 )
 from app.modulos.transacoes.mensagens import Message
 from app.modulos.transacoes.modelos import Transacao
@@ -21,6 +22,20 @@ from app.nucleo.banco import obter_sessao
 
 router = APIRouter(prefix="/api/v1/transacoes", tags=["transacoes"])
 
+
+@router.post("", response_model=TransacaoSaida, status_code=status.HTTP_201_CREATED)
+def registrar(
+    dados: TransacaoRegistroEntrada,
+    usuario: Usuario = Depends(usuario_atual),
+    sessao: Session = Depends(obter_sessao),
+) -> Transacao:
+    try:
+        return servico.registrar(sessao, usuario.id, dados)
+    except servico.ReferenciaInexistente:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            Message.CATEGORIA_INEXISTENTE.message
+            ) from None
 
 @router.get("", response_model=list[TransacaoSaida])
 def listar(
