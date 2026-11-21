@@ -14,6 +14,20 @@ describe('Componente ConfirmacaoSucesso', () => {
     expect(container.firstChild).toBeNull();
   });
 
+  it('liga a mensagem ao diálogo para o leitor de tela ler o valor (#100)', () => {
+    render(
+      <ConfirmacaoSucesso
+        aberta
+        mensagem="Gasto de R$ 25,00 registrado com sucesso no Vero."
+        onIrParaInicio={() => {}}
+      />
+    );
+    const dialogo = screen.getByRole('dialog', { name: 'Tudo certo!' });
+    expect(dialogo).toHaveAccessibleDescription(
+      'Gasto de R$ 25,00 registrado com sucesso no Vero.'
+    );
+  });
+
   it('renderiza título, mensagem e botões quando aberta for true', () => {
     const mockInicio = vi.fn();
     const mockDesfazer = vi.fn();

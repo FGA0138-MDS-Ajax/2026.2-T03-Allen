@@ -18,6 +18,19 @@ describe('Utilitário NFC-e (QR Code de Nota Fiscal)', () => {
     expect(parsearValorMonetario('0')).toBeNull();
   });
 
+  it('aceita o formato americano e não salva valor errado em texto ambíguo (#104)', () => {
+    expect(parsearValorMonetario('1,250.00')).toBe(125000);
+    expect(parsearValorMonetario('1.250')).toBe(125000);
+    expect(parsearValorMonetario('1.234.567,89')).toBe(123456789);
+    expect(parsearValorMonetario('R$ 45,90')).toBe(4590);
+    expect(parsearValorMonetario('12,5')).toBe(1250);
+    expect(parsearValorMonetario('10')).toBe(1000);
+    expect(parsearValorMonetario('1,250')).toBeNull();
+    expect(parsearValorMonetario('1,2,3')).toBeNull();
+    expect(parsearValorMonetario('12.34,5.6')).toBeNull();
+    expect(parsearValorMonetario(',')).toBeNull();
+  });
+
   it('interpreta URL NFC-e v2.0 online extraindo chave, UF, CNPJ e deixando estabelecimento vazio', () => {
     const url =
       'https://www.fazenda.df.gov.br/nfce/qrcode?p=53261112345678000199650010000123451123456789|2|1|1|ABCDEF';

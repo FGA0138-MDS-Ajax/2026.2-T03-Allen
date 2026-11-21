@@ -175,7 +175,7 @@ export const AnotarGasto: React.FC = () => {
 
     const centavosNfce = parsearValorMonetario(nfcePendente.valorTexto);
     if (!centavosNfce || centavosNfce <= 0) {
-      setErro('Informe um valor válido maior que zero para salvar a nota.');
+      setErro('Não entendi o valor. Digite o total da nota assim: 1.250,00.');
       return;
     }
 

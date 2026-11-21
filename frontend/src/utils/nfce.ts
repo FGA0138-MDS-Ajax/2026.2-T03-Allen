@@ -53,19 +53,55 @@ export function formatarCnpj(cnpj: string): string {
   );
 }
 
+/** Separador de milhar seguido de grupos de 3 dígitos, ex.: "1.234.567" ou "1,250". */
+const soMilhares = (texto: string, sep: string) =>
+  new RegExp(`^\\d{1,3}(\\${sep}\\d{3})+$`).test(texto);
+
 /**
- * Converte texto monetário (ex.: "1.234,56", "85,50" ou "1234.56") em centavos.
+ * Converte texto monetário em centavos. Aceita o formato brasileiro ("1.234,56",
+ * "85,50", "1.250") e o americano ("1,250.00", "1234.56"). Quando há os dois
+ * separadores, o último é o decimal. Texto ambíguo ou malformado devolve null,
+ * para a tela pedir o valor de novo em vez de salvar um valor errado.
  */
 export function parsearValorMonetario(texto: string): number | null {
   const limpo = texto.replace(/[^\d.,]/g, '').trim();
-  if (!limpo) return null;
+  if (!limpo || !/\d/.test(limpo)) return null;
 
-  let normalizado = limpo;
-  if (limpo.includes(',')) {
-    // Formato brasileiro: remove separadores de milhar (.) e troca vírgula decimal por ponto
-    normalizado = limpo.replace(/\./g, '').replace(',', '.');
+  const ultimaVirgula = limpo.lastIndexOf(',');
+  const ultimoPonto = limpo.lastIndexOf('.');
+  let normalizado: string | null;
+
+  if (ultimaVirgula >= 0 && ultimoPonto >= 0) {
+    const decimal = ultimaVirgula > ultimoPonto ? ',' : '.';
+    const milhar = decimal === ',' ? '.' : ',';
+    const [inteiro, centavos, ...resto] = limpo.split(decimal);
+    normalizado =
+      resto.length === 0 &&
+      /^\d{1,2}$/.test(centavos) &&
+      soMilhares(inteiro, milhar)
+        ? `${inteiro.split(milhar).join('')}.${centavos}`
+        : null;
+  } else if (ultimaVirgula >= 0 || ultimoPonto >= 0) {
+    const sep = ultimaVirgula >= 0 ? ',' : '.';
+    const partes = limpo.split(sep);
+    if (
+      partes.length === 2 &&
+      /^\d+$/.test(partes[0]) &&
+      /^\d{1,2}$/.test(partes[1])
+    ) {
+      normalizado = `${partes[0]}.${partes[1]}`;
+    } else if (sep === '.' && soMilhares(limpo, '.')) {
+      // "1.250" no Brasil é mil duzentos e cinquenta
+      normalizado = partes.join('');
+    } else {
+      // "1,250" pode ser 1,25 ou 1.250: ambíguo, melhor pedir de novo
+      normalizado = null;
+    }
+  } else {
+    normalizado = limpo;
   }
 
+  if (normalizado === null) return null;
   const numero = Number(normalizado);
   if (!Number.isFinite(numero) || numero <= 0) return null;
   return Math.round(numero * 100);

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { reaisPorExtenso } from '../../utils/valorPorExtenso';
 import {
   Botao,
   CampoTexto,
@@ -270,11 +271,14 @@ export const Contas: React.FC = () => {
   }, [contasFiltradas]);
 
   const textoResumoAudio = useMemo(() => {
-    return `Você tem ${formatarMoeda(resumo.totalAVencer)} a vencer este mês, ${
+    // Valores em reais; a voz lê por extenso (RF21)
+    const falar = (reais: number) =>
+      reaisPorExtenso(Math.round((Number.isFinite(reais) ? reais : 0) * 100));
+    return `Você tem ${falar(resumo.totalAVencer)} a vencer este mês, ${
       resumo.totalAtraso > 0
-        ? `${formatarMoeda(resumo.totalAtraso)} em atraso`
+        ? `${falar(resumo.totalAtraso)} em atraso`
         : 'nenhuma conta em atraso'
-    }, e ${formatarMoeda(resumo.totalPago)} já pagos no Vero.`;
+    }, e ${falar(resumo.totalPago)} já pagos no Vero.`;
   }, [resumo]);
 
   return (
