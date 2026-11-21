@@ -4,7 +4,6 @@ import {
   CampoTexto,
   TecladoNumerico,
   AlertaStatus,
-  IconVero,
   IconCheck,
   IconLock,
   IconWhatsApp,
@@ -12,6 +11,7 @@ import {
 import { useNavegacao } from '../../router';
 import { cadastrarUsuario, ErroApi } from '../../servicos';
 import { formatarCelular, validarCelular } from '../../utils/telefone';
+import logoVero from '../../assets/logoVero';
 import styles from './Cadastro.module.css';
 
 export const Cadastro = () => {
@@ -132,8 +132,7 @@ export const Cadastro = () => {
           }}
           aria-label="Vero - Início"
         >
-          <IconVero size={34} />
-          <span>Vero</span>
+          <img src={logoVero} alt="" className={styles.logoImagem} />
         </a>
       </header>
 

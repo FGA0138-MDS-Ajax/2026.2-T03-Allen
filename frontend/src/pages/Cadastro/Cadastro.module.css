@@ -18,12 +18,14 @@
 .brandLogo {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-family: var(--font-titulo);
-  font-weight: 900;
-  font-size: 30px;
-  color: var(--violeta-vero);
   text-decoration: none;
+}
+
+.logoImagem {
+  display: block;
+  width: 130px;
+  max-width: 100%;
+  height: auto;
 }
 
 .layoutGrid {
