@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     # Sem APP_ENV, a API se comporta como produção: só aceita o e-mail de verdade
     APP_ENV: Ambiente = Ambiente.PRODUCAO
 
+    # Autenticação e Banco
     DATABASE_URL: str
     SECRET_KEY: str
     JWT_ALGORITMO: str = "HS256"
@@ -57,6 +58,11 @@ class Settings(BaseSettings):
     # APENAS EM PRODUCAO
     WHATSAPP_API_URL: str = ""
     WHATSAPP_TOKEN: str = ""
+
+    # WhatsApp / Evolution API
+    EVOLUTION_URL: str
+    AUTHENTICATION_API_KEY: str
+    INSTANCE_NAME: str
 
     model_config = SettingsConfigDict(
         env_file=[
