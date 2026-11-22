@@ -20,16 +20,6 @@ from app.nucleo.tarefas import fila
 logger = logging.getLogger(__name__)
 
 
-@fila.task(name="transacoes.lancar_gastos_fixos")
-def lancar_gastos_fixos() -> int:
-    """RF18 e RF37: disparada todo dia pelo Celery Beat (ver app/nucleo/tarefas.py)."""
-    with SessaoLocal() as sessao:
-        lancadas = servico.lancar_gastos_fixos(sessao)
-    # Só a quantidade: sem usuário nem valores no log (RNF05)
-    logger.info("Gastos fixos lançados: %d", lancadas)
-    return lancadas
-
-
 def _buscar_contas_vencendo_hoje(
     sessao: Session, data_referencia: date
 ) -> Sequence[Conta]:
@@ -78,6 +68,17 @@ def _registrar_transacao_lembrete(
     )
 
 
+@fila.task(name="transacoes.lancar_gastos_fixos")
+def lancar_gastos_fixos() -> int:
+    """RF18 e RF37: disparada todo dia pelo Celery Beat (ver app/nucleo/tarefas.py)."""
+    with SessaoLocal() as sessao:
+        lancadas = servico.lancar_gastos_fixos(sessao)
+    # Só a quantidade: sem usuário nem valores no log (RNF05)
+    logger.info("Gastos fixos lançados: %d", lancadas)
+    return lancadas
+
+
+@fila.task(name="transacoes.lembretes_whatsapp")
 def lembretes_whatsapp() -> int:
     """RF28: enviar lembrete no whatsapp no dia do vencimento.
 

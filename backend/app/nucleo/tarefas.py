@@ -29,11 +29,11 @@ fila = Celery(
 fila.conf.timezone = "America/Sao_Paulo"
 fila.conf.beat_schedule = {
     "lancar-gastos-fixos": {
-        "task": "transacoes.lancar_gastos_fixos",
+        "task": "lancar_gastos_fixos",
         "schedule": Agenda.GASTOS_FIXOS.value,
     },
     "enviar-lembrete-whatsapp": {
-        "task": "transacoes.whatsapp_lembretes",
+        "task": "lembretes_whatsapp",
         "schedule": Agenda.LEMBRETE_WPP.value,
     },
 }
