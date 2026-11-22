@@ -1,0 +1,106 @@
+/**
+ * Tour guiado em áudio do primeiro acesso (US13).
+ * Guarda no navegador, por pessoa, se ela já ouviu (ou pulou) a explicação.
+ */
+
+import { obterToken } from './api';
+
+const PREFIXO_TOUR_VISTO = 'vero_tour_audio_visto';
+
+/** Id do usuário logado, lido do campo `sub` do token (sem validar a assinatura). */
+const idUsuarioLogado = (): string | null => {
+  const token = obterToken();
+  const corpo = token?.split('.')[1];
+  if (!corpo) return null;
+  try {
+    const base64 = corpo.replace(/-/g, '+').replace(/_/g, '/');
+    const dados = JSON.parse(atob(base64)) as { sub?: unknown };
+    return typeof dados.sub === 'string' && dados.sub ? dados.sub : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Uma marca por pessoa: quem entra depois no mesmo aparelho também ouve o tour
+ * do primeiro acesso (#102).
+ */
+const chaveTourVisto = (): string => {
+  const id = idUsuarioLogado();
+  return id ? `${PREFIXO_TOUR_VISTO}:${id}` : PREFIXO_TOUR_VISTO;
+};
+
+export interface PassoTour {
+  titulo: string;
+  /** Texto falado em voz alta e exibido como legenda. */
+  texto: string;
+}
+
+export const PASSOS_TOUR: PassoTour[] = [
+  {
+    titulo: 'Boas-vindas ao Vero',
+    texto:
+      'Olá! Vou explicar como usar o Vero. Você pode pausar, repetir ou pular esta explicação a qualquer momento, usando os botões grandes aqui embaixo.',
+  },
+  {
+    titulo: 'Seu saldo do mês',
+    texto:
+      'Na tela de Início, o número grande mostra quanto dinheiro você ainda tem disponível no mês. A barra colorida mostra quanto você já gastou: verde está tranquilo, amarelo pede atenção e vermelho avisa que o dinheiro está acabando.',
+  },
+  {
+    titulo: 'Botão Ouvir',
+    texto:
+      'Ao lado do seu saldo fica o botão Ouvir. Toque nele para escutar o valor em voz alta, sem precisar ler.',
+  },
+  {
+    titulo: 'Anotar gasto ou recebimento',
+    texto:
+      'Para anotar um gasto ou um dinheiro que entrou, toque em Anotar Gasto ou Recebimento, no topo da tela. Digite o valor no teclado grande, escolha a categoria pelo desenho e toque em Salvar. Se errar, você tem dez segundos para desfazer.',
+  },
+  {
+    titulo: 'Extrato',
+    texto:
+      'No Extrato você vê tudo o que entrou e saiu neste mês, do mais novo para o mais antigo.',
+  },
+  {
+    titulo: 'Contas a pagar',
+    texto:
+      'Em Contas a Pagar você cadastra contas como luz e água e marca quando já pagou. As contas atrasadas aparecem em vermelho.',
+  },
+  {
+    titulo: 'Anotar pelo WhatsApp',
+    texto:
+      'Você também pode anotar pelo WhatsApp. É só mandar uma mensagem, como: gastei trinta reais no mercado.',
+  },
+  {
+    titulo: 'Pronto!',
+    texto:
+      'Pronto! Para ouvir esta explicação de novo, toque no botão Ouvir explicação, no topo da tela.',
+  },
+];
+
+/** Se a fala não começar nesse tempo, o navegador bloqueou o áudio (ex.: Safari sem toque). */
+export const ESPERA_INICIO_FALA_MS = 2500;
+
+/**
+ * Tempo máximo esperado para falar um texto. Algumas vozes do Chrome cortam
+ * falas longas sem disparar `onend`; passado esse tempo, o tour segue mesmo assim.
+ */
+export const tempoMaximoFalaMs = (texto: string) => 4000 + texto.length * 110;
+
+export const tourJaVisto = (): boolean => {
+  try {
+    return localStorage.getItem(chaveTourVisto()) === 'true';
+  } catch {
+    // Sem acesso ao armazenamento: não insiste em abrir o tour a cada tela
+    return true;
+  }
+};
+
+export const marcarTourVisto = (): void => {
+  try {
+    localStorage.setItem(chaveTourVisto(), 'true');
+  } catch {
+    // Armazenamento indisponível (aba anônima, bloqueio): segue sem guardar
+  }
+};

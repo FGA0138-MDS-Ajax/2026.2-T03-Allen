@@ -10,7 +10,12 @@ from sqlalchemy.orm import Session
 
 from app.modulos.identidade.esquemas import CadastroEntrada
 from app.modulos.identidade.modelos import Usuario
-from app.modulos.identidade.seguranca import HASH_FICTICIO, conferir_hash, gerar_hash, hash_telefone
+from app.modulos.identidade.seguranca import (
+    HASH_FICTICIO,
+    conferir_hash,
+    gerar_hash,
+    hash_telefone,
+)
 
 
 class Attempts(Enum):
@@ -18,7 +23,6 @@ class Attempts(Enum):
 
     MAX_TENTATIVAS = 5
     TEMPO_BLOQUEIO = timedelta(seconds=30)
-    # DURACAO_TOKEN_SENHA = timedelta(days=7)
     DURACAO_TOKEN_PIN = timedelta(hours=2)
 
 
@@ -75,15 +79,17 @@ def autenticar(sessao: Session, telefone: str, segredo: str) -> Usuario:
     if usuario is None:
         conferir_hash(segredo, HASH_FICTICIO)
         raise CredenciaisInvalidas
+    return conferir_pin(sessao, usuario, segredo)
 
+
+def conferir_pin(sessao: Session, usuario: Usuario, segredo: str) -> Usuario:
+    """Confere o PIN de um usuário já encontrado, contando tentativas e bloqueio (D17).
+
+    Quem chama deve ter travado a linha do usuário (FOR UPDATE)."""
     agora = datetime.now(UTC)
     if usuario.bloqueado_ate and usuario.bloqueado_ate > agora:
         sessao.rollback()
         raise ContaBloqueada(_segundos_ate(usuario.bloqueado_ate, agora))
-
-    # if usuario.hash_pin is None:
-    #     sessao.rollback()  -> pin agora é obrigatorio
-    #     raise PinNaoCriado
 
     if not conferir_hash(segredo, usuario.hash_pin):
         usuario.tentativas += 1

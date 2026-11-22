@@ -10,3 +10,5 @@ export * from './BarraNavegacao/BarraNavegacao';
 export * from './GraficoSaldo/GraficoSaldo';
 export * from './ConfirmacaoSucesso/ConfirmacaoSucesso';
 export * from './LeitorQrCode/LeitorQrCode';
+export * from './TourAudio/TourAudio';
+export * from './TourAudio/contextoTour';

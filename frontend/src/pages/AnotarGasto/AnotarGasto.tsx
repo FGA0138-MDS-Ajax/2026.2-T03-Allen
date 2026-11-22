@@ -11,20 +11,14 @@ import {
   IconQrCode,
 } from '../../components';
 import { useNavegacao } from '../../router';
-import { useDadosDoMes } from '../../servicos/dadosDoMes';
+import { NovoLancamento, useDadosDoMes } from '../../servicos/dadosDoMes';
+import { ErroApi } from '../../servicos/api';
 import {
   parsearQrCodeNfce,
+  parsearValorMonetario,
   sugerirCategoriaPorEstabelecimento,
 } from '../../utils/nfce';
-
-const NOMES_CATEGORIAS_GASTO: Record<string, string> = {
-  mercado: 'Mercado',
-  farmacia: 'Farmácia',
-  contas: 'Contas',
-  transporte: 'Transporte',
-  casa: 'Casa',
-  outros: 'Outros',
-};
+import { calcularHoje } from '../../servicos/dadosDoMes';
 
 const NOMES_CATEGORIAS_ENTRADA: Record<string, string> = {
   salario: 'Salário / Renda',
@@ -41,17 +35,23 @@ export const AnotarGasto: React.FC = () => {
   const [categoriaGasto, setCategoriaGasto] = useState<string>('mercado');
   const [categoriaEntrada, setCategoriaEntrada] = useState<string>('salario');
   const [sucesso, setSucesso] = useState<boolean>(false);
-  const [ultimoLancamentoId, setUltimoLancamentoId] = useState<number | null>(
+  const [ultimoLancamentoId, setUltimoLancamentoId] = useState<string | null>(
     null
   );
+  const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [leitorAberto, setLeitorAberto] = useState<boolean>(false);
   const [nfcePendente, setNfcePendente] = useState<{
     estabelecimento: string;
+    infoCnpj?: string;
     data: string;
     valorTexto: string;
     aviso?: string;
   } | null>(null);
+
+  const hojeAtual = calcularHoje();
+  const primeiroDiaMesAtual = `${hojeAtual.mes}-01`;
+  const hojeIso = `${hojeAtual.mes}-${String(hojeAtual.dia).padStart(2, '0')}`;
 
   const centavos = valorStr ? parseInt(valorStr, 10) : 0;
   const valorFormatado = (centavos / 100).toLocaleString('pt-BR', {
@@ -76,7 +76,29 @@ export const AnotarGasto: React.FC = () => {
     setErro(null);
   };
 
-  const salvar = () => {
+  /** Grava na API. Só mostra "Tudo certo!" depois que o servidor confirmou. */
+  const gravar = async (novo: NovoLancamento): Promise<boolean> => {
+    if (salvando) return false;
+    setSalvando(true);
+    try {
+      const salvo = await adicionarLancamento(novo);
+      setUltimoLancamentoId(salvo.id);
+      setErro(null);
+      setSucesso(true);
+      return true;
+    } catch (e) {
+      setErro(
+        e instanceof ErroApi && e.status !== 0 && e.status < 500
+          ? e.detalhe
+          : 'Não foi possível salvar agora. Verifique a internet e tente de novo.'
+      );
+      return false;
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const salvar = async () => {
     if (centavos <= 0) {
       setErro(
         `Digite um valor maior que zero para ${tipo === 'gasto' ? 'o gasto' : 'a entrada'}.`
@@ -84,22 +106,27 @@ export const AnotarGasto: React.FC = () => {
       return;
     }
 
-    const nomeCat =
+    await gravar(
       tipo === 'gasto'
-        ? NOMES_CATEGORIAS_GASTO[categoriaGasto] || 'Gasto Geral'
-        : NOMES_CATEGORIAS_ENTRADA[categoriaEntrada] || 'Entrada Geral';
-
-    const id = adicionarLancamento(tipo, centavos, nomeCat);
-    setUltimoLancamentoId(id);
-
-    setSucesso(true);
-    setErro(null);
+        ? { tipo, centavos, categoriaCodigo: categoriaGasto }
+        : {
+            tipo,
+            centavos,
+            descricao: NOMES_CATEGORIAS_ENTRADA[categoriaEntrada],
+          }
+    );
   };
 
-  const desfazer = () => {
+  const desfazer = async () => {
     if (ultimoLancamentoId) {
-      removerLancamento(ultimoLancamentoId);
-      setUltimoLancamentoId(null);
+      try {
+        await removerLancamento(ultimoLancamentoId);
+        setUltimoLancamentoId(null);
+      } catch {
+        setErro(
+          'Não foi possível desfazer agora. Apague o lançamento pelo Extrato.'
+        );
+      }
     }
     setSucesso(false);
   };
@@ -119,45 +146,61 @@ export const AnotarGasto: React.FC = () => {
     );
     setCategoriaGasto(catSugerida);
     setErro(null);
+
+    const dataForaDoMes =
+      dados.data < primeiroDiaMesAtual || dados.data > hojeIso;
+    const avisoData = dataForaDoMes
+      ? 'Atenção: a data desta nota não pertence ao mês atual até hoje. O Vero registra lançamentos apenas dentro do mês atual — ajuste a data abaixo se desejar lançar neste mês.'
+      : undefined;
+
+    const avisoCombinado = [dados.aviso, avisoData].filter(Boolean).join(' ');
+
     setNfcePendente({
       estabelecimento: dados.estabelecimento,
+      infoCnpj:
+        dados.cnpj && dados.uf
+          ? `Nota identificada (${dados.uf} · CNPJ ${dados.cnpj})`
+          : undefined,
       data: dados.data,
       valorTexto:
         dados.centavos !== null
           ? (dados.centavos / 100).toFixed(2).replace('.', ',')
           : '',
-      aviso: dados.aviso,
+      aviso: avisoCombinado || undefined,
     });
   };
 
-  const confirmarNfce = () => {
+  const confirmarNfce = async () => {
     if (!nfcePendente) return;
-    const limpo = nfcePendente.valorTexto
-      .replace(/[^\d.,]/g, '')
-      .replace(',', '.');
-    const numero = parseFloat(limpo);
-    if (!Number.isFinite(numero) || numero <= 0) {
-      setErro('Informe um valor válido maior que zero para salvar a nota.');
+
+    const centavosNfce = parsearValorMonetario(nfcePendente.valorTexto);
+    if (!centavosNfce || centavosNfce <= 0) {
+      setErro('Não entendi o valor. Digite o total da nota assim: 1.250,00.');
       return;
     }
 
-    const centavosNfce = Math.round(numero * 100);
+    if (
+      !nfcePendente.data ||
+      nfcePendente.data < primeiroDiaMesAtual ||
+      nfcePendente.data > hojeIso
+    ) {
+      setErro(
+        'A data da nota precisa estar dentro do mês atual até hoje para entrar no saldo do mês.'
+      );
+      return;
+    }
+
     setValorStr(String(centavosNfce));
 
-    const nomeCat = NOMES_CATEGORIAS_GASTO[categoriaGasto] || 'Gasto Geral';
-    const diaData = parseInt(nfcePendente.data.split('-')[2] || '0', 10);
-    const id = adicionarLancamento(
-      'gasto',
-      centavosNfce,
-      nomeCat,
-      nfcePendente.estabelecimento.trim() || undefined,
-      diaData > 0 ? diaData : undefined
-    );
-
-    setUltimoLancamentoId(id);
-    setNfcePendente(null);
-    setSucesso(true);
-    setErro(null);
+    const salvou = await gravar({
+      tipo: 'gasto',
+      centavos: centavosNfce,
+      categoriaCodigo: categoriaGasto,
+      descricao: nfcePendente.estabelecimento.trim() || undefined,
+      data: nfcePendente.data,
+      origem: 'qrcode_nf',
+    });
+    if (salvou) setNfcePendente(null);
   };
 
   return (
@@ -233,7 +276,7 @@ export const AnotarGasto: React.FC = () => {
                   htmlFor="nfce-estabelecimento"
                   className={styles.rotuloNfce}
                 >
-                  Nome do estabelecimento
+                  Nome do estabelecimento (opcional)
                 </label>
                 <input
                   id="nfce-estabelecimento"
@@ -248,6 +291,11 @@ export const AnotarGasto: React.FC = () => {
                   }
                   placeholder="Ex: Supermercado, Farmácia"
                 />
+                {nfcePendente.infoCnpj && (
+                  <span style={{ fontSize: 14, color: 'var(--ardosia)' }}>
+                    {nfcePendente.infoCnpj}
+                  </span>
+                )}
               </div>
 
               <div className={styles.campoNfceGrupo}>
@@ -257,14 +305,17 @@ export const AnotarGasto: React.FC = () => {
                 <input
                   id="nfce-data"
                   type="date"
+                  min={primeiroDiaMesAtual}
+                  max={hojeIso}
                   className={styles.inputNfce}
                   value={nfcePendente.data}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    setErro(null);
                     setNfcePendente({
                       ...nfcePendente,
                       data: e.target.value,
-                    })
-                  }
+                    });
+                  }}
                 />
               </div>
 
@@ -299,8 +350,13 @@ export const AnotarGasto: React.FC = () => {
               </div>
 
               <div className={styles.acoes}>
-                <Botao variant="primary" fullWidth onClick={confirmarNfce}>
-                  Confirmar e salvar gasto
+                <Botao
+                  variant="primary"
+                  fullWidth
+                  disabled={salvando}
+                  onClick={confirmarNfce}
+                >
+                  {salvando ? 'Salvando…' : 'Confirmar e salvar gasto'}
                 </Botao>
                 <button
                   type="button"
@@ -400,10 +456,14 @@ export const AnotarGasto: React.FC = () => {
                 <Botao
                   variant="primary"
                   fullWidth
-                  disabled={centavos <= 0}
+                  disabled={centavos <= 0 || salvando}
                   onClick={salvar}
                 >
-                  {tipo === 'gasto' ? 'Salvar gasto' : 'Salvar recebimento'}
+                  {salvando
+                    ? 'Salvando…'
+                    : tipo === 'gasto'
+                      ? 'Salvar gasto'
+                      : 'Salvar recebimento'}
                 </Botao>
 
                 <button

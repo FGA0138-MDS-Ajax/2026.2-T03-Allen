@@ -37,6 +37,8 @@ class Transacao(Base):
     categoria_id: Mapped[int | None] = mapped_column("idCategoria", BigInteger)
     origem: Mapped[str] = mapped_column("noOrigem", String)
     chave_externa: Mapped[str | None] = mapped_column("coChaveExterna", Text)
+    # Conta que gerou o lançamento automático (RF18). Única: uma conta, um lançamento
+    conta_id: Mapped[uuid.UUID | None] = mapped_column("idConta", unique=True)
 
     criado_em: Mapped[datetime] = mapped_column(
         "dhCriacao", DateTime(timezone=True), server_default=func.now()

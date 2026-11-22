@@ -193,3 +193,35 @@ def test_recorrente_abril(cliente_logado):
     contas = cliente_logado.get("/api/v1/contas").json()
     set = [conta for conta in contas if conta["vencimento_em"].startswith("2026-04")]
     assert set[0]["vencimento_em"] == "2026-04-30"  # mudar de 31 -> 30
+
+
+def test_pagar_desfazer_e_pagar_de_novo_gera_um_so_mes_seguinte(cliente_logado):
+    resp = cliente_logado.post(
+        "/api/v1/contas",
+        json={"vencimento_em": "2026-05-10", "valor": "60.00", "recorrente": True},
+    )
+    conta_id = resp.json()["id"]
+
+    for paga in (True, False, True):
+        resposta = cliente_logado.patch(
+            f"/api/v1/contas/{conta_id}/pagamento", json={"paga": paga}
+        )
+        assert resposta.status_code == 200
+
+    contas = cliente_logado.get("/api/v1/contas").json()
+    assert [c["vencimento_em"] for c in contas] == ["2026-05-10", "2026-06-10"]
+
+
+def test_conta_que_nao_e_fixa_nao_gera_mes_seguinte(cliente_logado):
+    resp = cliente_logado.post(
+        "/api/v1/contas",
+        json={"vencimento_em": "2026-05-10", "valor": "60.00"},
+    )
+    assert resp.json()["recorrente"] is False
+
+    resposta = cliente_logado.patch(
+        f"/api/v1/contas/{resp.json()['id']}/pagamento", json={"paga": True}
+    )
+
+    assert resposta.status_code == 200
+    assert len(cliente_logado.get("/api/v1/contas").json()) == 1
