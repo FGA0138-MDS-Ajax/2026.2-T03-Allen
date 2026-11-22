@@ -17,6 +17,7 @@ import {
 import { listarContas, excluirConta, ContaSaida } from '../../servicos';
 import { Lancamento, useDadosDoMes } from '../../servicos/dadosDoMes';
 import { parsearValorMonetario } from '../../utils/nfce';
+import { reaisPorExtenso } from '../../utils/valorPorExtenso';
 
 type FiltroTipo = 'todos' | 'gastos' | 'contas' | 'entradas';
 
@@ -257,11 +258,11 @@ export const Extrato: React.FC = () => {
     }
   };
 
-  const textoResumoAudio = `Extrato do mês: você tem ${formatarMoeda(
+  const textoResumoAudio = `Extrato do mês: você tem ${reaisPorExtenso(
     totalEntradas
-  )} em entradas, ${formatarMoeda(totalGastos)} em gastos do dia a dia e ${formatarMoeda(
+  )} em entradas, ${reaisPorExtenso(totalGastos)} em gastos do dia a dia e ${reaisPorExtenso(
     totalContas
-  )} em contas a pagar. Seu saldo final disponível é ${formatarMoeda(saldoFinal)}.`;
+  )} em contas a pagar. Seu saldo final disponível é ${reaisPorExtenso(saldoFinal)}.`;
 
   return (
     <div className={styles.pageContainer}>
@@ -277,7 +278,10 @@ export const Extrato: React.FC = () => {
                 Veja todas as entradas, gastos e contas do mês em um só lugar.
               </p>
             </div>
-            <BotaoAudio textoParaLer={textoResumoAudio} />
+            <BotaoAudio
+              textoParaLer={textoResumoAudio}
+              rotuloAcessivel="Ouvir resumo do extrato"
+            />
           </div>
 
           {erroDados && (

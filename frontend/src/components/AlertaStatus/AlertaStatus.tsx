@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import styles from './AlertaStatus.module.css';
 import { IconCheck, IconClock, IconAlert } from '../Icones/Icones';
 
@@ -25,6 +25,12 @@ export const AlertaStatus: React.FC<AlertaStatusProps> = ({
   role = 'status',
 }) => {
   const { icone, label } = CONFIG_STATUS[tipo];
+  // Leitores de tela ignoram região viva que já nasce com texto: a região entra
+  // vazia e o conteúdo chega logo depois, para ser anunciado (RF20 / #100)
+  const [pronto, setPronto] = useState(false);
+  useEffect(() => {
+    setPronto(true);
+  }, []);
 
   return (
     <div
@@ -32,10 +38,14 @@ export const AlertaStatus: React.FC<AlertaStatusProps> = ({
       aria-live="polite"
       className={`${styles.alerta} ${styles[tipo]}`}
     >
-      <span className={styles.icone} aria-label={label} role="img">
-        {icone}
-      </span>
-      <div className={styles.conteudo}>{children}</div>
+      {pronto && (
+        <>
+          <span className={styles.icone} aria-label={label} role="img">
+            {icone}
+          </span>
+          <div className={styles.conteudo}>{children}</div>
+        </>
+      )}
     </div>
   );
 };
