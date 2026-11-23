@@ -266,3 +266,12 @@ def test_rotina_diaria_esta_agendada_no_fuso_de_brasilia() -> None:
     agenda = fila.conf.beat_schedule["lancar-gastos-fixos"]
     assert agenda["task"] == tarefas.lancar_gastos_fixos.name
     assert fila.conf.timezone == "America/Sao_Paulo"
+
+
+def test_toda_rotina_agendada_aponta_para_uma_tarefa_registrada() -> None:
+    """O Beat agenda pelo nome: nome errado e a rotina nunca roda."""
+    from app.nucleo.tarefas import fila
+
+    registradas = set(fila.tasks.keys())
+    for nome, agenda in fila.conf.beat_schedule.items():
+        assert agenda["task"] in registradas, nome
