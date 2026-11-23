@@ -18,6 +18,12 @@ from app.nucleo import eventos
 
 
 @pytest.fixture(autouse=True)
+def hoje_no_dia_da_compra(fixar_hoje_contas) -> None:
+    # As compras dos testes são de 14/11/2026 (validação de vencimento, #121)
+    fixar_hoje_contas(date(2026, 11, 14))
+
+
+@pytest.fixture(autouse=True)
 def valkey_falso(monkeypatch: pytest.MonkeyPatch) -> None:
     """Os avisos ao app (RF17) vão para um Valkey em memória."""
     monkeypatch.setattr(eventos, "cliente", fakeredis.FakeRedis())

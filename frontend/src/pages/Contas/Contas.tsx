@@ -7,6 +7,13 @@ import React, {
 } from 'react';
 import { reaisPorExtenso } from '../../utils/valorPorExtenso';
 import {
+  MESES,
+  mensagemVencimentoAntigo,
+  paraIso,
+  vencimentoMinimo,
+  vencimentoPorDiaEMes,
+} from '../../utils/vencimento';
+import {
   Botao,
   CampoTexto,
   TecladoNumerico,
@@ -108,10 +115,13 @@ export const Contas: React.FC = () => {
   const [dataVencimento, setDataVencimento] = useState(() => {
     const data = new Date();
     data.setDate(data.getDate() + 7);
-    return data.toISOString().split('T')[0];
+    return paraIso(data);
   });
   const [salvando, setSalvando] = useState(false);
   const [recorrente, setRecorrente] = useState(false);
+  // Conta fixa: só dia e mês, sem ano (#120)
+  const [diaFixo, setDiaFixo] = useState(() => new Date().getDate());
+  const [mesFixo, setMesFixo] = useState(() => new Date().getMonth() + 1);
   const [contaParaExcluir, setContaParaExcluir] = useState<ContaSaida | null>(
     null
   );
@@ -178,17 +188,25 @@ export const Contas: React.FC = () => {
       setErro('Informe um valor válido maior que zero.');
       return;
     }
-    if (!dataVencimento) {
+    if (!recorrente && !dataVencimento) {
       setErro('Selecione o dia do vencimento da conta.');
       return;
     }
+    // O seletor de data do Safari iOS ignora o "min": a regra é conferida aqui (#121)
+    if (!recorrente && dataVencimento < vencimentoMinimo()) {
+      setErro(mensagemVencimentoAntigo());
+      return;
+    }
+    const vencimento = recorrente
+      ? vencimentoPorDiaEMes(diaFixo, mesFixo)
+      : dataVencimento;
 
     setSalvando(true);
     setErro(null);
 
     try {
       await cadastrarConta({
-        vencimento_em: dataVencimento,
+        vencimento_em: vencimento,
         valor: centavosAtuais / 100,
         descricao: descricao.trim() || undefined,
         recorrente,
@@ -428,23 +446,6 @@ export const Contas: React.FC = () => {
               </div>
 
               <div>
-                <label
-                  htmlFor="data-vencimento"
-                  className={styles.rotuloResumo}
-                  style={{ display: 'block', marginBottom: 6 }}
-                >
-                  Data de Vencimento
-                </label>
-                <input
-                  id="data-vencimento"
-                  type="date"
-                  className={styles.campoData}
-                  value={dataVencimento}
-                  onChange={(e) => setDataVencimento(e.target.value)}
-                />
-              </div>
-
-              <div>
                 <label className={styles.checkboxContainer}>
                   <input
                     type="checkbox"
@@ -457,6 +458,74 @@ export const Contas: React.FC = () => {
                   </span>
                 </label>
               </div>
+
+              {recorrente ? (
+                <fieldset className={styles.grupoDiaMes}>
+                  <legend className={styles.rotuloResumo}>
+                    Dia do vencimento
+                  </legend>
+                  <div className={styles.linhaDiaMes}>
+                    <div className={styles.campoDiaMes}>
+                      <label htmlFor="dia-fixo" className={styles.rotuloCampo}>
+                        Dia
+                      </label>
+                      <select
+                        id="dia-fixo"
+                        className={styles.campoData}
+                        value={diaFixo}
+                        onChange={(e) => setDiaFixo(Number(e.target.value))}
+                      >
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map(
+                          (d) => (
+                            <option key={d} value={d}>
+                              {d}
+                            </option>
+                          )
+                        )}
+                      </select>
+                    </div>
+                    <div className={styles.campoDiaMes}>
+                      <label htmlFor="mes-fixo" className={styles.rotuloCampo}>
+                        Mês
+                      </label>
+                      <select
+                        id="mes-fixo"
+                        className={styles.campoData}
+                        value={mesFixo}
+                        onChange={(e) => setMesFixo(Number(e.target.value))}
+                      >
+                        {MESES.map((nome, i) => (
+                          <option key={nome} value={i + 1}>
+                            {nome}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <p className={styles.dicaCampo}>
+                    Vence todo dia {diaFixo}, a partir de {diaFixo} de{' '}
+                    {MESES[mesFixo - 1].toLowerCase()}.
+                  </p>
+                </fieldset>
+              ) : (
+                <div>
+                  <label
+                    htmlFor="data-vencimento"
+                    className={styles.rotuloResumo}
+                    style={{ display: 'block', marginBottom: 6 }}
+                  >
+                    Data de Vencimento
+                  </label>
+                  <input
+                    id="data-vencimento"
+                    type="date"
+                    className={styles.campoData}
+                    min={vencimentoMinimo()}
+                    value={dataVencimento}
+                    onChange={(e) => setDataVencimento(e.target.value)}
+                  />
+                </div>
+              )}
 
               <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
                 <Botao
