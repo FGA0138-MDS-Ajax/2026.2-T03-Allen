@@ -30,6 +30,13 @@ class AdaptadorWhatsApp(StrEnum):
     API = "api"
 
 
+class AdaptadorLeitorComprovante(StrEnum):
+    """Valores do LEITOR_COMPROVANTE."""
+
+    FALSO = "falso"
+    CLAUDE = "claude"
+
+
 class Settings(BaseSettings):
     APP_NAME: str = "Vero"
     # Sem APP_ENV, a API se comporta como produção: só aceita o e-mail de verdade
@@ -58,6 +65,15 @@ class Settings(BaseSettings):
     # APENAS EM PRODUCAO
     WHATSAPP_API_URL: str = ""
     WHATSAPP_TOKEN: str = ""
+
+    # Leitura de fotos de comprovantes (RF14). O falso não lê nada: o assistente cai
+    # no preenchimento manual (RF16). Com "claude", usa a API da Anthropic.
+    LEITOR_COMPROVANTE: AdaptadorLeitorComprovante = AdaptadorLeitorComprovante.FALSO
+    AI_API_KEY: str = ""
+    AI_MODELO: str = "claude-opus-5-5"
+    # RNF04 pede resposta em até 5 s; acima disto a leitura é abandonada e o
+    # assistente pede os dados à pessoa
+    AI_TIMEOUT_SEGUNDOS: float = 8.0
 
     # WhatsApp / Evolution API
     EVOLUTION_URL: str
@@ -91,6 +107,11 @@ class Settings(BaseSettings):
                 "Defina CHAVE_CODIGO_RECUPERACAO (diferente da SECRET_KEY) "
                 "fora do desenvolvimento."
             )
+        if (
+            self.LEITOR_COMPROVANTE == AdaptadorLeitorComprovante.CLAUDE
+            and not self.AI_API_KEY
+        ):
+            raise ValueError("LEITOR_COMPROVANTE=claude exige AI_API_KEY.")
         return self
 
 

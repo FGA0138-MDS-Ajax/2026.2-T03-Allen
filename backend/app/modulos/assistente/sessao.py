@@ -49,6 +49,8 @@ class RegistroPendente:
     # Preenchido quando o lançamento está incompleto: o assistente pediu este dado
     # e a próxima mensagem completa o lançamento, em vez de começar outro (RF16)
     faltando: CampoFaltando | None = None
+    # Valor do enum noOrigem da tblTransacao: de onde veio o lançamento (texto, foto)
+    origem: str = "whatsapp_texto"
 
 
 class GerenciadorSessao:
@@ -73,6 +75,7 @@ class GerenciadorSessao:
         categoria: str,
         descricao: str,
         faltando: CampoFaltando | None = None,
+        origem: str = "whatsapp_texto",
     ) -> None:
         agora = datetime.now(UTC)
         pendencia = RegistroPendente(
@@ -82,6 +85,7 @@ class GerenciadorSessao:
             descricao=descricao,
             criado=agora,
             faltando=faltando,
+            origem=origem,
         )
 
         if self._valkey:
@@ -126,6 +130,7 @@ class GerenciadorSessao:
                             descricao=dados["descricao"],
                             criado=criado,
                             faltando=CampoFaltando(faltando) if faltando else None,
+                            origem=dados.get("origem", "whatsapp_texto"),
                         ),
                         False,
                     )
