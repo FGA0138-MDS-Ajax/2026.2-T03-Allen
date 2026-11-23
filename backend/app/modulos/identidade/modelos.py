@@ -35,6 +35,8 @@ class Usuario(Base):
     whatsapp_ativo: Mapped[bool] = mapped_column(
         "icWhatsAppAtivo", server_default=true()
     )
+    # Resumo semanal e mensal no WhatsApp (RF24); desliga com "parar resumo"
+    resumo_ativo: Mapped[bool] = mapped_column("icResumoAtivo", server_default=true())
     criado_em: Mapped[datetime] = mapped_column(
         "dhCriacao", DateTime(timezone=True), server_default=func.now()
     )
