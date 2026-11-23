@@ -66,3 +66,7 @@ class Acompanhante(Base):
     dh_criacao: Mapped[datetime] = mapped_column(
         "dhCriacao", DateTime(timezone=True), server_default=func.now()
     )
+    status: Mapped[str] = mapped_column("noStatus", default="pendente", nullable=False)
+    dh_revogacao: Mapped[datetime | None] = mapped_column(
+        "dhRevogacao", DateTime(timezone=True), nullable=True
+    )

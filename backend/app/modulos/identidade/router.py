@@ -1,10 +1,9 @@
-from datetime import UTC, datetime
 import uuid
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from valkey.commands.core import AsyncPubSubCommands
 
 from app.integracoes.correio import obter_email
 from app.modulos.identidade import recuperacao, servico
@@ -246,33 +245,101 @@ def convidar_acompanhante(
 
 
 def _checar_id_convite(
-    convite_id: uuid.UUID, sessao: Session = Depends(obter_sessao)
+    convite_id: uuid.UUID,
+    sessao: Session = Depends(obter_sessao),
+    current_user: Usuario = Depends(usuario_atual),
 ) -> Acompanhante:
     convite = sessao.scalar(
         select(Acompanhante).where(Acompanhante.id_usuario_acompanhante == convite_id)
     )
     if convite is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "convite não encontrado.")
-    if convite.id_usuario_acompanhante != ...:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Convite não encontrado.")
+    if convite.id_usuario_acompanhante != current_user.id:
         raise HTTPException(
-            status.HTTP_403_FORBIDDEN, "sem permissão para aceitar o convite."
+            status.HTTP_403_FORBIDDEN, "Sem permissão para aceitar o convite."
         )
+    convite.status
     return convite
 
 
 @router.post(
-    "/aceitar-convite/{convite_id}",
-    response_model=dict,
-    status_code=status.HTTP_200_OK,
+    "/aceitar-convite/{convite_id}", response_model=dict, status_code=status.HTTP_200_OK
 )
-def aceitar_convite(convite_id: uuid.UUID, sessao: Session = Depends(obter_sessao)):
+def aceitar_convite(
+    convite_id: uuid.UUID,
+    sessao: Session = Depends(obter_sessao),
+    current_user: Usuario = Depends(usuario_atual),
+):
     """Quando a pessoa próxima aceita o convite explicitamente"""
     convite = _checar_id_convite(convite_id, sessao)
     convite.ic_pode_editar = True
     convite.dh_aceite = datetime.now(UTC)
+    convite.status = "autorizado"
     sessao.commit()
 
     return {
         "status": "acesso_liberado",
         "mensagem": "Seu acesso ao perfil foi liberado.",
     }
+
+
+def _checa_sem_tem_convite(
+    convite_id: uuid.UUID,
+    sessao: Session = Depends(obter_sessao),
+    current_user: Usuario = Depends(usuario_atual),
+) -> Acompanhante:
+    convite = sessao.scalar(
+        select(Acompanhante).where(
+            Acompanhante.id_usuario_acompanhante == convite_id,
+            Acompanhante.id_usuario_titular == current_user.id,
+        )
+    )
+    if convite is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Convite não encontrado.")
+    return convite
+
+
+@router.post(
+    "/revogar-acesso/{convite_id}", response_model=dict, status_code=status.HTTP_200_OK
+)
+def revogar_acesso(
+    convite_id: uuid.UUID,
+    sessao: Session = Depends(obter_sessao),
+    current_user: Usuario = Depends(usuario_atual),
+) -> dict[str, str]:
+    """Usuario pode revogar o acesso do acompanhante antes solicitado"""
+    # TODO: um nova migration para popular status e dh_revogacao
+    convite = _checa_sem_tem_convite(convite_id, sessao, current_user)
+    convite.status = "revogado"
+    convite.dh_revogacao = datetime.now(UTC)
+    sessao.commit()
+
+    return {"status": "revogado", "mensagem": "Acesso revogado com sucesso."}
+
+
+@router.get(
+    "/contas-com-acompanhantes",
+    response_model=list[dict[str, str | datetime | bool]],
+    status_code=status.HTTP_200_OK,
+)
+def listar_acompanhantes(
+    sessao: Session = Depends(obter_sessao),
+    current_user: Usuario = Depends(usuario_atual),
+):
+    todos_acompanhantes = sessao.scalars(
+        select(Acompanhante).where(
+            Acompanhante.id_usuario_titular == current_user.id,
+            Acompanhante.status == "autorizado",
+        )
+    ).all()
+
+    return [
+        {
+            "id": str(acompanhante.id_usuario_acompanhante),
+            "usuario": acompanhante.id_usuario_acompanhante.nome,
+            "data_convite": acompanhante.dh_criacao,
+            "pode_editar": acompanhante.ic_pode_editar,
+            "data_aceite": acompanhante.dh_aceite,
+        }
+        for acompanhante in todos_acompanhantes
+    ]
