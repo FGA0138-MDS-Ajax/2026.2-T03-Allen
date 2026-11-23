@@ -18,6 +18,7 @@ class Agenda(Enum):
     # Logo depois da meia-noite, para o gasto fixo e a parcela caírem no dia do
     # vencimento (RF18, RF37)
     GASTOS_FIXOS = crontab(hour=0, minute=10)
+    LEMBRETE_WPP = crontab(hour=9, minute=0)
 
 
 fila = Celery(
@@ -28,7 +29,11 @@ fila = Celery(
 fila.conf.timezone = "America/Sao_Paulo"
 fila.conf.beat_schedule = {
     "lancar-gastos-fixos": {
-        "task": "transacoes.lancar_gastos_fixos",
+        "task": "lancar_gastos_fixos",
         "schedule": Agenda.GASTOS_FIXOS.value,
+    },
+    "enviar-lembrete-whatsapp": {
+        "task": "lembretes_whatsapp",
+        "schedule": Agenda.LEMBRETE_WPP.value,
     },
 }
