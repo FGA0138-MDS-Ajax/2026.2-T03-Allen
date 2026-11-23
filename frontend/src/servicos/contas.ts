@@ -18,6 +18,9 @@ export interface ContaSaida {
   criado_em: string;
   recorrente?: boolean;
   id_conta_origem?: string | null;
+  // RF37: número desta parcela e total da compra; vazios quando não é parcelada
+  parcela?: number | null;
+  total_parcelas?: number | null;
 }
 
 export interface ContaCadastroEntrada {
@@ -26,6 +29,9 @@ export interface ContaCadastroEntrada {
   descricao?: string | null;
   categoria_id?: number | null;
   recorrente?: boolean;
+  // RF37: compra parcelada. vencimento_em é a data da compra e valor é o total;
+  // a 1ª parcela vence no mês seguinte
+  parcelas?: number;
 }
 
 export interface ContaPagamentoEntrada {
