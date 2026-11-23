@@ -290,4 +290,25 @@ describe('Página de Contas a Pagar (RF25, RF30, RF32)', () => {
       ).toBeInTheDocument();
     });
   });
+
+  it('alterna para o calendário mensal e filtra as contas ao tocar em um dia (RF34)', async () => {
+    render(<Contas />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Conta de Luz')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Calendário' }));
+
+    const dia20 = screen.getByRole('button', {
+      name: /20 de novembro de 2026: 1 a vencer/i,
+    });
+    fireEvent.click(dia20);
+
+    expect(screen.getByText('Conta de Luz')).toBeInTheDocument();
+    expect(screen.queryByText('Internet Fibra')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ver todas as datas' }));
+    expect(screen.getByText('Internet Fibra')).toBeInTheDocument();
+  });
 });

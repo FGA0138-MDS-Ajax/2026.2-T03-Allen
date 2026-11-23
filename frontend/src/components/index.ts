@@ -12,3 +12,4 @@ export * from './ConfirmacaoSucesso/ConfirmacaoSucesso';
 export * from './LeitorQrCode/LeitorQrCode';
 export * from './TourAudio/TourAudio';
 export * from './TourAudio/contextoTour';
+export * from './CalendarioVencimentos/CalendarioVencimentos';
