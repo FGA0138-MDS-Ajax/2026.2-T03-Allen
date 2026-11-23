@@ -40,7 +40,8 @@ class Usuario(Base):
     )
 
     # Preenchido temporariamente para resposta da API (não persistido)
-    telefone: str = ""
+    # WARNING: precisa persistir para notificacoes no wpp
+    telefone: Mapped[str] = mapped_column("nuTelefone", String(255), unique=True)
 
     @property
     def tem_pin(self) -> bool:

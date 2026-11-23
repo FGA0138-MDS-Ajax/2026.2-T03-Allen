@@ -14,3 +14,12 @@ class FalhaEnvioEmail(Exception):
 class PortaEmail(Protocol):
     def enviar(self, destinatario: str, assunto: str, texto: str) -> None:
         """Envia um e-mail de texto simples. Lança FalhaEnvioEmail se não conseguir."""
+
+
+class FalhaEnvioWhatsApp(Exception):
+    """A mensagem de WhatsApp não foi enviada."""
+
+
+class PortaWhatsApp(Protocol):
+    def enviar(self, destinatario: str, assunto: str, texto: str) -> None:
+        """Envia uma mensagem de texto simples pelo WhatsApp. Lança FalhaEnvioWhatsApp se não conseguir."""

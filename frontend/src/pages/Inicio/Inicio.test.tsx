@@ -133,6 +133,22 @@ describe('Página Inicio (Dashboard do Vero com Gráfico e Origem do Saldo)', ()
     expect(mockNavegar).toHaveBeenCalledWith('/anotar-gasto');
   });
 
+  it('exibe o link para o WhatsApp com número e mensagem pré-preenchida (RF04)', () => {
+    render(<Inicio />);
+
+    const linkWhatsApp = screen.getByRole('link', {
+        name: /anotar gasto pelo whatsapp/i,
+    });
+
+    expect(linkWhatsApp).toBeInTheDocument();
+    expect(linkWhatsApp).toHaveAttribute('target', '_blank');
+    expect(linkWhatsApp).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(linkWhatsApp.getAttribute('href')).toContain('https://wa.me/');
+    expect(linkWhatsApp.getAttribute('href')).toContain(
+      encodeURIComponent('Olá! Gostaria de anotar um gasto no Vero.')
+    );
+  });
+  
   it('mostra o saldo calculado pela API e o percentual já gasto', async () => {
     render(<Inicio />);
 
@@ -175,6 +191,10 @@ describe('Página Inicio (Dashboard do Vero com Gráfico e Origem do Saldo)', ()
     await waitFor(() =>
       expect(transacoes.excluirTransacao).toHaveBeenCalledWith('g1')
     );
+    // RF20 / #100: apagar também mostra a confirmação padrão
+    expect(
+      await screen.findByText(/gasto de r\$\s*[\d.,]+ com mercado apagado/i)
+    ).toBeVisible();
   });
 
   it('avisa quando não consegue carregar os dados', async () => {

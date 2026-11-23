@@ -31,3 +31,4 @@ e2e/playwright-report/
 .DS_Store
 .vscode/
 .idea/
+>>>>>>> feature/autenticação

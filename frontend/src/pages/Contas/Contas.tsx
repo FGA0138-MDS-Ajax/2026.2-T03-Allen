@@ -1,4 +1,11 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+} from 'react';
+import { reaisPorExtenso } from '../../utils/valorPorExtenso';
 import {
   Botao,
   CampoTexto,
@@ -6,6 +13,7 @@ import {
   AlertaStatus,
   BotaoAudio,
   BarraNavegacao,
+  CalendarioVencimentos,
   IconBills,
   IconClock,
   IconAlert,
@@ -19,6 +27,7 @@ import {
   IconHome,
 } from '../../components';
 import { useNavegacao } from '../../router';
+import { useTempoReal } from '../../hooks/useTempoReal';
 import {
   ContaSaida,
   listarContas,
@@ -80,9 +89,15 @@ const obterIconeConta = (descricao?: string | null) => {
 
 export const Contas: React.FC = () => {
   const { navegar } = useNavegacao();
+  const navegarRef = useRef(navegar);
+  navegarRef.current = navegar;
   const [contas, setContas] = useState<ContaSaida[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [filtro, setFiltro] = useState<FiltroStatus>('todas');
+  const [visualizacao, setVisualizacao] = useState<'lista' | 'calendario'>(
+    'lista'
+  );
+  const [diaSelecionado, setDiaSelecionado] = useState<string | null>(null);
   const [mensagemSucesso, setMensagemSucesso] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [pendenteId, setPendenteId] = useState<string | null>(null);
@@ -101,9 +116,9 @@ export const Contas: React.FC = () => {
     null
   );
 
-  const carregarContas = async () => {
+  const carregarContas = useCallback(async () => {
     if (!estaAutenticado()) {
-      navegar('/entrar');
+      navegarRef.current('/entrar');
       return;
     }
 
@@ -115,7 +130,7 @@ export const Contas: React.FC = () => {
     } catch (e) {
       if (e instanceof ErroApi) {
         if (e.status === 401) {
-          navegar('/entrar');
+          navegarRef.current('/entrar');
           return;
         }
         setErro(e.detalhe);
@@ -125,12 +140,18 @@ export const Contas: React.FC = () => {
     } finally {
       setCarregando(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    carregarContas();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    void carregarContas();
+  }, [carregarContas]);
+
+  const aoReceberEventoTempoReal = useCallback(() => {
+    void carregarContas();
+  }, [carregarContas]);
+
+  // Atualiza automaticamente quando o assistente registra/altera dados (RF17 / RF34)
+  useTempoReal(aoReceberEventoTempoReal);
 
   const centavosAtuais = valorDigitado ? parseInt(valorDigitado, 10) : 0;
 
@@ -269,12 +290,22 @@ export const Contas: React.FC = () => {
     }));
   }, [contasFiltradas]);
 
+  const gruposVisiveis = useMemo(() => {
+    if (visualizacao === 'calendario' && diaSelecionado) {
+      return contasAgrupadasPorDia.filter((g) => g.data === diaSelecionado);
+    }
+    return contasAgrupadasPorDia;
+  }, [contasAgrupadasPorDia, visualizacao, diaSelecionado]);
+
   const textoResumoAudio = useMemo(() => {
-    return `Você tem ${formatarMoeda(resumo.totalAVencer)} a vencer este mês, ${
+    // Valores em reais; a voz lê por extenso (RF21)
+    const falar = (reais: number) =>
+      reaisPorExtenso(Math.round((Number.isFinite(reais) ? reais : 0) * 100));
+    return `Você tem ${falar(resumo.totalAVencer)} a vencer este mês, ${
       resumo.totalAtraso > 0
-        ? `${formatarMoeda(resumo.totalAtraso)} em atraso`
+        ? `${falar(resumo.totalAtraso)} em atraso`
         : 'nenhuma conta em atraso'
-    }, e ${formatarMoeda(resumo.totalPago)} já pagos no Vero.`;
+    }, e ${falar(resumo.totalPago)} já pagos no Vero.`;
   }, [resumo]);
 
   return (
@@ -455,64 +486,123 @@ export const Contas: React.FC = () => {
         )}
 
         {!modoCadastro && (
-          <div className={styles.barraControles}>
-            <div
-              className={styles.filtrosContainer}
-              role="tablist"
-              aria-label="Filtros de situação das contas"
-            >
-              <button
-                type="button"
-                role="tab"
-                aria-selected={filtro === 'todas'}
-                className={`${styles.btnFiltro} ${filtro === 'todas' ? styles.btnFiltroAtivo : ''}`}
-                onClick={() => setFiltro('todas')}
+          <>
+            <div className={styles.barraControles}>
+              <div
+                className={styles.filtrosContainer}
+                role="tablist"
+                aria-label="Filtros de situação das contas"
               >
-                Todas ({contas.length})
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={filtro === 'a_vencer'}
-                className={`${styles.btnFiltro} ${filtro === 'a_vencer' ? styles.btnFiltroAtivo : ''}`}
-                onClick={() => setFiltro('a_vencer')}
-              >
-                <IconClock size={16} /> A vencer (
-                {contas.filter((c) => c.status === 'a_vencer').length})
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={filtro === 'em_atraso'}
-                className={`${styles.btnFiltro} ${filtro === 'em_atraso' ? styles.btnFiltroAtivo : ''}`}
-                onClick={() => setFiltro('em_atraso')}
-              >
-                <IconAlert size={16} /> Em atraso (
-                {contas.filter((c) => c.status === 'em_atraso').length})
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={filtro === 'paga'}
-                className={`${styles.btnFiltro} ${filtro === 'paga' ? styles.btnFiltroAtivo : ''}`}
-                onClick={() => setFiltro('paga')}
-              >
-                <IconCheck size={16} /> Pagas (
-                {contas.filter((c) => c.status === 'paga').length})
-              </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={filtro === 'todas'}
+                  className={`${styles.btnFiltro} ${filtro === 'todas' ? styles.btnFiltroAtivo : ''}`}
+                  onClick={() => setFiltro('todas')}
+                >
+                  Todas ({contas.length})
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={filtro === 'a_vencer'}
+                  className={`${styles.btnFiltro} ${filtro === 'a_vencer' ? styles.btnFiltroAtivo : ''}`}
+                  onClick={() => setFiltro('a_vencer')}
+                >
+                  <IconClock size={16} /> A vencer (
+                  {contas.filter((c) => c.status === 'a_vencer').length})
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={filtro === 'em_atraso'}
+                  className={`${styles.btnFiltro} ${filtro === 'em_atraso' ? styles.btnFiltroAtivo : ''}`}
+                  onClick={() => setFiltro('em_atraso')}
+                >
+                  <IconAlert size={16} /> Em atraso (
+                  {contas.filter((c) => c.status === 'em_atraso').length})
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={filtro === 'paga'}
+                  className={`${styles.btnFiltro} ${filtro === 'paga' ? styles.btnFiltroAtivo : ''}`}
+                  onClick={() => setFiltro('paga')}
+                >
+                  <IconCheck size={16} /> Pagas (
+                  {contas.filter((c) => c.status === 'paga').length})
+                </button>
+              </div>
+
+              <div className={styles.acoesTopoDireita}>
+                <div
+                  className={styles.seletorVisualizacao}
+                  role="group"
+                  aria-label="Modo de visualização das contas"
+                >
+                  <button
+                    type="button"
+                    aria-pressed={visualizacao === 'lista'}
+                    className={`${styles.btnVisualizacao} ${visualizacao === 'lista' ? styles.btnVisualizacaoAtivo : ''}`}
+                    onClick={() => {
+                      setVisualizacao('lista');
+                      setDiaSelecionado(null);
+                    }}
+                  >
+                    Lista
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={visualizacao === 'calendario'}
+                    className={`${styles.btnVisualizacao} ${visualizacao === 'calendario' ? styles.btnVisualizacaoAtivo : ''}`}
+                    onClick={() => setVisualizacao('calendario')}
+                  >
+                    Calendário
+                  </button>
+                </div>
+
+                <Botao
+                  variant="primary"
+                  onClick={() => {
+                    setModoCadastro(true);
+                    setMensagemSucesso(null);
+                  }}
+                  icone={<IconPlus size={20} />}
+                >
+                  Cadastrar Nova Conta
+                </Botao>
+              </div>
             </div>
 
-            <Botao
-              variant="primary"
-              onClick={() => {
-                setModoCadastro(true);
-                setMensagemSucesso(null);
-              }}
-              icone={<IconPlus size={20} />}
-            >
-              Cadastrar Nova Conta
-            </Botao>
-          </div>
+            {visualizacao === 'calendario' && !carregando && (
+              <>
+                <CalendarioVencimentos
+                  contas={contasFiltradas}
+                  diaSelecionado={diaSelecionado}
+                  aoSelecionarDia={setDiaSelecionado}
+                />
+                {diaSelecionado && (
+                  <div className={styles.barraDiaSelecionado}>
+                    <span>
+                      Mostrando contas do dia{' '}
+                      <strong>
+                        {new Date(
+                          `${diaSelecionado}T12:00:00`
+                        ).toLocaleDateString('pt-BR')}
+                      </strong>
+                    </span>
+                    <button
+                      type="button"
+                      className={styles.btnLimparDia}
+                      onClick={() => setDiaSelecionado(null)}
+                    >
+                      Ver todas as datas
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </>
         )}
 
         <section aria-label="Lista de contas a pagar">
@@ -520,20 +610,22 @@ export const Contas: React.FC = () => {
             <div className={styles.estadoVazio}>
               <p>Carregando contas cadastradas...</p>
             </div>
-          ) : contasFiltradas.length === 0 ? (
+          ) : gruposVisiveis.length === 0 ? (
             <div className={styles.estadoVazio}>
               <p className={styles.estadoVazioTitulo}>
                 Nenhuma conta encontrada
               </p>
               <p>
-                {filtro === 'todas'
-                  ? 'Você ainda não cadastrou nenhuma conta a pagar no Vero.'
-                  : 'Não há contas nesta situação no momento.'}
+                {visualizacao === 'calendario' && diaSelecionado
+                  ? 'Não há contas com vencimento neste dia.'
+                  : filtro === 'todas'
+                    ? 'Você ainda não cadastrou nenhuma conta a pagar no Vero.'
+                    : 'Não há contas nesta situação no momento.'}
               </p>
             </div>
           ) : (
             <div className={styles.listaContas}>
-              {contasAgrupadasPorDia.map((grupo) => {
+              {gruposVisiveis.map((grupo) => {
                 const dataObj = new Date(grupo.data + 'T12:00:00');
                 const dataCabecalho = dataObj.toLocaleDateString('pt-BR', {
                   weekday: 'long',

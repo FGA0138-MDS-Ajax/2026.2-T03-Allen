@@ -55,13 +55,30 @@ async def canal(websocket: WebSocket) -> None:
     except WebSocketDisconnect:
         return
 
+    inscrito = asyncio.get_running_loop().create_future()
+    liberar_eventos = asyncio.Event()
+
+    tarefa_eventos = asyncio.create_task(_repassar_eventos(websocket, usuario_id, inscrito, liberar_eventos))
+    
+    try:
+        await inscrito
+    except Exception:
+        await asyncio.gather(tarefa_eventos, return_exceptions=True)
+        await websocket.close(
+            status.WS_1011_INTERNAL_ERROR,
+            Message.TEMPO_REAL_INDISPONIVEL.message
+        )
+        return
+
     await websocket.send_json({"tipo": eventos.TipoEvento.CONECTADO})
+    liberar_eventos.set()
 
     tarefas = {
-        "eventos": asyncio.create_task(_repassar_eventos(websocket, usuario_id)),
+        "eventos": tarefa_eventos,
         "desconexao": asyncio.create_task(_esperar_desconexao(websocket)),
-        "expiracao": asyncio.create_task(asyncio.sleep(expira_em - time.time())),
+        "expiracao": asyncio.create_task(asyncio.sleep(expira_em - time.time()))
     }
+    
     concluidas, pendentes = await asyncio.wait(
         tarefas.values(), return_when=asyncio.FIRST_COMPLETED
     )
@@ -110,9 +127,18 @@ def _sessao_vale(usuario_id: uuid.UUID, dados: dict) -> bool:
         return usuario is not None and token_na_versao_atual(dados, usuario)
 
 
-async def _repassar_eventos(websocket: WebSocket, usuario_id: uuid.UUID) -> None:
-    async for mensagem in eventos.ouvir(usuario_id):
-        await websocket.send_text(mensagem)
+async def _repassar_eventos(websocket: WebSocket, usuario_id: uuid.UUID, inscrito: asyncio.Future[None], liberar_eventos: asyncio.Event) -> None:
+    try:
+        async for mensagem in eventos.ouvir(usuario_id, inscrito):
+            await liberar_eventos.wait()
+            await websocket.send_text(mensagem)
+    except Exception as erro:
+        if not inscrito.done():
+            inscrito.set_exception(erro)
+        raise
+    else:
+        if not inscrito.done():
+            inscrito.set_exception(RuntimeError("O listener terminou antes de assinar o canal."))
 
 
 async def _esperar_desconexao(websocket: WebSocket) -> None:

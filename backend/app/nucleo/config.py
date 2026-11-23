@@ -23,11 +23,19 @@ class AdaptadorEmail(StrEnum):
     SMTP = "smtp"
 
 
+class AdaptadorWhatsApp(StrEnum):
+    """Valores do ENVIO_WHATSAPP."""
+
+    FALSO = "falso"
+    API = "api"
+
+
 class Settings(BaseSettings):
     APP_NAME: str = "Vero"
     # Sem APP_ENV, a API se comporta como produção: só aceita o e-mail de verdade
     APP_ENV: Ambiente = Ambiente.PRODUCAO
 
+    # Autenticação e Banco
     DATABASE_URL: str
     SECRET_KEY: str
     JWT_ALGORITMO: str = "HS256"
@@ -45,6 +53,16 @@ class Settings(BaseSettings):
     # Chave do hash do código de recuperação do PIN, separada da SECRET_KEY (que assina
     # o token). Obrigatória fora do desenvolvimento.
     CHAVE_CODIGO_RECUPERACAO: str = ""
+    # Chave de envio de WhatsApp (padrão: falso para dev)
+    ENVIO_WHATSAPP: AdaptadorWhatsApp = AdaptadorWhatsApp.FALSO
+    # APENAS EM PRODUCAO
+    WHATSAPP_API_URL: str = ""
+    WHATSAPP_TOKEN: str = ""
+
+    # WhatsApp / Evolution API
+    EVOLUTION_URL: str
+    AUTHENTICATION_API_KEY: str
+    INSTANCE_NAME: str
 
     model_config = SettingsConfigDict(
         env_file=[

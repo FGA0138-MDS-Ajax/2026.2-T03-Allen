@@ -124,3 +124,8 @@ class ContaAutomaticaVencida(BaseModel):
     categoria_id: int | None
     parcela: int | None
     total_parcelas: int | None
+
+class CategoriaSaida(BaseModel):
+    id: int
+    codigo: str
+    nome: str
