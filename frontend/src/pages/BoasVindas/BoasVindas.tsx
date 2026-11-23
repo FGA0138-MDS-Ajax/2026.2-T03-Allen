@@ -1,6 +1,7 @@
 import React from 'react';
-import { Botao, IconVero, IconLock } from '../../components';
+import { Botao, IconLock } from '../../components';
 import { useNavegacao } from '../../router';
+import logoVero from '../../assets/logoVero';
 import styles from './BoasVindas.module.css';
 
 export const BoasVindas: React.FC = () => {
@@ -9,10 +10,7 @@ export const BoasVindas: React.FC = () => {
   return (
     <main className={styles.container}>
       <div className={styles.contentBox}>
-        <div className={styles.brandLogo} aria-label="Vero">
-          <IconVero size={72} />
-          <span>Vero</span>
-        </div>
+        <img src={logoVero} alt="Vero" className={styles.brandLogo} />
 
         <span className={styles.heroBadge}>
           <IconLock size={20} />

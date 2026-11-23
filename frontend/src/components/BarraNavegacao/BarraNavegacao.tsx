@@ -4,13 +4,13 @@ import { useNavegacao } from '../../router';
 import { limparSessao } from '../../servicos';
 import { useTourAudio } from '../TourAudio/contextoTour';
 import {
-  IconVero,
   IconBills,
   IconPlus,
   IconClock,
   IconLogout,
   IconSpeaker,
 } from '../Icones/Icones';
+import logoVero from '../../assets/logoVero';
 
 export interface BarraNavegacaoProps {
   rotaAtiva?: string;
@@ -40,8 +40,7 @@ export const BarraNavegacao: React.FC<BarraNavegacaoProps> = ({
           }}
           aria-label="Vero - Página inicial"
         >
-          <IconVero size={32} />
-          <span>Vero</span>
+          <img src={logoVero} alt="" className={styles.logoImagem} />
         </a>
 
         <nav className={styles.linksNavegacao} aria-label="Navegação principal">

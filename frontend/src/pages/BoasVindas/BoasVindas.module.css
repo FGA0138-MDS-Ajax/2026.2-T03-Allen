@@ -19,15 +19,9 @@
 }
 
 .brandLogo {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  color: var(--violeta-vero);
-  font-family: var(--font-titulo);
-  font-size: 48px;
-  font-weight: 900;
-  text-decoration: none;
+  display: block;
+  width: min(200px, 70vw);
+  height: auto;
   margin-bottom: 8px;
 }
 
