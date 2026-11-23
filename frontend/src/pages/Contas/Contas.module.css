@@ -216,6 +216,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .nomeConta {
@@ -223,6 +224,7 @@
   font-size: 20px;
   font-weight: 800;
   color: var(--grafite-noturno);
+  overflow-wrap: anywhere;
 }
 
 .dataVencimento {
@@ -230,16 +232,20 @@
   color: var(--ardosia);
 }
 
+/* Celular: valor e selo numa linha, botões na de baixo, ocupando o cartão (#119) */
 .valoresEStatus {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: 12px 20px;
 }
 
 @media (min-width: 640px) {
   .valoresEStatus {
+    flex-wrap: nowrap;
     justify-content: flex-end;
+    flex-shrink: 0;
   }
 }
 
@@ -367,14 +373,31 @@
 /* Ações de Pagamento (RF30 / US10) */
 .blocoValorEBadge {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
+  gap: 8px 16px;
 }
 
 .acoesPagamento {
   display: flex;
   align-items: center;
   gap: 10px;
+  width: 100%;
+}
+
+.acoesPagamento > button:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .acoesPagamento {
+    width: auto;
+  }
+
+  .acoesPagamento > button:first-child {
+    flex: none;
+  }
 }
 
 .btnMarcarPaga {
@@ -393,7 +416,7 @@
   min-height: var(--toque-minimo);
   cursor: pointer;
   transition: all 0.2s ease;
-  white-space: nowrap;
+  text-align: center;
 }
 
 .btnMarcarPaga:hover:not(:disabled) {
@@ -423,7 +446,7 @@
   min-height: var(--toque-minimo);
   cursor: pointer;
   transition: all 0.2s ease;
-  white-space: nowrap;
+  text-align: center;
 }
 
 .btnDesfazerPaga:hover:not(:disabled) {
