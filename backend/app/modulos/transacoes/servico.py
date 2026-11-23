@@ -197,15 +197,12 @@ def _avisar_app(transacao: Transacao) -> None:
         TransacaoSaida.model_validate(transacao).model_dump(mode="json"),
     )
 
-def resumir_mes(
-    sessao: Session, usuario_id: uuid.UUID, mes: str
-) -> SaldoMesSaida:
+
+def resumir_mes(sessao: Session, usuario_id: uuid.UUID, mes: str) -> SaldoMesSaida:
     ano, numero_mes = (int(parte) for parte in mes.split("-"))
     inicio = date(ano, numero_mes, 1)
     proximo_mes = (
-        date(ano + 1, 1, 1)
-        if numero_mes == 12
-        else date(ano, numero_mes + 1, 1)
+        date(ano + 1, 1, 1) if numero_mes == 12 else date(ano, numero_mes + 1, 1)
     )
 
     totais = sessao.execute(
@@ -242,9 +239,7 @@ def resumir_mes(
     ).one()
 
     contas = sessao.scalar(
-        select(
-            func.coalesce(func.sum(Conta.valor), Decimal("0.00"))
-        ).where(
+        select(func.coalesce(func.sum(Conta.valor), Decimal("0.00"))).where(
             Conta.usuario_id == usuario_id,
             Conta.vencimento_em >= inicio,
             Conta.vencimento_em < proximo_mes,

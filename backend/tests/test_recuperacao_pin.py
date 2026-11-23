@@ -479,7 +479,7 @@ class TestVersaoDoTokenNoWebSocket:
         async def sem_eventos(_usuario_id, inscrito):
             if not inscrito.done():
                 inscrito.set_result(None)
-            
+
             await asyncio.Event().wait()
             yield  # pragma: no cover
 
@@ -509,13 +509,10 @@ class TestVersaoDoTokenNoWebSocket:
         assert erro.value.code == 1008
 
     def test_evento_imediato_apos_inscricao(
-            self, cliente: TestClient, titular: Usuario, monkeypatch: pytest.MonkeyPatch
+        self, cliente: TestClient, titular: Usuario, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         token = criar_token(titular.id, "pin", timedelta(hours=1), titular.versao_token)
-        evento = {
-            "tipo": "transacao_criada",
-            "dados": {"id": "transacao-teste"}
-        }
+        evento = {"tipo": "transacao_criada", "dados": {"id": "transacao-teste"}}
 
         async def ouvir_com_evento_imediato(_usuario_id, inscrito):
             if not inscrito.done():

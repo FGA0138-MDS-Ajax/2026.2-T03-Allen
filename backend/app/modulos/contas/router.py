@@ -25,22 +25,22 @@ categorias_router = APIRouter(prefix="/api/v1/categorias", tags=["categorias"])
 
 # Tradução de categorias entre front-end e back-end
 _CODIGOS_POR_NOME = {
-    "moradia" : "casa",
-    "alimentacao" : "mercado",
-    "saude" : "farmacia",
+    "moradia": "casa",
+    "alimentacao": "mercado",
+    "saude": "farmacia",
 }
+
 
 def _codigo_categoria(nome: str) -> str:
     normalizado = unicodedata.normalize("NFKD", nome.casefold())
     sem_acentos = "".join(
-        caractere
-        for caractere in normalizado
-        if not unicodedata.combining(caractere)
+        caractere for caractere in normalizado if not unicodedata.combining(caractere)
     )
     return _CODIGOS_POR_NOME.get(
         sem_acentos,
         sem_acentos.replace(" ", "_"),
     )
+
 
 @router.post("", response_model=ContaSaida, status_code=status.HTTP_201_CREATED)
 def cadastrar(
@@ -56,14 +56,13 @@ def cadastrar(
             Message.CATEGORIA_INEXISTENTE.message,
         ) from None
 
+
 @categorias_router.get("", response_model=list[CategoriaSaida])
 def listar_categorias(
     usuario: Usuario = Depends(usuario_atual),
     sessao: Session = Depends(obter_sessao),
 ) -> list[CategoriaSaida]:
-    categorias = sessao.scalars(
-        select(Categoria).order_by(Categoria.id)
-    )
+    categorias = sessao.scalars(select(Categoria).order_by(Categoria.id))
 
     return [
         CategoriaSaida(
@@ -73,6 +72,7 @@ def listar_categorias(
         )
         for categoria in categorias
     ]
+
 
 @router.get("", response_model=list[ContaSaida])
 def listar(

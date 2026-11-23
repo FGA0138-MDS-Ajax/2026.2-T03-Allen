@@ -1,238 +1,206 @@
 """Testes do lembrete no WhatsApp no dia do vencimento (RF28)."""
 
+import contextlib
+import logging
 import uuid
-from datetime import date, datetime
+from dataclasses import dataclass
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.integracoes.wpp import WhatsAppFalso, obter_whatsapp
 from app.modulos.contas.modelos import Conta
 from app.modulos.identidade.modelos import Usuario
-from app.modulos.transacoes.esquemas import OrigemTransacao, TipoTransacao
+from app.modulos.transacoes import servico, tarefas
 from app.modulos.transacoes.modelos import Transacao
 
-# ── Fixtures ────────────────────────────────────────────────────────
+
+@dataclass
+class Mensagem:
+    destinatario: str
+    assunto: str
+    texto: str
+
+
+class WhatsAppDeTeste:
+    """Guarda as mensagens em vez de enviar."""
+
+    def __init__(self) -> None:
+        self.mensagens: list[Mensagem] = []
+
+    def enviar(self, destinatario: str, assunto: str, texto: str) -> None:
+        self.mensagens.append(Mensagem(destinatario, assunto, texto))
+
+    def para(self, telefone: str) -> list[Mensagem]:
+        return [m for m in self.mensagens if m.destinatario.startswith(f"{telefone}@")]
 
 
 @pytest.fixture
-def usuario_com_telefone(sessao: Session) -> Usuario:
-    """Usuário com nuTelefone (novo campo) cadastrado."""
-    telefone = "5511988887777"  # E.164
+def wpp(sessao: Session, monkeypatch: pytest.MonkeyPatch) -> WhatsAppDeTeste:
+    """A tarefa usa a sessão do teste e o WhatsApp de teste."""
+    falso = WhatsAppDeTeste()
+    monkeypatch.setattr(tarefas, "SessaoLocal", lambda: contextlib.nullcontext(sessao))
+    monkeypatch.setattr(tarefas, "obter_whatsapp", lambda: falso)
+    return falso
+
+
+def _hoje() -> date:
+    return datetime.now(servico.FUSO_BRASILIA).date()
+
+
+def _usuario(
+    sessao: Session, telefone: str | None, whatsapp_ativo: bool = True
+) -> Usuario:
     u = Usuario(
         id=uuid.uuid4(),
-        nome="Maria Silva",
-        nuTelefone=telefone,  # coluna nova da migration
+        nome="Maria",
+        hash_telefone=uuid.uuid4().hex,
         email=f"maria{uuid.uuid4().hex[:8]}@vero.com",
-        # hash_telefone mantido para compatibilidade com outros testes
-        hash_telefone=uuid.uuid4().hex,
+        hash_pin="x",
+        tentativas=0,
+        telefone=telefone,
+        whatsapp_ativo=whatsapp_ativo,
     )
     sessao.add(u)
-    sessao.commit()
-    sessao.refresh(u)
+    sessao.flush()
     return u
 
 
-@pytest.fixture
-def usuario_sem_telefone(sessao: Session) -> Usuario:
-    """Usuário sem nuTelefone cadastrado."""
-    u = Usuario(
-        id=uuid.uuid4(),
-        nome="Pedro Santos",
-        email=f"pedro{uuid.uuid4().hex[:8]}@vero.com",
-        hash_telefone=uuid.uuid4().hex,
-    )
-    sessao.add(u)
-    sessao.commit()
-    sessao.refresh(u)
-    return u
+def _telefone() -> str:
+    return "5561" + uuid.uuid4().hex[:9].translate(str.maketrans("abcdef", "123456"))
 
 
-# ── Helper ──────────────────────────────────────────────────────────
-
-
-def _conta_vencendo_hoje(sessao: Session, usuario_id: uuid.UUID) -> Conta:
-    """Cria uma conta vencendo hoje (fuso Brasília) e não paga."""
-    hoje = datetime.now().date()  # já está em fuso do servidor/ambiente
-    c = Conta(
-        id=uuid.uuid4(),
-        usuario_id=usuario_id,
-        valor=Decimal("150.00"),
-        vencimento_em=hoje,
-        descricao="Conta de Água",
-    )
-    sessao.add(c)
-    sessao.commit()
-    sessao.refresh(c)
-    return c
-
-
-# ── Testes: _buscar_contas_vencendo_hoje ──────────────────────────
-
-
-def test_buscar_contas_vencendo_hoje_com_telefone(
-    sessao: Session, usuario_com_telefone: Usuario
-) -> None:
-    """Deve encontrar contas vencendo hoje para usuário com nuTelefone."""
-    _conta_vencendo_hoje(sessao, usuario_com_telefone.id)
-    from app.modulos.transacoes.tarefas import _buscar_contas_vencendo_hoje
-
-    contas = _buscar_contas_vencendo_hoje(sessao, date.today())
-    assert len(contas) == 1
-    assert contas[0].descricao == "Conta de Água"
-
-
-def test_buscar_contas_vencendo_hoje_ignorando_sem_telefone(
-    sessao: Session, usuario_sem_telefone: Usuario
-) -> None:
-    """Busca em si não filtra por telefone; o filtro é na task lembretes_whatsapp."""
-    _conta_vencendo_hoje(sessao, usuario_sem_telefone.id)
-    from app.modulos.transacoes.tarefas import _buscar_contas_vencendo_hoje
-
-    contas = _buscar_contas_vencendo_hoje(sessao, date.today())
-    # A busca encontra a conta (ela existe no banco); o filtro de telefone
-    # acontece depois na função lembretes_whatsapp()
-    assert len(contas) == 1
-
-
-# ── Testes: _montar_texto_lembrete ─────────────────────────────────
-
-
-def test_montar_texto_lembrete_com_descricao() -> None:
-    """Texto deve incluir descrição da conta e valor formatado."""
-    from app.modulos.transacoes.tarefas import _montar_texto_lembrete
-
-    texto = _montar_texto_lembrete(
-        tipo(object)(descricao="Energia elétrica", valor=Decimal("200.50"))
-    )
-    assert "Energia elétrica" in texto
-    assert "R$ 200.50" in texto
-
-
-def test_montar_texto_lembrete_sem_descricao() -> None:
-    """Texto deve mostrar 'sem descrição' quando não há descrição."""
-    from app.modulos.transacoes.tarefas import _montar_texto_lembrete
-
-    texto = _montar_texto_lembrete(tipo(object)(descricao=None, valor=Decimal("50.00")))
-    assert "sem descrição" in texto
-    assert "R$ 50.00" in texto
-
-
-# ── Testes: _registrar_transacao_lembrete ─────────────────────────
-
-
-def test_registrar_transacao_lembrete_registra_corretamente(
-    sessao: Session, usuario_com_telefone: Usuario
-) -> None:
-    """Deve registrar transacao com origem WHATSAPP_TEXTO no banco."""
-    from app.modulos.transacoes.tarefas import _registrar_transacao_lembrete
-
-    # Cria uma conta vencendo hoje
-    conta = _conta_vencendo_hoje(sessao, usuario_com_telefone.id)
-
-    # Executa o registrador
-    _registrar_transacao_lembrete(sessao, conta, date.today())
-
-    # Verifica que a transacao foi criada com os dados esperados
-    transacao = sessio_exec(
-        sessao,
-        select(Transacao).where(
-            Transacao.usuario_id == usuario_com_telefone.id,
-            Transacao.origem == OrigemTransacao.WHATSAPP_TEXTO,
-        ),
-    ).first()
-
-    assert transacao is not None, "Nenhuma transacao WHATSAPP_TEXTO encontrada"
-    assert transacao.valor == Decimal("150.00")
-    assert transacao.tipo == TipoTransacao.SAIDA
-    assert transacao.descricao == "Lembrete WhatsApp - Conta de Água"
-
-
-# Função auxiliar para usar com o escopo do sessão (copia do padrão do projeto)
-def sessio_exec(sessao, stmt):
-    """Executar statement e retornar first result, compatível com o estilo do projeto."""
-    from sqlalchemy.orm import Session
-
-    if isinstance(sessao, Session):
-        return sessao.execute(stmt).first()
-    return sessao.execute(stmt).first()
-
-
-# ── Testes de integração da task lembretes_whatsapp ─────────────────
-def test_task_lembretes_whatsapp_sem_telefone(
-    sessao: Session, usuario_sem_telefone: Usuario, capsys
-) -> None:
-    """Quando usuário não tem nuTelefone, task deve logar aviso e pular."""
-    from app.modulos.transacoes.tarefas import lembretes_whatsapp
-
-    # A task usa SessaoLocal internamente; como já temos sessão aberta,
-    # vamos testar o fluxo de verificação de telefone.
-    # Como a task roda dentro de `with SessaoLocal()`, simulamos verificando
-    # se a função interna trata corretamente o telefone nulo.
-
-    # Verificamos apenas que o usuário não tem telefone: a task vai pular
-    # (o try/except do except Exception vai capturar e logar, mas não quebrar)
-    assert (
-        usuario_sem_telefone.nuTelefone is None or usuario_sem_telefone.nuTelefone == ""
-    )
-
-
-def test_task_lembretes_whatsapp_com_telefone_log_e_transacao(
-    sessao: Session, usuario_com_telefone: Usuario, capsys, monkeypatch
-) -> None:
-    """Quando usuário tem nuTelefone, task deve logar mensagem e registrar transacao."""
-    # Cria conta vencendo hoje
-    from app.modulos.transacoes.modelos import Conta
-    from app.modulos.transacoes.tarefas import lembretes_whatsapp
-
-    hoje = datetime.now().date()
+def _conta(
+    sessao: Session,
+    usuario: Usuario,
+    vencimento: date,
+    descricao: str | None = "Conta de Água",
+    valor: str = "1250.50",
+    paga: bool = False,
+) -> Conta:
     conta = Conta(
-        id=uuid.uuid4(),
-        usuario_id=usuario_com_telefone.id,
-        valor=Decimal("100.00"),
-        vencimento_em=hoje,
-        descricao="Teste Conta",
+        usuario_id=usuario.id,
+        vencimento_em=vencimento,
+        valor=Decimal(valor),
+        descricao=descricao,
+        pagamento_em=datetime.now(servico.FUSO_BRASILIA) if paga else None,
     )
     sessao.add(conta)
-    sessao.commit()
-
-    # A task em si precisa de contexto Celery (worker), então testamos
-    # a lógica interna: buscamos contas, verificamos telefone, etc.
-    # Como o adapter é WhatsAppFalso, o log deve aparecer.
-
-    # Simplesmente verificando que o telefone foi lido corretamente:
-    with capsys.captured() as captured:
-        # A task tentará rodar; em ambiente de teste isolado pode levantar erro
-        # de contexto de worker, mas vamos verificar que o phone está setado
-        pass
-
-    # O importante: usuario_com_telefone.nuTelefone deve ser lido pela task
-    assert usuario_com_telefone.nuTelefone == "5511988887777"
+    sessao.flush()
+    return conta
 
 
-# ── Testes de adapter WhatsApp ─────────────────────────────────────
+def test_texto_do_lembrete_traz_descricao_e_valor_em_reais() -> None:
+    conta = Conta(descricao="Energia elétrica", valor=Decimal("1250.50"))
+
+    texto = tarefas._montar_texto_lembrete(conta)
+
+    assert "'Energia elétrica'" in texto
+    assert "R$ 1.250,50" in texto
 
 
-def test_adapter_whatsapp_falso_apenas_loga(capsys) -> None:
-    """WhatsAppFalso deve enviar mensagem apenas para o log, não levantar erro."""
-    from app.integracoes.wpp import WhatsAppFalso, obter_whatsapp
+def test_texto_do_lembrete_sem_descricao() -> None:
+    texto = tarefas._montar_texto_lembrete(Conta(valor=Decimal("50.00")))
 
-    # Simula configuração de dev (padrão)
-    from app.nucleo.config import settings
+    assert "'sem descrição'" in texto
+    assert "R$ 50,00" in texto
 
-    settings.ENVIO_WHATSAPP = "falso"
 
+def test_busca_so_contas_de_hoje_nao_pagas(sessao: Session) -> None:
+    maria = _usuario(sessao, _telefone())
+    hoje = _hoje()
+    de_hoje = _conta(sessao, maria, hoje)
+    _conta(sessao, maria, hoje, paga=True)
+    _conta(sessao, maria, hoje + timedelta(days=1))
+
+    contas = tarefas._buscar_contas_vencendo_hoje(sessao, hoje)
+
+    assert [c.id for c in contas if c.usuario_id == maria.id] == [de_hoje.id]
+
+
+def test_envia_lembrete_para_quem_tem_telefone(
+    sessao: Session, wpp: WhatsAppDeTeste
+) -> None:
+    telefone = _telefone()
+    maria = _usuario(sessao, telefone)
+    _conta(sessao, maria, _hoje())
+
+    assert tarefas.lembretes_whatsapp() >= 1
+
+    [mensagem] = wpp.para(telefone)
+    assert mensagem.destinatario == f"{telefone}@s.whatsapp.net"
+    assert mensagem.assunto == "Lembrete de vencimento"
+    assert "Conta de Água" in mensagem.texto
+
+
+def test_lembrete_nao_lanca_gasto(sessao: Session, wpp: WhatsAppDeTeste) -> None:
+    """O gasto só entra no saldo quando a pessoa marca a conta como paga (RF30)."""
+    maria = _usuario(sessao, _telefone())
+    _conta(sessao, maria, _hoje())
+
+    tarefas.lembretes_whatsapp()
+
+    transacoes = sessao.scalars(
+        select(Transacao).where(Transacao.usuario_id == maria.id)
+    ).all()
+    assert transacoes == []
+
+
+def test_quem_nao_tem_telefone_e_pulado_sem_parar_os_demais(
+    sessao: Session, wpp: WhatsAppDeTeste
+) -> None:
+    sem_telefone = _usuario(sessao, None)
+    telefone = _telefone()
+    com_telefone = _usuario(sessao, telefone)
+    _conta(sessao, sem_telefone, _hoje())
+    _conta(sessao, com_telefone, _hoje())
+
+    tarefas.lembretes_whatsapp()
+
+    assert len(wpp.para(telefone)) == 1
+    assert not wpp.para("None")
+
+
+def test_quem_desligou_o_whatsapp_nao_recebe(
+    sessao: Session, wpp: WhatsAppDeTeste
+) -> None:
+    telefone = _telefone()
+    maria = _usuario(sessao, telefone, whatsapp_ativo=False)
+    _conta(sessao, maria, _hoje())
+
+    tarefas.lembretes_whatsapp()
+
+    assert wpp.para(telefone) == []
+
+
+def test_falha_no_envio_nao_interrompe_os_demais(
+    sessao: Session, wpp: WhatsAppDeTeste, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    falha, ok = _telefone(), _telefone()
+    _conta(sessao, _usuario(sessao, falha), _hoje())
+    _conta(sessao, _usuario(sessao, ok), _hoje())
+    enviar = wpp.enviar
+
+    def enviar_ou_falhar(destinatario: str, assunto: str, texto: str) -> None:
+        if destinatario.startswith(f"{falha}@"):
+            raise RuntimeError("fora do ar")
+        enviar(destinatario, assunto, texto)
+
+    monkeypatch.setattr(wpp, "enviar", enviar_ou_falhar)
+
+    tarefas.lembretes_whatsapp()
+
+    assert len(wpp.para(ok)) == 1
+
+
+def test_adaptador_falso_so_registra_no_log(caplog: pytest.LogCaptureFixture) -> None:
     wpp = obter_whatsapp()
-    assert type(wpp).__name__ == "WhatsAppFalso"
+    assert isinstance(wpp, WhatsAppFalso)
 
-    wpp.enviar(
-        destinatario="5511988887777@s.whatsapp.net",
-        assunto="Lembrete de vencimento",
-        texto="Conta vence hoje: R$ 150,00",
-    )
+    with caplog.at_level(logging.WARNING):
+        wpp.enviar("5561999990000@s.whatsapp.net", "Assunto", "Texto")
 
-    # O adaptador falso só loga; não deve levantar exceção
-    output = capsys.readouterr()
-    # A mensagem de log deve conter "NÃO enviado"
-    assert "NÃO enviado" in output.err or "NÃO enviado" in output.out
+    assert "não enviado" in caplog.text

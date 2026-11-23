@@ -29,6 +29,7 @@ ORIGENS = (
     "conta",
 )
 
+
 def _trocar_check(origens: tuple[str, ...]) -> None:
     for check in sa.inspect(op.get_bind()).get_check_constraints("tblTransacao"):
         if "noOrigem" in check["sqltext"]:
@@ -37,8 +38,10 @@ def _trocar_check(origens: tuple[str, ...]) -> None:
         NOME_CHECK, "tblTransacao", sa.column("noOrigem").in_(origens)
     )
 
+
 def upgrade() -> None:
     _trocar_check((*ORIGENS, "recorrente"))
+
 
 def downgrade() -> None:
     # Falha se ainda houver transação com origem "recorrente": apague-as antes

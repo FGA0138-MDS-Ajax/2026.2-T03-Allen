@@ -13,8 +13,8 @@ from app.modulos.transacoes import servico
 from app.modulos.transacoes.esquemas import (
     SaldoMesSaida,
     TransacaoEdicaoEntrada,
-    TransacaoSaida,
     TransacaoRegistroEntrada,
+    TransacaoSaida,
 )
 from app.modulos.transacoes.mensagens import Message
 from app.modulos.transacoes.modelos import Transacao
@@ -33,9 +33,9 @@ def registrar(
         return servico.registrar(sessao, usuario.id, dados)
     except servico.ReferenciaInexistente:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
-            Message.CATEGORIA_INEXISTENTE.message
-            ) from None
+            status.HTTP_422_UNPROCESSABLE_ENTITY, Message.CATEGORIA_INEXISTENTE.message
+        ) from None
+
 
 @router.get("", response_model=list[TransacaoSaida])
 def listar(
@@ -43,6 +43,7 @@ def listar(
     sessao: Session = Depends(obter_sessao),
 ) -> list[Transacao]:
     return servico.listar(sessao, usuario.id)
+
 
 @router.get("/saldo", response_model=SaldoMesSaida)
 def obter_saldo_mes(
@@ -64,6 +65,7 @@ def obter_saldo_mes(
         )
 
     return servico.resumir_mes(sessao, usuario.id, mes)
+
 
 @router.patch("/{transacao_id}", response_model=TransacaoSaida)
 def editar(
