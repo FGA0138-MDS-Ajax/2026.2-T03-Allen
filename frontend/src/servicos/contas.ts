@@ -68,15 +68,10 @@ export const definirPagamentoConta = async (
 };
 
 /**
- * Exclui uma conta a pagar (RF10).
- * Endpoint: DELETE /api/v1/contas/{id} (com tratamento para quando o backend ainda não tiver rota DELETE).
+ * Exclui uma conta a pagar. Endpoint: DELETE /api/v1/contas/{id}.
+ * Lança ErroApi se não der para apagar: a tela só tira a conta da lista depois
+ * que a API confirma (#133).
  */
 export const excluirConta = async (id: string): Promise<void> => {
-  try {
-    await requisicao(`/api/v1/contas/${id}`, {
-      method: 'DELETE',
-    });
-  } catch {
-    // Caso a API ainda não suporte o método DELETE, a remoção permanece na interface
-  }
+  await requisicao(`/api/v1/contas/${id}`, { method: 'DELETE' });
 };

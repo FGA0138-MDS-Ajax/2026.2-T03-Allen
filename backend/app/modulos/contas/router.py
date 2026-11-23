@@ -96,3 +96,23 @@ def definir_pagamento(
             status.HTTP_404_NOT_FOUND,
             Message.CONTA_NAO_ENCONTRADA.message,
         ) from None
+
+
+@router.delete("/{conta_id}", status_code=status.HTTP_204_NO_CONTENT)
+def excluir(
+    conta_id: UUID,
+    usuario: Usuario = Depends(usuario_atual),
+    sessao: Session = Depends(obter_sessao),
+) -> None:
+    try:
+        servico.excluir(sessao, usuario.id, conta_id)
+    except servico.ContaNaoEncontrada:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            Message.CONTA_NAO_ENCONTRADA.message,
+        ) from None
+    except servico.ContaJaLancada:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            Message.CONTA_JA_LANCADA.message,
+        ) from None

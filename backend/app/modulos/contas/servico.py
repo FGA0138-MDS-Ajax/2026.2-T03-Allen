@@ -4,7 +4,7 @@ import uuid
 from collections.abc import Collection
 from datetime import UTC, date, datetime
 
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -164,3 +164,30 @@ def pagar_conta_automatica(sessao: Session, conta_id: uuid.UUID) -> None:
     if conta is None:
         raise ContaNaoEncontrada
     registrar_pagamento(sessao, conta)
+
+
+class ContaJaLancada(Exception):
+    """A conta já gerou uma transação (gasto fixo ou parcela lançada)."""
+
+
+def excluir(sessao: Session, usuario_id: uuid.UUID, conta_id: uuid.UUID) -> None:
+    """Apaga a conta (#133). Só a do próprio usuário. Os meses seguintes e as outras
+    parcelas que apontam para ela ficam de pé, sem o vínculo. Conta que já virou
+    gasto no extrato não é apagada: a pessoa apaga o gasto antes."""
+    conta = sessao.scalar(
+        select(Conta).where(Conta.id == conta_id, Conta.usuario_id == usuario_id)
+    )
+    if conta is None:
+        raise ContaNaoEncontrada
+    sessao.execute(
+        update(Conta)
+        .where(Conta.id_conta_origem == conta.id)
+        .values(id_conta_origem=None)
+    )
+    sessao.delete(conta)
+    try:
+        sessao.commit()
+    except IntegrityError:
+        # FK da tblTransacao.idConta: o lançamento automático já existe
+        sessao.rollback()
+        raise ContaJaLancada from None
