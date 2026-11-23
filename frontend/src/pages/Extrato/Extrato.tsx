@@ -17,6 +17,7 @@ import {
 import { listarContas, excluirConta, ContaSaida } from '../../servicos';
 import { Lancamento, useDadosDoMes } from '../../servicos/dadosDoMes';
 import { parsearValorMonetario } from '../../utils/nfce';
+import { useTempoReal } from '../../hooks/useTempoReal';
 import { reaisPorExtenso } from '../../utils/valorPorExtenso';
 
 type FiltroTipo = 'todos' | 'gastos' | 'contas' | 'entradas';
@@ -41,9 +42,14 @@ export const Extrato: React.FC = () => {
     estado,
     resumo,
     erro: erroDados,
+    recarregar,
     removerLancamento,
     editarLancamento,
   } = useDadosDoMes();
+
+  useTempoReal(() => {
+    void recarregar();
+  });
   const [erroAcao, setErroAcao] = useState<string | null>(null);
   const [emEdicao, setEmEdicao] = useState<{
     lancamento: Lancamento;

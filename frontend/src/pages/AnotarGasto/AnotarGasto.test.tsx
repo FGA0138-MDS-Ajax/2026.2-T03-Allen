@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { AnotarGasto } from './AnotarGasto';
 import * as transacoes from '../../servicos/transacoes';
 import { ErroApi } from '../../servicos/api';
@@ -55,6 +55,19 @@ vi.mock('../../components/LeitorQrCode/LeitorQrCode', () => ({
         }
       >
         Simular QR mes passado
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          // NFS-e nacional (#122): chave de 50 dígitos com o ano/mês de hoje
+          const hoje = new Date();
+          const aamm = `${String(hoje.getFullYear()).slice(2)}${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+          aoLerCodigo(
+            `https://www.nfse.gov.br/ConsultaPublica/?tpc=1&chave=530010822123456780001950000000000123${aamm}1234567890`
+          );
+        }}
+      >
+        Simular QR NFS-e
       </button>
       <button type="button" onClick={aoFechar}>
         Fechar leitor
@@ -220,6 +233,49 @@ describe('Página AnotarGasto', () => {
     );
     const enviado = vi.mocked(transacoes.anotarTransacao).mock.calls[0][0];
     expect(enviado.data?.startsWith(mesAtual())).toBe(true);
+  });
+
+  it('lê o QR Code de nota fiscal de serviço (NFS-e) e pede o valor (#122)', async () => {
+    render(<AnotarGasto />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /ler qr code da nota fiscal/i })
+    );
+    fireEvent.click(screen.getByRole('button', { name: /simular qr nfs-e/i }));
+
+    expect(
+      screen.getByText('Confira os dados da nota fiscal')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /nota de serviço identificada \(df · cnpj 12\.345\.678\/0001-95\)/i
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/nota fiscal de serviço lida/i)
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/valor total da nota/i)).toHaveValue('');
+
+    fireEvent.change(screen.getByLabelText(/valor total da nota/i), {
+      target: { value: '150,00' },
+    });
+    fireEvent.change(screen.getByLabelText(/nome do estabelecimento/i), {
+      target: { value: 'Eletricista' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: /confirmar e salvar gasto/i })
+    );
+
+    await waitFor(() =>
+      expect(transacoes.anotarTransacao).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tipo: 'saida',
+          valor: '150.00',
+          origem: 'qrcode_nf',
+          descricao: 'Eletricista',
+        })
+      )
+    );
   });
 
   it('avisa e bloqueia salvamento se a data da nota estiver fora do mês atual', () => {

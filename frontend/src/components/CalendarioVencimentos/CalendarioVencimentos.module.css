@@ -1,0 +1,161 @@
+.container {
+  background-color: var(--branco);
+  border: 2px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.tituloMes {
+  font-family: var(--font-titulo);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--grafite-noturno);
+  text-align: center;
+}
+
+.btnMes {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 2px solid #cbd5e1;
+  background-color: var(--nevoa);
+  color: var(--grafite-noturno);
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.btnMes:hover {
+  border-color: var(--violeta-vero);
+  color: var(--violeta-profundo);
+}
+
+.legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background-color: var(--nevoa);
+}
+
+.itemLegenda {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.legendaAVencer {
+  color: var(--violeta-profundo);
+}
+
+.legendaEmAtraso {
+  color: var(--erro-texto);
+}
+
+.legendaPaga {
+  color: var(--sucesso-texto);
+}
+
+.diasSemana {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.nomeDiaSemana {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ardosia);
+  padding: 4px 0;
+}
+
+.gradeDias {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.celulaVazia {
+  min-height: 58px;
+}
+
+.btnDia {
+  min-height: 58px;
+  padding: 6px 4px;
+  border-radius: 12px;
+  border: 2px solid #e2e8f0;
+  background-color: var(--branco);
+  color: var(--grafite-noturno);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.btnDia:hover {
+  border-color: var(--violeta-vero);
+}
+
+.btnDiaComConta {
+  background-color: #f8f5ff;
+  border-color: #d8ccf8;
+}
+
+.btnDiaSelecionado {
+  border-color: var(--violeta-vero);
+  background-color: #ede9fe;
+  box-shadow: 0 0 0 2px rgba(109, 40, 217, 0.25);
+}
+
+.numeroDia {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.marcadores {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+
+.marcador {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.marcadorAtraso {
+  color: var(--erro-texto);
+}
+
+.marcadorAVencer {
+  color: var(--violeta-profundo);
+}
+
+.marcadorPaga {
+  color: var(--sucesso-texto);
+}

@@ -2,9 +2,10 @@ name: Segurança
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
+  # Também nos PRs para a dev: sem isso o PR #91 entrou sem CI e quebrou as migrations (#97)
   pull_request:
-    branches: [main]
+    branches: [main, dev]
   schedule:
     - cron: "0 6 * * 1"
 

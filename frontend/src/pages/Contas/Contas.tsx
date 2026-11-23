@@ -1,5 +1,18 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+} from 'react';
 import { reaisPorExtenso } from '../../utils/valorPorExtenso';
+import {
+  MESES,
+  mensagemVencimentoAntigo,
+  paraIso,
+  vencimentoMinimo,
+  vencimentoPorDiaEMes,
+} from '../../utils/vencimento';
 import {
   Botao,
   CampoTexto,
@@ -7,6 +20,7 @@ import {
   AlertaStatus,
   BotaoAudio,
   BarraNavegacao,
+  CalendarioVencimentos,
   IconBills,
   IconClock,
   IconAlert,
@@ -20,6 +34,7 @@ import {
   IconHome,
 } from '../../components';
 import { useNavegacao } from '../../router';
+import { useTempoReal } from '../../hooks/useTempoReal';
 import {
   ContaSaida,
   listarContas,
@@ -81,9 +96,15 @@ const obterIconeConta = (descricao?: string | null) => {
 
 export const Contas: React.FC = () => {
   const { navegar } = useNavegacao();
+  const navegarRef = useRef(navegar);
+  navegarRef.current = navegar;
   const [contas, setContas] = useState<ContaSaida[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [filtro, setFiltro] = useState<FiltroStatus>('todas');
+  const [visualizacao, setVisualizacao] = useState<'lista' | 'calendario'>(
+    'lista'
+  );
+  const [diaSelecionado, setDiaSelecionado] = useState<string | null>(null);
   const [mensagemSucesso, setMensagemSucesso] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [pendenteId, setPendenteId] = useState<string | null>(null);
@@ -94,17 +115,20 @@ export const Contas: React.FC = () => {
   const [dataVencimento, setDataVencimento] = useState(() => {
     const data = new Date();
     data.setDate(data.getDate() + 7);
-    return data.toISOString().split('T')[0];
+    return paraIso(data);
   });
   const [salvando, setSalvando] = useState(false);
   const [recorrente, setRecorrente] = useState(false);
+  // Conta fixa: só dia e mês, sem ano (#120)
+  const [diaFixo, setDiaFixo] = useState(() => new Date().getDate());
+  const [mesFixo, setMesFixo] = useState(() => new Date().getMonth() + 1);
   const [contaParaExcluir, setContaParaExcluir] = useState<ContaSaida | null>(
     null
   );
 
-  const carregarContas = async () => {
+  const carregarContas = useCallback(async () => {
     if (!estaAutenticado()) {
-      navegar('/entrar');
+      navegarRef.current('/entrar');
       return;
     }
 
@@ -116,7 +140,7 @@ export const Contas: React.FC = () => {
     } catch (e) {
       if (e instanceof ErroApi) {
         if (e.status === 401) {
-          navegar('/entrar');
+          navegarRef.current('/entrar');
           return;
         }
         setErro(e.detalhe);
@@ -126,12 +150,18 @@ export const Contas: React.FC = () => {
     } finally {
       setCarregando(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    carregarContas();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    void carregarContas();
+  }, [carregarContas]);
+
+  const aoReceberEventoTempoReal = useCallback(() => {
+    void carregarContas();
+  }, [carregarContas]);
+
+  // Atualiza automaticamente quando o assistente registra/altera dados (RF17 / RF34)
+  useTempoReal(aoReceberEventoTempoReal);
 
   const centavosAtuais = valorDigitado ? parseInt(valorDigitado, 10) : 0;
 
@@ -158,17 +188,25 @@ export const Contas: React.FC = () => {
       setErro('Informe um valor válido maior que zero.');
       return;
     }
-    if (!dataVencimento) {
+    if (!recorrente && !dataVencimento) {
       setErro('Selecione o dia do vencimento da conta.');
       return;
     }
+    // O seletor de data do Safari iOS ignora o "min": a regra é conferida aqui (#121)
+    if (!recorrente && dataVencimento < vencimentoMinimo()) {
+      setErro(mensagemVencimentoAntigo());
+      return;
+    }
+    const vencimento = recorrente
+      ? vencimentoPorDiaEMes(diaFixo, mesFixo)
+      : dataVencimento;
 
     setSalvando(true);
     setErro(null);
 
     try {
       await cadastrarConta({
-        vencimento_em: dataVencimento,
+        vencimento_em: vencimento,
         valor: centavosAtuais / 100,
         descricao: descricao.trim() || undefined,
         recorrente,
@@ -269,6 +307,13 @@ export const Contas: React.FC = () => {
       contas: mapa.get(data)!,
     }));
   }, [contasFiltradas]);
+
+  const gruposVisiveis = useMemo(() => {
+    if (visualizacao === 'calendario' && diaSelecionado) {
+      return contasAgrupadasPorDia.filter((g) => g.data === diaSelecionado);
+    }
+    return contasAgrupadasPorDia;
+  }, [contasAgrupadasPorDia, visualizacao, diaSelecionado]);
 
   const textoResumoAudio = useMemo(() => {
     // Valores em reais; a voz lê por extenso (RF21)
@@ -401,23 +446,6 @@ export const Contas: React.FC = () => {
               </div>
 
               <div>
-                <label
-                  htmlFor="data-vencimento"
-                  className={styles.rotuloResumo}
-                  style={{ display: 'block', marginBottom: 6 }}
-                >
-                  Data de Vencimento
-                </label>
-                <input
-                  id="data-vencimento"
-                  type="date"
-                  className={styles.campoData}
-                  value={dataVencimento}
-                  onChange={(e) => setDataVencimento(e.target.value)}
-                />
-              </div>
-
-              <div>
                 <label className={styles.checkboxContainer}>
                   <input
                     type="checkbox"
@@ -430,6 +458,74 @@ export const Contas: React.FC = () => {
                   </span>
                 </label>
               </div>
+
+              {recorrente ? (
+                <fieldset className={styles.grupoDiaMes}>
+                  <legend className={styles.rotuloResumo}>
+                    Dia do vencimento
+                  </legend>
+                  <div className={styles.linhaDiaMes}>
+                    <div className={styles.campoDiaMes}>
+                      <label htmlFor="dia-fixo" className={styles.rotuloCampo}>
+                        Dia
+                      </label>
+                      <select
+                        id="dia-fixo"
+                        className={styles.campoData}
+                        value={diaFixo}
+                        onChange={(e) => setDiaFixo(Number(e.target.value))}
+                      >
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map(
+                          (d) => (
+                            <option key={d} value={d}>
+                              {d}
+                            </option>
+                          )
+                        )}
+                      </select>
+                    </div>
+                    <div className={styles.campoDiaMes}>
+                      <label htmlFor="mes-fixo" className={styles.rotuloCampo}>
+                        Mês
+                      </label>
+                      <select
+                        id="mes-fixo"
+                        className={styles.campoData}
+                        value={mesFixo}
+                        onChange={(e) => setMesFixo(Number(e.target.value))}
+                      >
+                        {MESES.map((nome, i) => (
+                          <option key={nome} value={i + 1}>
+                            {nome}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <p className={styles.dicaCampo}>
+                    Vence todo dia {diaFixo}, a partir de {diaFixo} de{' '}
+                    {MESES[mesFixo - 1].toLowerCase()}.
+                  </p>
+                </fieldset>
+              ) : (
+                <div>
+                  <label
+                    htmlFor="data-vencimento"
+                    className={styles.rotuloResumo}
+                    style={{ display: 'block', marginBottom: 6 }}
+                  >
+                    Data de Vencimento
+                  </label>
+                  <input
+                    id="data-vencimento"
+                    type="date"
+                    className={styles.campoData}
+                    min={vencimentoMinimo()}
+                    value={dataVencimento}
+                    onChange={(e) => setDataVencimento(e.target.value)}
+                  />
+                </div>
+              )}
 
               <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
                 <Botao
@@ -459,64 +555,123 @@ export const Contas: React.FC = () => {
         )}
 
         {!modoCadastro && (
-          <div className={styles.barraControles}>
-            <div
-              className={styles.filtrosContainer}
-              role="tablist"
-              aria-label="Filtros de situação das contas"
-            >
-              <button
-                type="button"
-                role="tab"
-                aria-selected={filtro === 'todas'}
-                className={`${styles.btnFiltro} ${filtro === 'todas' ? styles.btnFiltroAtivo : ''}`}
-                onClick={() => setFiltro('todas')}
+          <>
+            <div className={styles.barraControles}>
+              <div
+                className={styles.filtrosContainer}
+                role="tablist"
+                aria-label="Filtros de situação das contas"
               >
-                Todas ({contas.length})
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={filtro === 'a_vencer'}
-                className={`${styles.btnFiltro} ${filtro === 'a_vencer' ? styles.btnFiltroAtivo : ''}`}
-                onClick={() => setFiltro('a_vencer')}
-              >
-                <IconClock size={16} /> A vencer (
-                {contas.filter((c) => c.status === 'a_vencer').length})
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={filtro === 'em_atraso'}
-                className={`${styles.btnFiltro} ${filtro === 'em_atraso' ? styles.btnFiltroAtivo : ''}`}
-                onClick={() => setFiltro('em_atraso')}
-              >
-                <IconAlert size={16} /> Em atraso (
-                {contas.filter((c) => c.status === 'em_atraso').length})
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={filtro === 'paga'}
-                className={`${styles.btnFiltro} ${filtro === 'paga' ? styles.btnFiltroAtivo : ''}`}
-                onClick={() => setFiltro('paga')}
-              >
-                <IconCheck size={16} /> Pagas (
-                {contas.filter((c) => c.status === 'paga').length})
-              </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={filtro === 'todas'}
+                  className={`${styles.btnFiltro} ${filtro === 'todas' ? styles.btnFiltroAtivo : ''}`}
+                  onClick={() => setFiltro('todas')}
+                >
+                  Todas ({contas.length})
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={filtro === 'a_vencer'}
+                  className={`${styles.btnFiltro} ${filtro === 'a_vencer' ? styles.btnFiltroAtivo : ''}`}
+                  onClick={() => setFiltro('a_vencer')}
+                >
+                  <IconClock size={16} /> A vencer (
+                  {contas.filter((c) => c.status === 'a_vencer').length})
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={filtro === 'em_atraso'}
+                  className={`${styles.btnFiltro} ${filtro === 'em_atraso' ? styles.btnFiltroAtivo : ''}`}
+                  onClick={() => setFiltro('em_atraso')}
+                >
+                  <IconAlert size={16} /> Em atraso (
+                  {contas.filter((c) => c.status === 'em_atraso').length})
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={filtro === 'paga'}
+                  className={`${styles.btnFiltro} ${filtro === 'paga' ? styles.btnFiltroAtivo : ''}`}
+                  onClick={() => setFiltro('paga')}
+                >
+                  <IconCheck size={16} /> Pagas (
+                  {contas.filter((c) => c.status === 'paga').length})
+                </button>
+              </div>
+
+              <div className={styles.acoesTopoDireita}>
+                <div
+                  className={styles.seletorVisualizacao}
+                  role="group"
+                  aria-label="Modo de visualização das contas"
+                >
+                  <button
+                    type="button"
+                    aria-pressed={visualizacao === 'lista'}
+                    className={`${styles.btnVisualizacao} ${visualizacao === 'lista' ? styles.btnVisualizacaoAtivo : ''}`}
+                    onClick={() => {
+                      setVisualizacao('lista');
+                      setDiaSelecionado(null);
+                    }}
+                  >
+                    Lista
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={visualizacao === 'calendario'}
+                    className={`${styles.btnVisualizacao} ${visualizacao === 'calendario' ? styles.btnVisualizacaoAtivo : ''}`}
+                    onClick={() => setVisualizacao('calendario')}
+                  >
+                    Calendário
+                  </button>
+                </div>
+
+                <Botao
+                  variant="primary"
+                  onClick={() => {
+                    setModoCadastro(true);
+                    setMensagemSucesso(null);
+                  }}
+                  icone={<IconPlus size={20} />}
+                >
+                  Cadastrar Nova Conta
+                </Botao>
+              </div>
             </div>
 
-            <Botao
-              variant="primary"
-              onClick={() => {
-                setModoCadastro(true);
-                setMensagemSucesso(null);
-              }}
-              icone={<IconPlus size={20} />}
-            >
-              Cadastrar Nova Conta
-            </Botao>
-          </div>
+            {visualizacao === 'calendario' && !carregando && (
+              <>
+                <CalendarioVencimentos
+                  contas={contasFiltradas}
+                  diaSelecionado={diaSelecionado}
+                  aoSelecionarDia={setDiaSelecionado}
+                />
+                {diaSelecionado && (
+                  <div className={styles.barraDiaSelecionado}>
+                    <span>
+                      Mostrando contas do dia{' '}
+                      <strong>
+                        {new Date(
+                          `${diaSelecionado}T12:00:00`
+                        ).toLocaleDateString('pt-BR')}
+                      </strong>
+                    </span>
+                    <button
+                      type="button"
+                      className={styles.btnLimparDia}
+                      onClick={() => setDiaSelecionado(null)}
+                    >
+                      Ver todas as datas
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </>
         )}
 
         <section aria-label="Lista de contas a pagar">
@@ -524,20 +679,22 @@ export const Contas: React.FC = () => {
             <div className={styles.estadoVazio}>
               <p>Carregando contas cadastradas...</p>
             </div>
-          ) : contasFiltradas.length === 0 ? (
+          ) : gruposVisiveis.length === 0 ? (
             <div className={styles.estadoVazio}>
               <p className={styles.estadoVazioTitulo}>
                 Nenhuma conta encontrada
               </p>
               <p>
-                {filtro === 'todas'
-                  ? 'Você ainda não cadastrou nenhuma conta a pagar no Vero.'
-                  : 'Não há contas nesta situação no momento.'}
+                {visualizacao === 'calendario' && diaSelecionado
+                  ? 'Não há contas com vencimento neste dia.'
+                  : filtro === 'todas'
+                    ? 'Você ainda não cadastrou nenhuma conta a pagar no Vero.'
+                    : 'Não há contas nesta situação no momento.'}
               </p>
             </div>
           ) : (
             <div className={styles.listaContas}>
-              {contasAgrupadasPorDia.map((grupo) => {
+              {gruposVisiveis.map((grupo) => {
                 const dataObj = new Date(grupo.data + 'T12:00:00');
                 const dataCabecalho = dataObj.toLocaleDateString('pt-BR', {
                   weekday: 'long',

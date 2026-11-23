@@ -216,6 +216,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .nomeConta {
@@ -223,6 +224,7 @@
   font-size: 20px;
   font-weight: 800;
   color: var(--grafite-noturno);
+  overflow-wrap: anywhere;
 }
 
 .dataVencimento {
@@ -230,16 +232,20 @@
   color: var(--ardosia);
 }
 
+/* Celular: valor e selo numa linha, botões na de baixo, ocupando o cartão (#119) */
 .valoresEStatus {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: 12px 20px;
 }
 
 @media (min-width: 640px) {
   .valoresEStatus {
+    flex-wrap: nowrap;
     justify-content: flex-end;
+    flex-shrink: 0;
   }
 }
 
@@ -324,6 +330,43 @@
   box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
 }
 
+.grupoDiaMes {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.grupoDiaMes legend {
+  margin-bottom: 6px;
+  padding: 0;
+}
+
+.linhaDiaMes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 12px;
+}
+
+.campoDiaMes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.rotuloCampo {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--grafite-noturno);
+}
+
+.dicaCampo {
+  margin: 8px 0 0;
+  font-size: 16px;
+  color: var(--ardosia);
+}
+
 .sugestoesRapidas {
   display: flex;
   flex-wrap: wrap;
@@ -367,14 +410,31 @@
 /* Ações de Pagamento (RF30 / US10) */
 .blocoValorEBadge {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
+  gap: 8px 16px;
 }
 
 .acoesPagamento {
   display: flex;
   align-items: center;
   gap: 10px;
+  width: 100%;
+}
+
+.acoesPagamento > button:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .acoesPagamento {
+    width: auto;
+  }
+
+  .acoesPagamento > button:first-child {
+    flex: none;
+  }
 }
 
 .btnMarcarPaga {
@@ -393,7 +453,7 @@
   min-height: var(--toque-minimo);
   cursor: pointer;
   transition: all 0.2s ease;
-  white-space: nowrap;
+  text-align: center;
 }
 
 .btnMarcarPaga:hover:not(:disabled) {
@@ -423,7 +483,7 @@
   min-height: var(--toque-minimo);
   cursor: pointer;
   transition: all 0.2s ease;
-  white-space: nowrap;
+  text-align: center;
 }
 
 .btnDesfazerPaga:hover:not(:disabled) {
@@ -510,4 +570,64 @@
 .btnExcluir:focus-visible {
   outline: 3px solid #ef4444;
   outline-offset: 2px;
+}
+
+.acoesTopoDireita {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.seletorVisualizacao {
+  display: inline-flex;
+  background-color: var(--branco);
+  border: 2px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.btnVisualizacao {
+  min-height: 40px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--grafite-noturno);
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.btnVisualizacaoAtivo {
+  background-color: var(--violeta-vero);
+  color: var(--branco);
+}
+
+.barraDiaSelecionado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  background-color: #ede9fe;
+  border: 1px solid #c4b5fd;
+  color: var(--violeta-profundo);
+  border-radius: 12px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  font-size: 15px;
+}
+
+.btnLimparDia {
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--violeta-vero);
+  background-color: var(--branco);
+  color: var(--violeta-profundo);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
 }

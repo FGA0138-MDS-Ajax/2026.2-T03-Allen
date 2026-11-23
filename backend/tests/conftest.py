@@ -6,7 +6,8 @@ banco. Não aponte para o Supabase.
 """
 
 import uuid
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
+from datetime import date
 
 import pytest
 from fastapi.testclient import TestClient
@@ -15,6 +16,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.main import app
+from app.modulos.contas import esquemas as esquemas_contas
 from app.modulos.contas.modelos import Conta  # noqa: F401  (registra a tabela)
 from app.modulos.identidade.modelos import Usuario
 from app.modulos.identidade.seguranca import criar_token, gerar_hash, hash_telefone
@@ -84,3 +86,13 @@ def cliente_logado(cliente: TestClient, usuario: Usuario) -> TestClient:
     token = criar_token(usuario.id, "pin", timedelta(hours=1))
     cliente.headers["Authorization"] = f"Bearer {token}"
     return cliente
+
+
+@pytest.fixture
+def fixar_hoje_contas(monkeypatch: pytest.MonkeyPatch) -> Callable[[date], None]:
+    """Fixa o "hoje" da validação do vencimento (#121), para testes com datas fixas."""
+
+    def fixar(dia: date) -> None:
+        monkeypatch.setattr(esquemas_contas, "hoje_brasilia", lambda: dia)
+
+    return fixar

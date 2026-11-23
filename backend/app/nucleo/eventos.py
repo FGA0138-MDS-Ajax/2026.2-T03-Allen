@@ -4,6 +4,7 @@ Cada usuário tem um canal próprio. O módulo que muda algo de interesse do app
 publica no canal; o WebSocket /ws repassa ao app do usuário (RF17).
 """
 
+import asyncio
 import json
 import logging
 import uuid
@@ -42,16 +43,25 @@ def publicar(usuario_id: uuid.UUID, tipo: TipoEvento, dados: dict) -> None:
         logger.warning("Não foi possível publicar o evento %s no Valkey.", tipo)
 
 
-async def ouvir(usuario_id: uuid.UUID) -> AsyncIterator[str]:
-    """Entrega, em texto JSON, cada evento publicado no canal do usuário."""
+async def ouvir(
+    usuario_id: uuid.UUID, inscrito: asyncio.Future[None]
+) -> AsyncIterator[str]:
     conexao = valkey_async.Valkey.from_url(
         settings.VALKEY_URL, decode_responses=True, socket_timeout=None
     )
-    assinatura = conexao.pubsub(ignore_subscribe_messages=True)
-    await assinatura.subscribe(canal_do_usuario(usuario_id))
+    assinatura = conexao.pubsub(ignore_subscribe_messages=False)
+
     try:
+        await assinatura.subscribe(canal_do_usuario(usuario_id))
+
         async for mensagem in assinatura.listen():
-            yield mensagem["data"]
+            if mensagem["type"] == "subscribe":
+                if not inscrito.done():
+                    inscrito.set_result(None)
+                continue
+
+            if mensagem["type"] == "message":
+                yield mensagem["data"]
     finally:
         await assinatura.aclose()
         await conexao.aclose()

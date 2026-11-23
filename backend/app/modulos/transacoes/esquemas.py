@@ -105,3 +105,11 @@ class TransacaoSaida(BaseModel):
     categoria_id: int | None
     origem: OrigemTransacao
     criado_em: datetime
+
+
+class SaldoMesSaida(BaseModel):
+    mes: str
+    entradas: Decimal
+    gastos: Decimal
+    contas: Decimal
+    saldo: Decimal

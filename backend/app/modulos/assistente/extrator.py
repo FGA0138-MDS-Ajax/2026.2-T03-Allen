@@ -1,13 +1,16 @@
 import re
 import unicodedata
 from dataclasses import dataclass
-from enum import Enum
-from rapidfuzz import process,fuzz
+from enum import StrEnum
 
-class TipoTransacao(str, Enum):
+from rapidfuzz import fuzz, process
+
+
+class TipoTransacao(StrEnum):
     GASTO = "GASTO"
     RECEITA = "RECEITA"
     DESCONHECIDO = "DESCONHECIDO"
+
 
 @dataclass
 class IntencaoMensagem:
@@ -19,24 +22,106 @@ class IntencaoMensagem:
     sucesso: bool
     motivo_recusa: str | None = None
 
+
 CATEGORIAS: dict[str, list[str]] = {
     # Gastos
-    "Farmácia": ["farmacia", "farmasia", "remedio", "drogaria", "medicamento", "dipirona", "pomada"],
-    "Alimentação": ["mercado", "supermercado", "padaria", "comida", "feira", "acougue", "almoco", "jantar", "pao", "paes", "leite", "lanche", "restaurante", "cafe"],
-    "Transporte": ["uber", "taxi", "onibus", "gasolina", "combustivel", "passagem", "metro"],
-    "Saúde": ["medico", "consulta", "exame", "dentista", "hospital", "clinica", "fisioterapia"],
+    "Farmácia": [
+        "farmacia",
+        "farmasia",
+        "remedio",
+        "drogaria",
+        "medicamento",
+        "dipirona",
+        "pomada",
+    ],
+    "Alimentação": [
+        "mercado",
+        "supermercado",
+        "padaria",
+        "comida",
+        "feira",
+        "acougue",
+        "almoco",
+        "jantar",
+        "pao",
+        "paes",
+        "leite",
+        "lanche",
+        "restaurante",
+        "cafe",
+    ],
+    "Transporte": [
+        "uber",
+        "taxi",
+        "onibus",
+        "gasolina",
+        "combustivel",
+        "passagem",
+        "metro",
+    ],
+    "Saúde": [
+        "medico",
+        "consulta",
+        "exame",
+        "dentista",
+        "hospital",
+        "clinica",
+        "fisioterapia",
+    ],
     "Moradia": ["aluguel", "condominio", "luz", "agua", "gas", "energia", "internet"],
-    "Lazer": ["passeio", "viagem", "cinema", "bar", "presente", "cerveja", "cigarro", "churrasco"],
-
+    "Lazer": [
+        "passeio",
+        "viagem",
+        "cinema",
+        "bar",
+        "presente",
+        "cerveja",
+        "cigarro",
+        "churrasco",
+    ],
     # Receitas
     "Aposentadoria": ["aposentadoria", "inss", "beneficio"],
     "Salário": ["salario", "pagamento", "vale", "adiantamento"],
     "Renda Extra": ["bico", "venda", "freela", "renda", "reembolso", "pix"],
 }
 
-VERBOS_RECEITA = ["recebi", "recebeu", "receber", "recebimento", "caiu", "ganhei", "ganhou", "entrou", "deposito"]
-VERBOS_GASTO = ["gastei", "gastou", "gasto", "comprei", "comprou", "comprar", "paguei", "pagou", "foi", "deu", "custou", "despesa", "perdi"]
-MARCADORES_FUTURO = ["vou gastar", "vou pagar", "vou comprar", "pretendo", "amanha", "amanhã", "semana que vem", "mes que vem", "mês que vem"]
+VERBOS_RECEITA = [
+    "recebi",
+    "recebeu",
+    "receber",
+    "recebimento",
+    "caiu",
+    "ganhei",
+    "ganhou",
+    "entrou",
+    "deposito",
+]
+VERBOS_GASTO = [
+    "gastei",
+    "gastou",
+    "gasto",
+    "comprei",
+    "comprou",
+    "comprar",
+    "paguei",
+    "pagou",
+    "foi",
+    "deu",
+    "custou",
+    "despesa",
+    "perdi",
+]
+MARCADORES_FUTURO = [
+    "vou gastar",
+    "vou pagar",
+    "vou comprar",
+    "pretendo",
+    "amanha",
+    "amanhã",
+    "semana que vem",
+    "mes que vem",
+    "mês que vem",
+]
 
 PADROES_BOAS_VINDAS = [
     "acabei de criar",
@@ -63,6 +148,7 @@ SAUDACOES = {
     "ola assistente",
 }
 
+
 def eh_saudacao(texto: str) -> bool:
     texto_norm = normalizar_texto(texto.strip())
     texto_limpo = re.sub(r"[^\w\s]", "", texto_norm).strip()
@@ -80,23 +166,28 @@ def eh_saudacao(texto: str) -> bool:
 
     return False
 
+
 def normalizar_texto(texto: str) -> str:
     texto = texto.lower()
     return "".join(
-        c for c in unicodedata.normalize("NFD", texto)
+        c
+        for c in unicodedata.normalize("NFD", texto)
         if unicodedata.category(c) != "Mn"
     )
+
 
 def contem_palavra(texto_norm: str, palavras: list[str]) -> bool:
     padrao = r"\b(?:" + "|".join(re.escape(p) for p in palavras) + r")\b"
     return bool(re.search(padrao, texto_norm))
 
+
 def eh_tempo_futuro(texto_norm: str) -> bool:
     for marcador in MARCADORES_FUTURO:
         if marcador in texto_norm:
             return True
-        
+
     return False
+
 
 def string_para_centavos(num_str: str) -> int | None:
     s = num_str.strip()
@@ -124,7 +215,8 @@ def string_para_centavos(num_str: str) -> int | None:
         return int(round(valor_float * 100))
     except (ValueError, IndexError):
         return None
-    
+
+
 # Retorna em centavos
 def extrair_valor(texto: str) -> tuple[int | None, bool]:
     texto_lower = texto.lower()
@@ -134,7 +226,10 @@ def extrair_valor(texto: str) -> tuple[int | None, bool]:
         return None, False
 
     # Separa reais e centavos
-    match_reais_centavos = re.search(r"\b(\d+)\s*(?:reais|real|conto)\s*(?:e\s*)?(\d{1,2})\s*centavos?\b", texto_lower,)
+    match_reais_centavos = re.search(
+        r"\b(\d+)\s*(?:reais|real|conto)\s*(?:e\s*)?(\d{1,2})\s*centavos?\b",
+        texto_lower,
+    )
     if match_reais_centavos:
         reais = int(match_reais_centavos.group(1))
         centavos = int(match_reais_centavos.group(2).ljust(2, "0")[:2])
@@ -142,11 +237,19 @@ def extrair_valor(texto: str) -> tuple[int | None, bool]:
 
     # Limpeza de valores não monetários
     texto_limpo = re.sub(r"\bdia\s+\d{1,2}\b", "", texto_lower)
-    texto_limpo = re.sub(r"\b\d+\s+(?:pães|paes|pao|itens|unidades|garrafas|latas|pecas|peças|litros|quilos|kg|caixas)\b", " ", texto_limpo,)
+    texto_limpo = re.sub(
+        r"\b\d+\s+(?:pães|paes|pao|itens|unidades|garrafas|latas|pecas|peças|litros|quilos|kg|caixas)\b",
+        " ",
+        texto_limpo,
+    )
 
     # Procura valores numéricos no texto limpo
-    matches = list(re.finditer(r"(?:r\$\s*)?((?:\d{1,3}(?:[.,]\d{3})+|\d+)(?:[.,]\d{1,2})?)", texto_limpo))
-    candidatos: list[tuple[int, int]] = [] # (valor, peso_prioridade)
+    matches = list(
+        re.finditer(
+            r"(?:r\$\s*)?((?:\d{1,3}(?:[.,]\d{3})+|\d+)(?:[.,]\d{1,2})?)", texto_limpo
+        )
+    )
+    candidatos: list[tuple[int, int]] = []  # (valor, peso_prioridade)
     for m in matches:
         num_str = m.group(1)
         if len(num_str) == 4 and num_str.startswith("20") and "r$" not in m.group(0):
@@ -154,11 +257,16 @@ def extrair_valor(texto: str) -> tuple[int | None, bool]:
         v = string_para_centavos(num_str)
         if v is not None and v > 0:
             inicio, fim = m.span()
-            contexto = texto_limpo[max(0, inicio - 10):min(len(texto_limpo), fim + 10)]
+            contexto = texto_limpo[
+                max(0, inicio - 10) : min(len(texto_limpo), fim + 10)
+            ]
             peso = 1
-            if any(termo in contexto for termo in ["r$", "reais", "real", "conto", "por", "de"]):
+            if any(
+                termo in contexto
+                for termo in ["r$", "reais", "real", "conto", "por", "de"]
+            ):
                 peso = 2
-            candidatos.append((v,peso))
+            candidatos.append((v, peso))
 
     if not candidatos:
         return None, False
@@ -170,7 +278,7 @@ def extrair_valor(texto: str) -> tuple[int | None, bool]:
     # Ordena pela prioridade
     candidatos.sort(key=lambda x: x[1], reverse=True)
     return candidatos[0][0], False
-    
+
 
 def identificar_categoria(texto_normalizado: str, tipo: TipoTransacao) -> str:
     todas_palavras = texto_normalizado.split()
@@ -181,12 +289,12 @@ def identificar_categoria(texto_normalizado: str, tipo: TipoTransacao) -> str:
         for palavra in todas_palavras:
             if len(palavra) < 3:
                 continue
-            
+
             resultado = process.extractOne(
-                palavra, 
-                sinonimos, 
-                scorer=fuzz.ratio, 
-                score_cutoff=75.0  # Limiar de confiança de 75%
+                palavra,
+                sinonimos,
+                scorer=fuzz.ratio,
+                score_cutoff=75.0,  # Limiar de confiança de 75%
             )
 
             if resultado:
@@ -196,6 +304,7 @@ def identificar_categoria(texto_normalizado: str, tipo: TipoTransacao) -> str:
                     melhor_categoria = categoria
 
     return melhor_categoria
+
 
 def processar_texto_mensagem(texto: str) -> IntencaoMensagem:
     texto_norm = normalizar_texto(texto)
@@ -248,4 +357,3 @@ def processar_texto_mensagem(texto: str) -> IntencaoMensagem:
         descricao=texto.strip(),
         sucesso=sucesso,
     )
-    
