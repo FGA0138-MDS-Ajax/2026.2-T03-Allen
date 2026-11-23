@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Contas } from './Contas';
 import * as servicos from '../../servicos';
 
@@ -62,6 +62,10 @@ const mockContas: servicos.ContaSaida[] = [
 ];
 
 describe('Página de Contas a Pagar (RF25, RF30, RF32)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(servicos.estaAutenticado).mockReturnValue(true);
@@ -156,6 +160,8 @@ describe('Página de Contas a Pagar (RF25, RF30, RF32)', () => {
   });
 
   it('permite cadastrar conta com recorrência ativada (RF26)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 10, 23, 10, 0));
     vi.mocked(servicos.cadastrarConta).mockResolvedValueOnce({
       id: '99',
       descricao: 'Aluguel',
@@ -189,16 +195,53 @@ describe('Página de Contas a Pagar (RF25, RF30, RF32)', () => {
     const checkboxRecorrente = screen.getByLabelText(/Repetir todo mês/i);
     fireEvent.click(checkboxRecorrente);
 
+    // Conta fixa pede só dia e mês, sem ano (#120)
+    expect(
+      screen.queryByLabelText('Data de Vencimento')
+    ).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Dia'), { target: { value: '15' } });
+    fireEvent.change(screen.getByLabelText('Mês'), { target: { value: '12' } });
+    expect(
+      screen.getByText('Vence todo dia 15, a partir de 15 de dezembro.')
+    ).toBeInTheDocument();
+
     fireEvent.click(screen.getByRole('button', { name: /Salvar Conta/i }));
 
     await waitFor(() => {
       expect(servicos.cadastrarConta).toHaveBeenCalledWith({
         valor: 1200.0,
-        vencimento_em: expect.any(String),
+        vencimento_em: '2026-12-15',
         descricao: 'Aluguel',
         recorrente: true,
       });
     });
+  });
+
+  it('recusa vencimento de anos atrás sem chamar a API (#121)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 10, 23, 10, 0));
+
+    render(<Contas />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /Cadastrar Nova Conta/i })
+    );
+    fireEvent.click(screen.getByRole('button', { name: '5' }));
+    fireEvent.click(screen.getByRole('button', { name: '0' }));
+
+    const campoData = screen.getByLabelText('Data de Vencimento');
+    expect(campoData).toHaveAttribute('min', '2026-10-01');
+    fireEvent.change(campoData, { target: { value: '2021-03-10' } });
+    fireEvent.click(screen.getByRole('button', { name: /Salvar Conta/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          'Essa data de vencimento já passou faz tempo. Use uma data a partir de 01/10/2026.'
+        )
+      ).toBeInTheDocument();
+    });
+    expect(servicos.cadastrarConta).not.toHaveBeenCalled();
   });
 
   it('permite apagar uma conta com modal de confirmação', async () => {

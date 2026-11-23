@@ -330,6 +330,43 @@
   box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
 }
 
+.grupoDiaMes {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.grupoDiaMes legend {
+  margin-bottom: 6px;
+  padding: 0;
+}
+
+.linhaDiaMes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 12px;
+}
+
+.campoDiaMes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.rotuloCampo {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--grafite-noturno);
+}
+
+.dicaCampo {
+  margin: 8px 0 0;
+  font-size: 16px;
+  color: var(--ardosia);
+}
+
 .sugestoesRapidas {
   display: flex;
   flex-wrap: wrap;

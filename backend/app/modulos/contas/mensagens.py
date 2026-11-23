@@ -9,6 +9,9 @@ class Message(Enum):
     DATA_INVALIDA = (
         "A data de vencimento não está correta, verifique e tente novamente."
     )
+    VENCIMENTO_MUITO_ANTIGO = (
+        "Essa data de vencimento já passou faz tempo. Use uma data a partir de {data}."
+    )
     CATEGORIA_INEXISTENTE = "Essa categoria não existe. Escolha outra."
     CONTA_NAO_ENCONTRADA = (
         "Não encontramos essa conta. Atualize a lista e tente de novo."

@@ -8,7 +8,16 @@ from fastapi.testclient import TestClient
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.modulos.contas.esquemas import vencimento_minimo
+from app.modulos.contas.mensagens import Message
 from app.modulos.contas.modelos import Conta
+
+
+@pytest.fixture(autouse=True)
+def hoje_em_janeiro(fixar_hoje_contas) -> None:
+    # Os testes de conta fixa usam datas de 2026; a validação de vencimento (#121)
+    # recusaria datas antes do mês anterior a hoje.
+    fixar_hoje_contas(date(2026, 1, 15))
 
 
 def test_cadastro_com_data_e_valor_retorna_201_e_status_a_vencer(
@@ -225,3 +234,59 @@ def test_conta_que_nao_e_fixa_nao_gera_mes_seguinte(cliente_logado):
 
     assert resposta.status_code == 200
     assert len(cliente_logado.get("/api/v1/contas").json()) == 1
+
+
+@pytest.mark.parametrize(
+    ("hoje", "minimo"),
+    [
+        (date(2026, 11, 23), date(2026, 10, 1)),
+        (date(2026, 3, 1), date(2026, 2, 1)),
+        (date(2027, 1, 10), date(2026, 12, 1)),
+    ],
+)
+def test_vencimento_minimo_e_dia_1_do_mes_anterior(hoje: date, minimo: date) -> None:
+    assert vencimento_minimo(hoje) == minimo
+
+
+def test_vencimento_de_anos_atras_retorna_422(
+    cliente_logado: TestClient, fixar_hoje_contas
+) -> None:
+    fixar_hoje_contas(date(2026, 11, 23))
+
+    resposta = cliente_logado.post(
+        "/api/v1/contas", json={"vencimento_em": "2021-03-10", "valor": "50.00"}
+    )
+
+    assert resposta.status_code == 422
+    assert resposta.json()["erros"] == [
+        {
+            "campo": "vencimento_em",
+            "mensagem": Message.VENCIMENTO_MUITO_ANTIGO.message.format(
+                data="01/10/2026"
+            ),
+        }
+    ]
+
+
+def test_vencimento_um_dia_antes_do_minimo_retorna_422(
+    cliente_logado: TestClient, fixar_hoje_contas
+) -> None:
+    fixar_hoje_contas(date(2026, 11, 23))
+
+    resposta = cliente_logado.post(
+        "/api/v1/contas", json={"vencimento_em": "2026-09-30", "valor": "50.00"}
+    )
+
+    assert resposta.status_code == 422
+
+
+def test_conta_atrasada_do_mes_passado_ainda_pode_ser_cadastrada(
+    cliente_logado: TestClient, fixar_hoje_contas
+) -> None:
+    fixar_hoje_contas(date(2026, 11, 23))
+
+    resposta = cliente_logado.post(
+        "/api/v1/contas", json={"vencimento_em": "2026-10-01", "valor": "50.00"}
+    )
+
+    assert resposta.status_code == 201
