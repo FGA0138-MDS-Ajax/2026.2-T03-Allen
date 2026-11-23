@@ -319,27 +319,37 @@ def revogar_acesso(
 
 @router.get(
     "/contas-com-acompanhantes",
-    response_model=list[dict[str, str | datetime | bool]],
+    response_model=list[dict[str, str | datetime | bool | None]],
     status_code=status.HTTP_200_OK,
 )
 def listar_acompanhantes(
     sessao: Session = Depends(obter_sessao),
     current_user: Usuario = Depends(usuario_atual),
 ):
-    todos_acompanhantes = sessao.scalars(
-        select(Acompanhante).where(
+    stmt = (
+        select(
+            Acompanhante.id_usuario_acompanhante,
+            Usuario.nome,
+            Acompanhante.dh_criacao,
+            Acompanhante.ic_pode_editar,
+            Acompanhante.dh_aceite,
+        )
+        .join(Usuario, Acompanhante.id_usuario_acompanhante == Usuario.id)
+        .where(
             Acompanhante.id_usuario_titular == current_user.id,
             Acompanhante.status == "autorizado",
         )
-    ).all()
+    )
+
+    resultados = sessao.execute(stmt).all()
 
     return [
         {
-            "id": str(acompanhante.id_usuario_acompanhante),
-            "usuario": acompanhante.id_usuario_acompanhante.nome,
-            "data_convite": acompanhante.dh_criacao,
-            "pode_editar": acompanhante.ic_pode_editar,
-            "data_aceite": acompanhante.dh_aceite,
+            "id": str(row.id_usuario_acompanhante),
+            "usuario": row.nome,
+            "data_convite": row.dh_criacao,
+            "pode_editar": row.ic_pode_editar,
+            "data_aceite": row.dh_aceite,
         }
-        for acompanhante in todos_acompanhantes
+        for row in resultados
     ]
