@@ -511,3 +511,63 @@
   outline: 3px solid #ef4444;
   outline-offset: 2px;
 }
+
+.acoesTopoDireita {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.seletorVisualizacao {
+  display: inline-flex;
+  background-color: var(--branco);
+  border: 2px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.btnVisualizacao {
+  min-height: 40px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--grafite-noturno);
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.btnVisualizacaoAtivo {
+  background-color: var(--violeta-vero);
+  color: var(--branco);
+}
+
+.barraDiaSelecionado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  background-color: #ede9fe;
+  border: 1px solid #c4b5fd;
+  color: var(--violeta-profundo);
+  border-radius: 12px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  font-size: 15px;
+}
+
+.btnLimparDia {
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--violeta-vero);
+  background-color: var(--branco);
+  color: var(--violeta-profundo);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
