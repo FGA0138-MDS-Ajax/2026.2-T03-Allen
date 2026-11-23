@@ -276,3 +276,31 @@ def test_claude_recusa_formato_nao_aceito(monkeypatch):
     with pytest.raises(FalhaLeituraComprovante):
         asyncio.run(leitor.ler(FOTO, "application/pdf", None))
     parse.assert_not_called()
+
+
+# QA da Sprint 4 (#132): pergunta sem "com ?" e legenda aproveitada
+
+
+def test_foto_ilegivel_pergunta_o_valor_sem_buraco(ambiente_assistente, leitor):  # noqa: F811
+    _, _, enviadas, _, _ = ambiente_assistente
+    leitor.leitura = FalhaLeituraComprovante("fora do ar")
+
+    _enviar_foto()
+
+    assert "Qual foi o valor?" in enviadas[-1]
+    assert " com ?" not in enviadas[-1]
+    assert "esse gasto" not in enviadas[-1]
+
+
+def test_legenda_da_foto_preenche_a_categoria(ambiente_assistente, leitor):  # noqa: F811
+    _, _, enviadas, registrar, enviar = ambiente_assistente
+    leitor.leitura = FalhaLeituraComprovante("fora do ar")
+
+    _enviar_foto("remedio")
+    enviar("45,90")
+    enviar("gasto")
+
+    # Não pergunta "com o que foi": a legenda já disse
+    assert enviadas[-1] == mensagens.confirmacao_gasto(4590, "Farmácia")
+    enviar("sim")
+    assert registrar.call_args.kwargs["dados"].valor == Decimal("45.90")

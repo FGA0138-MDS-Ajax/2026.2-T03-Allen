@@ -326,7 +326,10 @@ def completar_lancamento(telefone: str, pendencia: RegistroPendente, texto: str)
 def _pergunta(pendencia: RegistroPendente, motivo: str | None = None) -> str:
     receita = pendencia.tipo == TipoTransacao.RECEITA
     if pendencia.faltando == CampoFaltando.VALOR:
-        return mensagens.pedir_valor(receita, pendencia.categoria, motivo)
+        desconhecido = pendencia.tipo == TipoTransacao.DESCONHECIDO
+        return mensagens.pedir_valor(
+            None if desconhecido else receita, pendencia.categoria, motivo
+        )
     if pendencia.faltando == CampoFaltando.TIPO:
         return mensagens.pedir_tipo(pendencia.valor, motivo)
     return mensagens.pedir_categoria(receita, pendencia.valor, motivo)
@@ -418,11 +421,18 @@ async def processar_foto(remetente: str, dados_mensagem: dict) -> None:
     # RNF04: resposta em até 5 s. Medido desde a S4 (só o tempo, sem dados no log)
     logger.info("Foto processada em %.2f s", time.perf_counter() - inicio)
 
-    await enviar_mensagem(remetente, responder_leitura(telefone, leitura))
+    await enviar_mensagem(remetente, responder_leitura(telefone, leitura, legenda))
 
 
-def responder_leitura(telefone: str, leitura: LeituraComprovante) -> str:
+def responder_leitura(
+    telefone: str, leitura: LeituraComprovante, legenda: str | None = None
+) -> str:
     tipo = TipoTransacao(leitura.tipo) if leitura.tipo else TipoTransacao.DESCONHECIDO
+    if not leitura.categoria and legenda:
+        # A legenda ("remédio", "mercado") diz com o que foi quando a foto não diz
+        pela_legenda = identificar_categoria(normalizar_texto(legenda), tipo)
+        if pela_legenda not in {"Outros", "Outras Receitas"}:
+            leitura.categoria = pela_legenda
     pendencia = RegistroPendente(
         tipo=tipo,
         valor=leitura.valor,
