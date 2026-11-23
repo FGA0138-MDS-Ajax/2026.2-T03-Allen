@@ -57,6 +57,10 @@ jobs:
       # Sem APP_ENV a API assume produção e recusa subir com ENVIO_EMAIL=falso
       APP_ENV: development
       SECRET_KEY: chave-somente-para-os-testes-do-ci
+      # Obrigatórias no Settings desde o assistente no WhatsApp (Evolution API)
+      EVOLUTION_URL: http://localhost:8080
+      AUTHENTICATION_API_KEY: chave-somente-para-os-testes-do-ci
+      INSTANCE_NAME: vero-ci
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
