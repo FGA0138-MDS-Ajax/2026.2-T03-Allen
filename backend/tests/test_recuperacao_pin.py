@@ -1,6 +1,7 @@
 """Testes do "esqueci meu PIN", da troca de PIN e da versão do token (RF01, critério 5)."""
 
 import asyncio
+import json
 import re
 import uuid
 from contextlib import nullcontext
@@ -475,7 +476,10 @@ class TestVersaoDoTokenNoWebSocket:
             router_tempo_real, "SessaoLocal", lambda: nullcontext(sessao)
         )
 
-        async def sem_eventos(_usuario_id):
+        async def sem_eventos(_usuario_id, inscrito):
+            if not inscrito.done():
+                inscrito.set_result(None)
+            
             await asyncio.Event().wait()
             yield  # pragma: no cover
 
@@ -503,3 +507,26 @@ class TestVersaoDoTokenNoWebSocket:
                 ws.receive_json()
 
         assert erro.value.code == 1008
+
+    def test_evento_imediato_apos_inscricao(
+            self, cliente: TestClient, titular: Usuario, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        token = criar_token(titular.id, "pin", timedelta(hours=1), titular.versao_token)
+        evento = {
+            "tipo": "transacao_criada",
+            "dados": {"id": "transacao-teste"}
+        }
+
+        async def ouvir_com_evento_imediato(_usuario_id, inscrito):
+            if not inscrito.done():
+                inscrito.set_result(None)
+            yield json.dumps(evento)
+            await asyncio.Event().wait()
+
+        monkeypatch.setattr(eventos, "ouvir", ouvir_com_evento_imediato)
+
+        with cliente.websocket_connect("/ws") as ws:
+            ws.send_json({"token": token})
+
+            assert ws.receive_json() == {"tipo": "conectado"}
+            assert ws.receive_json() == evento
