@@ -38,14 +38,13 @@ export function useTempoReal(
         return `${api.protocol === 'https:' ? 'wss:' : 'ws:'}//${api.host}/ws`;
       }
 
-      const protocol =
-        window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       return `${protocol}//${window.location.host}/ws`;
     };
 
     const conectar = () => {
       if (!ativo) return;
-    
+
       try {
         const ws = new WebSocket(criarUrl());
         wsRef.current = ws;
@@ -61,7 +60,7 @@ export function useTempoReal(
               aoReceberRef.current(mensagem);
             }
           } catch {
-
+            // Mensagem fora do formato JSON: ignora e espera a próxima
           }
         };
 
@@ -70,11 +69,10 @@ export function useTempoReal(
           if (ativo) reconexao = window.setTimeout(conectar, 3000);
         };
 
-        ws.onerror = () => { 
-
-        };
+        // O onclose vem logo depois do erro e cuida da reconexão
+        ws.onerror = () => {};
       } catch {
-
+        // URL inválida ou WebSocket indisponível: o app segue sem tempo real
       }
     };
 

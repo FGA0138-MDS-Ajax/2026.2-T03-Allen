@@ -137,7 +137,7 @@ describe('Página Inicio (Dashboard do Vero com Gráfico e Origem do Saldo)', ()
     render(<Inicio />);
 
     const linkWhatsApp = screen.getByRole('link', {
-        name: /anotar gasto pelo whatsapp/i,
+      name: /anotar gasto pelo whatsapp/i,
     });
 
     expect(linkWhatsApp).toBeInTheDocument();
@@ -148,7 +148,7 @@ describe('Página Inicio (Dashboard do Vero com Gráfico e Origem do Saldo)', ()
       encodeURIComponent('Olá! Gostaria de anotar um gasto no Vero.')
     );
   });
-  
+
   it('mostra o saldo calculado pela API e o percentual já gasto', async () => {
     render(<Inicio />);
 
