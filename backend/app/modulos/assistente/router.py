@@ -27,6 +27,7 @@ from app.modulos.assistente.sessao import (
 from app.modulos.identidade.esquemas import normalizar_telefone
 from app.modulos.identidade.modelos import Usuario
 from app.modulos.identidade.seguranca import hash_telefone
+from app.modulos.resumo import servico as servico_resumo
 from app.modulos.transacoes import servico as servico_transacoes
 from app.modulos.transacoes.esquemas import OrigemTransacao, TransacaoRegistroEntrada
 from app.modulos.transacoes.esquemas import TipoTransacao as TipoTransacaoBD
@@ -104,6 +105,12 @@ async def processar_responder(remetente: str, texto: str):
     if not usuario:
         resposta = mensagens.usuario_nao_encontrado()
         await enviar_mensagem(remetente, resposta)
+        return
+
+    # RF24: "parar resumo" e "voltar resumo" valem a qualquer momento
+    resposta_resumo = servico_resumo.tratar_comando(usuario.id, texto)
+    if resposta_resumo:
+        await enviar_mensagem(remetente, resposta_resumo)
         return
 
     pendencia, expirou = sessao_assistente.obter_pendencia(telefone)
