@@ -18,6 +18,7 @@
 .brandLogo {
   display: inline-flex;
   align-items: center;
+  min-height: var(--toque-minimo);
   text-decoration: none;
 }
 

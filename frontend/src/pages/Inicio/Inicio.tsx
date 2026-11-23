@@ -346,8 +346,8 @@ export const Inicio: React.FC = () => {
                           <div className={styles.iconeConta} aria-hidden="true">
                             {obterIcone(conta.descricao || 'contas')}
                           </div>
-                          <div>
-                            <strong style={{ display: 'block', fontSize: 15 }}>
+                          <div className={styles.textoContaProxima}>
+                            <strong className={styles.nomeContaProxima}>
                               {conta.descricao || 'Conta a pagar'}
                             </strong>
                             <span
@@ -383,12 +383,7 @@ export const Inicio: React.FC = () => {
                             </span>
                           </div>
                         </div>
-                        <strong
-                          style={{
-                            fontSize: 17,
-                            color: 'var(--grafite-noturno)',
-                          }}
-                        >
+                        <strong className={styles.valorContaProxima}>
                           {formatarMoeda(Math.round(valorNum * 100))}
                         </strong>
                       </div>
@@ -527,20 +522,14 @@ export const Inicio: React.FC = () => {
                           <div className={styles.iconeGasto} aria-hidden="true">
                             {obterIcone(item.categoria)}
                           </div>
-                          <div>
+                          <div className={styles.textoGasto}>
                             <div className={styles.nomeGasto}>
                               {item.categoria}
                             </div>
                             <div className={styles.dataGasto}>{quando}</div>
                           </div>
                         </div>
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 10,
-                          }}
-                        >
+                        <div className={styles.acoesGasto}>
                           <strong
                             className={styles.valorGasto}
                             style={{

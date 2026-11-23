@@ -330,7 +330,7 @@ export const Contas: React.FC = () => {
     <div className={styles.pageContainer}>
       <BarraNavegacao rotaAtiva="/contas" />
 
-      <main>
+      <main className={styles.conteudo}>
         <div className={styles.cabecalhoSecao}>
           <div
             style={{

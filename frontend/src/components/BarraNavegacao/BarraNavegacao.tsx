@@ -7,14 +7,57 @@ import {
   IconBills,
   IconPlus,
   IconClock,
+  IconHome,
   IconLogout,
   IconSpeaker,
+  IconProps,
 } from '../Icones/Icones';
 import logoVero from '../../assets/logoVero';
 
 export interface BarraNavegacaoProps {
   rotaAtiva?: string;
 }
+
+interface ItemMenu {
+  rota: string;
+  /** Nome completo, lido pelo leitor de tela e mostrado no computador. */
+  nome: string;
+  /** Nome curto mostrado na barra de baixo do celular. */
+  curto: string;
+  Icone: React.FC<IconProps>;
+  rotasAtivas: string[];
+}
+
+const ITENS_MENU: ItemMenu[] = [
+  {
+    rota: '/inicio',
+    nome: 'Início',
+    curto: 'Início',
+    Icone: IconHome,
+    rotasAtivas: ['/inicio'],
+  },
+  {
+    rota: '/extrato',
+    nome: 'Extrato',
+    curto: 'Extrato',
+    Icone: IconClock,
+    rotasAtivas: ['/extrato'],
+  },
+  {
+    rota: '/anotar-gasto',
+    nome: 'Anotar Gasto/Recebimento',
+    curto: 'Anotar',
+    Icone: IconPlus,
+    rotasAtivas: ['/anotar-gasto'],
+  },
+  {
+    rota: '/contas',
+    nome: 'Contas a Pagar',
+    curto: 'Contas',
+    Icone: IconBills,
+    rotasAtivas: ['/contas', '/'],
+  },
+];
 
 export const BarraNavegacao: React.FC<BarraNavegacaoProps> = ({
   rotaAtiva,
@@ -43,72 +86,33 @@ export const BarraNavegacao: React.FC<BarraNavegacaoProps> = ({
           <img src={logoVero} alt="" className={styles.logoImagem} />
         </a>
 
+        {/* No celular vira uma barra fixa embaixo da tela, ao alcance do polegar */}
         <nav className={styles.linksNavegacao} aria-label="Navegação principal">
-          <button
-            type="button"
-            className={`${styles.navItem} ${
-              rotaAtual === '/inicio' ? styles.navItemAtivo : ''
-            }`}
-            onClick={() => navegar('/inicio')}
-            aria-current={rotaAtual === '/inicio' ? 'page' : undefined}
-          >
-            <span>Início</span>
-          </button>
-
-          <button
-            type="button"
-            className={`${styles.navItem} ${
-              rotaAtual === '/extrato' ? styles.navItemAtivo : ''
-            }`}
-            onClick={() => navegar('/extrato')}
-            aria-current={rotaAtual === '/extrato' ? 'page' : undefined}
-          >
-            <span
-              aria-hidden="true"
-              style={{ display: 'inline-flex', marginRight: 4 }}
-            >
-              <IconClock size={18} />
-            </span>
-            <span>Extrato</span>
-          </button>
-
-          <button
-            type="button"
-            className={`${styles.navItem} ${
-              rotaAtual === '/anotar-gasto' ? styles.navItemAtivo : ''
-            }`}
-            onClick={() => navegar('/anotar-gasto')}
-            aria-current={rotaAtual === '/anotar-gasto' ? 'page' : undefined}
-          >
-            <span
-              aria-hidden="true"
-              style={{ display: 'inline-flex', marginRight: 4 }}
-            >
-              <IconPlus size={18} />
-            </span>
-            <span>Anotar Gasto/Recebimento</span>
-          </button>
-
-          <button
-            type="button"
-            className={`${styles.navItem} ${
-              rotaAtual === '/contas' || rotaAtual === '/'
-                ? styles.navItemAtivo
-                : ''
-            }`}
-            onClick={() => navegar('/contas')}
-            aria-current={
-              rotaAtual === '/contas' || rotaAtual === '/' ? 'page' : undefined
+          {ITENS_MENU.map(
+            ({ rota: destino, nome, curto, Icone, rotasAtivas }) => {
+              const ativo = rotasAtivas.includes(rotaAtual);
+              return (
+                <button
+                  key={destino}
+                  type="button"
+                  className={`${styles.navItem} ${ativo ? styles.navItemAtivo : ''}`}
+                  onClick={() => navegar(destino)}
+                  aria-current={ativo ? 'page' : undefined}
+                  aria-label={nome}
+                >
+                  <span aria-hidden="true" className={styles.navIcone}>
+                    <Icone size={22} />
+                  </span>
+                  <span aria-hidden="true" className={styles.rotuloCompleto}>
+                    {nome}
+                  </span>
+                  <span aria-hidden="true" className={styles.rotuloCurto}>
+                    {curto}
+                  </span>
+                </button>
+              );
             }
-          >
-            <span
-              aria-hidden="true"
-              style={{ display: 'inline-flex', marginRight: 4 }}
-            >
-              <IconBills size={18} />
-            </span>
-            <span>Contas a Pagar</span>
-          </button>
+          )}
         </nav>
 
         <div className={styles.acoes}>
@@ -118,11 +122,8 @@ export const BarraNavegacao: React.FC<BarraNavegacaoProps> = ({
             className={styles.btnExplicacao}
             onClick={abrirTour}
           >
-            <span
-              aria-hidden="true"
-              style={{ display: 'inline-flex', marginRight: 4 }}
-            >
-              <IconSpeaker size={18} />
+            <span aria-hidden="true" className={styles.acaoIcone}>
+              <IconSpeaker size={20} />
             </span>
             <span>Ouvir explicação</span>
           </button>
@@ -133,11 +134,8 @@ export const BarraNavegacao: React.FC<BarraNavegacaoProps> = ({
             onClick={sair}
             aria-label="Sair da sua conta no Vero"
           >
-            <span
-              aria-hidden="true"
-              style={{ display: 'inline-flex', marginRight: 4 }}
-            >
-              <IconLogout size={18} />
+            <span aria-hidden="true" className={styles.acaoIcone}>
+              <IconLogout size={20} />
             </span>
             <span>Sair</span>
           </button>

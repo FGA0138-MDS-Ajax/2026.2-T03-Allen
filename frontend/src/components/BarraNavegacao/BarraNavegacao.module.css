@@ -22,13 +22,10 @@
 .brandLogo {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-family: var(--font-titulo);
-  font-weight: 900;
-  font-size: 26px;
-  color: var(--violeta-vero);
-  text-decoration: none;
+  min-height: var(--toque-minimo);
+  padding: 4px;
   border-radius: 8px;
+  text-decoration: none;
   outline: none;
 }
 
@@ -37,29 +34,40 @@
   outline-offset: 3px;
 }
 
+.logoImagem {
+  display: block;
+  width: 120px;
+  max-width: 100%;
+  height: auto;
+}
+
 .linksNavegacao {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
 }
 
 .navItem {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
+  gap: 6px;
+  min-height: var(--toque-minimo);
   padding: 8px 16px;
   border-radius: 12px;
+  /* A borda existe sempre (transparente) para o item ativo não mudar de tamanho */
   border: 2px solid transparent;
   background: transparent;
   color: var(--ardosia);
   font-family: var(--font-corpo);
   font-size: 16px;
   font-weight: 700;
+  line-height: 1.2;
   cursor: pointer;
   text-decoration: none;
-  transition: all 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .navItem:hover {
@@ -78,27 +86,46 @@
   border-color: #d8d4e8;
 }
 
+.navIcone,
+.acaoIcone {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.rotuloCurto {
+  display: none;
+}
+
 .acoes {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.btnExplicacao {
+.btnExplicacao,
+.btnSair {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
+  gap: 6px;
+  min-height: var(--toque-minimo);
   padding: 8px 14px;
   border-radius: 12px;
-  border: 2px solid transparent;
-  background-color: var(--lavanda);
-  color: var(--violeta-profundo);
   font-family: var(--font-corpo);
   font-size: 16px;
   font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.btnExplicacao {
+  border: 2px solid transparent;
+  background-color: var(--lavanda);
+  color: var(--violeta-profundo);
 }
 
 .btnExplicacao:hover {
@@ -106,85 +133,106 @@
   border-color: var(--violeta-profundo);
 }
 
-.btnExplicacao:focus-visible {
-  outline: 3px solid var(--violeta-vero);
-  outline-offset: 2px;
-}
-
 .btnSair {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  padding: 8px 16px;
-  border-radius: 12px;
   border: 2px solid var(--ardosia);
   background: transparent;
   color: var(--grafite-noturno);
-  font-family: var(--font-corpo);
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s ease;
 }
 
 .btnSair:hover {
-  background-color: #fee2e2;
-  border-color: #b91c1c;
-  color: #b91c1c;
+  background-color: var(--erro-fundo);
+  border-color: var(--erro-texto);
+  color: var(--erro-texto);
 }
 
+.btnExplicacao:focus-visible,
 .btnSair:focus-visible {
   outline: 3px solid var(--violeta-vero);
   outline-offset: 2px;
 }
 
+/* Telas médias: o menu desce para uma linha própria, com itens iguais */
+@media (max-width: 960px) {
+  .linksNavegacao {
+    order: 3;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Celular: menu numa barra fixa embaixo da tela, com ícone em cima e nome curto */
 @media (max-width: 680px) {
   .navbar {
-    padding: 10px 12px;
+    padding: 8px 12px;
   }
 
   .container {
     gap: 8px;
   }
 
-  .brandLogo {
-    font-size: 22px;
+  .logoImagem {
+    width: 88px;
+  }
+
+  .acoes {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+  }
+
+  .btnExplicacao,
+  .btnSair {
+    padding: 8px 12px;
   }
 
   .linksNavegacao {
-    width: 100%;
-    order: 3;
-    justify-content: space-between;
-    padding-top: 8px;
-    border-top: 1px solid var(--lavanda);
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+    gap: 4px;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    background-color: var(--branco);
+    border-top: 2px solid var(--lavanda);
+    box-shadow: 0 -2px 12px rgba(26, 26, 46, 0.08);
   }
 
   .navItem {
-    flex: 1;
-    min-height: 48px;
-    padding: 8px 10px;
+    flex-direction: column;
+    gap: 2px;
+    min-height: var(--toque-teclado);
+    padding: 6px 2px;
     font-size: 16px;
     text-align: center;
   }
 
-  .btnSair,
-  .btnExplicacao {
-    min-height: 48px;
-    padding: 8px 12px;
-    font-size: 16px;
+  .rotuloCompleto {
+    display: none;
+  }
+
+  .rotuloCurto {
+    display: block;
+  }
+
+  /* Espaço no fim da página para a barra não cobrir o último conteúdo */
+  :global(body):has(.linksNavegacao) {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
   }
 }
 
-.logoImagem {
-  display: block;
-  width: 120px;
-  max-width: 100%;
-  height: auto;
-}
+/* Celular estreito: os dois botões do topo dividem a linha de baixo do logo */
+@media (max-width: 400px) {
+  .acoes {
+    flex-basis: 100%;
+  }
 
-@media (max-width: 680px) {
-  .logoImagem {
-    width: 96px;
+  .btnExplicacao,
+  .btnSair {
+    flex: 1 1 0;
+  }
+
+  .btnExplicacao {
+    flex-grow: 2;
   }
 }

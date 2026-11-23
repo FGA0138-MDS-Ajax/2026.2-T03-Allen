@@ -1,17 +1,27 @@
 .pageContainer {
+  width: 100%;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   background-color: var(--nevoa);
-  padding: 16px;
+}
+
+/* O menu ocupa a largura toda; só o conteúdo tem margem e largura máxima */
+.conteudo {
+  width: 100%;
   max-width: 1200px;
   margin: 0 auto;
+  padding: 24px 16px 48px;
 }
 
 @media (min-width: 768px) {
-  .pageContainer {
-    padding: 24px 32px;
+  .conteudo {
+    padding: 24px 32px 48px;
   }
+}
+
+.cabecalhoSecao {
+  margin-bottom: 20px;
 }
 
 .navbar {
@@ -376,10 +386,11 @@
 
 .btnSugestao {
   background: #f1f5f9;
-  border: 1px solid #cbd5e1;
+  border: 2px solid #cbd5e1;
   border-radius: 16px;
-  padding: 4px 12px;
-  font-size: 15px;
+  min-height: var(--toque-minimo);
+  padding: 8px 16px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--ardosia);
   cursor: pointer;
@@ -478,7 +489,7 @@
   border-radius: 14px;
   padding: 10px 16px;
   font-family: var(--font-corpo);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 800;
   min-height: var(--toque-minimo);
   cursor: pointer;
@@ -550,8 +561,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: var(--toque-minimo);
+  height: var(--toque-minimo);
   border-radius: 12px;
   border: 2px solid #fecaca;
   background-color: #fef2f2;
@@ -589,14 +600,14 @@
 }
 
 .btnVisualizacao {
-  min-height: 40px;
-  padding: 6px 14px;
+  min-height: var(--toque-minimo);
+  padding: 6px 16px;
   border-radius: 8px;
   border: none;
   background: transparent;
   color: var(--grafite-noturno);
   font-weight: 700;
-  font-size: 15px;
+  font-size: 16px;
   cursor: pointer;
 }
 
@@ -617,17 +628,75 @@
   border-radius: 12px;
   padding: 10px 16px;
   margin-bottom: 16px;
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .btnLimparDia {
-  min-height: 36px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--violeta-vero);
+  min-height: var(--toque-minimo);
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 2px solid var(--violeta-vero);
   background-color: var(--branco);
   color: var(--violeta-profundo);
   font-weight: 700;
-  font-size: 14px;
+  font-size: 16px;
   cursor: pointer;
+}
+
+/* Celular: filtros em grade com botões do mesmo tamanho e ações em largura total */
+@media (max-width: 767px) {
+  .filtrosContainer {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .btnFiltro {
+    justify-content: center;
+    padding: 8px 10px;
+    border-radius: 14px;
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  .btnFiltro svg {
+    flex-shrink: 0;
+  }
+
+  .acoesTopoDireita {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .seletorVisualizacao {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .acoesTopoDireita > button {
+    width: 100%;
+  }
+
+  .btnLimparDia {
+    width: 100%;
+  }
+}
+
+/* Celular estreito: cada resumo numa linha só, com o nome à esquerda e o valor à direita */
+@media (max-width: 420px) {
+  .gridResumo {
+    gap: 8px;
+  }
+
+  .cardResumo {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+  .valorResumo {
+    font-size: 22px;
+    white-space: nowrap;
+  }
 }
