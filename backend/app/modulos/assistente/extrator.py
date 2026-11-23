@@ -349,6 +349,10 @@ def processar_texto_mensagem(texto: str) -> IntencaoMensagem:
 
     categoria = identificar_categoria(texto_norm, tipo)
     sucesso = (valor is not None) and (tipo != TipoTransacao.DESCONHECIDO)
+    # Sabemos o que foi, mas não quanto: o assistente pede só o valor (RF16)
+    motivo = (
+        "sem_valor" if valor is None and tipo != TipoTransacao.DESCONHECIDO else None
+    )
 
     return IntencaoMensagem(
         tipo=tipo,
@@ -356,4 +360,21 @@ def processar_texto_mensagem(texto: str) -> IntencaoMensagem:
         categoria=categoria,
         descricao=texto.strip(),
         sucesso=sucesso,
+        motivo_recusa=motivo,
     )
+
+
+RESPOSTAS_GASTO = ["gasto", "gastei", "saida", "despesa", "paguei", "compra", "comprei"]
+RESPOSTAS_RECEITA = ["entrada", "recebi", "receita", "ganhei", "rendimento", "caiu"]
+
+
+def identificar_tipo_resposta(texto: str) -> TipoTransacao:
+    """Lê a resposta a "foi um gasto ou uma entrada?" (RF16)."""
+    texto_norm = normalizar_texto(texto)
+    gasto = contem_palavra(texto_norm, RESPOSTAS_GASTO)
+    receita = contem_palavra(texto_norm, RESPOSTAS_RECEITA)
+    if gasto and not receita:
+        return TipoTransacao.GASTO
+    if receita and not gasto:
+        return TipoTransacao.RECEITA
+    return TipoTransacao.DESCONHECIDO

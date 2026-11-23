@@ -1,4 +1,6 @@
+import logging
 import secrets
+import uuid
 from decimal import Decimal
 
 import httpx
@@ -7,11 +9,21 @@ from sqlalchemy import select
 
 from app.modulos.assistente import mensagens
 from app.modulos.assistente.extrator import (
+    IntencaoMensagem,
     TipoTransacao,
     eh_saudacao,
+    extrair_valor,
+    identificar_categoria,
+    identificar_tipo_resposta,
+    normalizar_texto,
     processar_texto_mensagem,
 )
-from app.modulos.assistente.sessao import sessao_assistente
+from app.modulos.assistente.sessao import (
+    CampoFaltando,
+    RegistroPendente,
+    normalizar_resposta,
+    sessao_assistente,
+)
 from app.modulos.identidade.esquemas import normalizar_telefone
 from app.modulos.identidade.modelos import Usuario
 from app.modulos.identidade.seguranca import hash_telefone
@@ -20,6 +32,8 @@ from app.modulos.transacoes.esquemas import OrigemTransacao, TransacaoRegistroEn
 from app.modulos.transacoes.esquemas import TipoTransacao as TipoTransacaoBD
 from app.nucleo.banco import SessaoLocal
 from app.nucleo.config import settings
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -105,42 +119,16 @@ async def processar_responder(remetente: str, texto: str):
         await enviar_mensagem(remetente, mensagens.confirmacao_expirada())
         return
 
+    if pendencia and pendencia.faltando:
+        # RF16: a mensagem responde ao dado que o assistente pediu
+        await enviar_mensagem(
+            remetente, completar_lancamento(telefone, pendencia, texto)
+        )
+        return
+
     if pendencia:
         if sessao_assistente.resposta_sim(texto):
-            sessao_assistente.limpar_pendencia(telefone)
-
-            # Mapeia o tipo de transação do assistente para o tipo do banco
-            tipo_bd = (
-                TipoTransacaoBD.ENTRADA
-                if pendencia.tipo == TipoTransacao.RECEITA
-                else TipoTransacaoBD.SAIDA
-            )
-
-            valor_decimal = Decimal(pendencia.valor) / Decimal(100)
-
-            try:
-                with SessaoLocal() as sessao_db:
-                    servico_transacoes.registrar(
-                        sessao=sessao_db,
-                        usuario_id=usuario.id,
-                        dados=TransacaoRegistroEntrada(
-                            tipo=tipo_bd,
-                            valor=valor_decimal,
-                            origem=OrigemTransacao.WHATSAPP_TEXTO,
-                            descricao=pendencia.descricao or pendencia.categoria,
-                        ),
-                    )
-            except Exception as e:
-                print(f"[Erro] Falha ao registrar transação no banco: {e}")
-
-            if pendencia.tipo == TipoTransacao.RECEITA:
-                resposta = mensagens.confirmacao_sucesso_renda(
-                    pendencia.valor, pendencia.categoria
-                )
-            else:
-                resposta = mensagens.confirmacao_sucesso_gasto(
-                    pendencia.valor, pendencia.categoria
-                )
+            resposta = registrar_confirmado(telefone, usuario.id, pendencia)
             await enviar_mensagem(remetente, resposta)
             return
 
@@ -181,28 +169,195 @@ async def processar_responder(remetente: str, texto: str):
         sessao_assistente.limpar_pendencia(telefone)
 
     intencao = processar_texto_mensagem(texto)
+    await enviar_mensagem(remetente, responder_intencao(telefone, usuario, intencao))
 
-    if not intencao.sucesso or intencao.valor is None:
-        if eh_saudacao(texto):
-            nome_usuario = getattr(usuario, "nome", "") or ""
-            primeiro_nome = nome_usuario.split()[0] if nome_usuario.split() else None
-            resposta = mensagens.boas_vindas(primeiro_nome)
-        else:
-            resposta = mensagens.mensagem_nao_compreendida()
-    else:
+
+def responder_intencao(
+    telefone: str, usuario: Usuario, intencao: IntencaoMensagem
+) -> str:
+    """Pede a confirmação (RF15) ou, se faltou algum dado, explica o motivo em
+    linguagem simples e pede só o que falta (RF16)."""
+    if intencao.sucesso and intencao.valor is not None:
+        return pedir_confirmacao(
+            telefone,
+            intencao.tipo,
+            intencao.valor,
+            intencao.categoria,
+            intencao.descricao,
+        )
+
+    if eh_saudacao(intencao.descricao):
+        nome_usuario = getattr(usuario, "nome", "") or ""
+        primeiro_nome = nome_usuario.split()[0] if nome_usuario.split() else None
+        return mensagens.boas_vindas(primeiro_nome)
+
+    if intencao.motivo_recusa == "futuro":
+        return mensagens.explicar_futuro()
+
+    if intencao.motivo_recusa == "multiplas_transacoes":
+        return mensagens.explicar_varios_valores()
+
+    if intencao.motivo_recusa == "sem_valor":
         sessao_assistente.salvar_pendencia(
             telefone=telefone,
             tipo=intencao.tipo,
-            valor=intencao.valor,
+            valor=None,
             categoria=intencao.categoria,
             descricao=intencao.descricao,
+            faltando=CampoFaltando.VALOR,
         )
-        if intencao.tipo == TipoTransacao.RECEITA:
-            resposta = mensagens.confirmacao_renda(intencao.valor, intencao.categoria)
-        else:
-            resposta = mensagens.confirmacao_gasto(intencao.valor, intencao.categoria)
+        return mensagens.pedir_valor(
+            intencao.tipo == TipoTransacao.RECEITA, intencao.categoria
+        )
 
-    await enviar_mensagem(remetente, resposta)
+    return mensagens.mensagem_nao_compreendida()
+
+
+def pedir_confirmacao(
+    telefone: str,
+    tipo: TipoTransacao,
+    valor: int,
+    categoria: str,
+    descricao: str,
+) -> str:
+    sessao_assistente.salvar_pendencia(
+        telefone=telefone,
+        tipo=tipo,
+        valor=valor,
+        categoria=categoria,
+        descricao=descricao,
+    )
+    if tipo == TipoTransacao.RECEITA:
+        return mensagens.confirmacao_renda(valor, categoria)
+    return mensagens.confirmacao_gasto(valor, categoria)
+
+
+def quer_cancelar(texto: str) -> bool:
+    return normalizar_resposta(texto) in PALAVRAS_CANCELAR
+
+
+PALAVRAS_CANCELAR = {
+    "cancelar",
+    "cancela",
+    "esquece",
+    "deixa",
+    "deixa pra la",
+    "desisto",
+    "nao",
+    "n",
+    "parar",
+}
+
+
+def proximo_faltando(pendencia: RegistroPendente) -> CampoFaltando | None:
+    """Ordem das perguntas: valor, depois se foi gasto ou entrada, depois com o quê.
+    Categoria vazia quer dizer que ninguém a identificou (ex.: foto ilegível)."""
+    if pendencia.valor is None:
+        return CampoFaltando.VALOR
+    if pendencia.tipo == TipoTransacao.DESCONHECIDO:
+        return CampoFaltando.TIPO
+    if not pendencia.categoria:
+        return CampoFaltando.CATEGORIA
+    return None
+
+
+def completar_lancamento(telefone: str, pendencia: RegistroPendente, texto: str) -> str:
+    """RF16: preenche o dado que faltava com a resposta da pessoa. Se ela não
+    responder o que foi pedido, o assistente pergunta de novo em vez de descartar o
+    lançamento; só desiste quando a pessoa pede para cancelar."""
+    if quer_cancelar(texto):
+        sessao_assistente.limpar_pendencia(telefone)
+        return mensagens.registro_cancelado()
+
+    campo = pendencia.faltando
+    tipo, valor, categoria = pendencia.tipo, pendencia.valor, pendencia.categoria
+
+    if campo == CampoFaltando.VALOR:
+        valor, _ = extrair_valor(texto)
+        if valor is None:
+            _manter_rascunho(telefone, pendencia)
+            return mensagens.valor_ainda_nao_entendido()
+    elif campo == CampoFaltando.TIPO:
+        tipo = identificar_tipo_resposta(texto)
+        if tipo == TipoTransacao.DESCONHECIDO:
+            _manter_rascunho(telefone, pendencia)
+            return mensagens.tipo_ainda_nao_entendido()
+    elif campo == CampoFaltando.CATEGORIA:
+        # Sem palavra conhecida, fica em "Outros": a pessoa já disse o que foi
+        categoria = identificar_categoria(normalizar_texto(texto), tipo)
+
+    atualizada = RegistroPendente(
+        tipo=tipo,
+        valor=valor,
+        categoria=categoria,
+        descricao=pendencia.descricao or texto.strip(),
+        criado=pendencia.criado,
+    )
+    falta = proximo_faltando(atualizada)
+    if falta is None:
+        return pedir_confirmacao(telefone, tipo, valor, categoria, atualizada.descricao)
+
+    atualizada.faltando = falta
+    _manter_rascunho(telefone, atualizada)
+    return _pergunta(atualizada)
+
+
+def _pergunta(pendencia: RegistroPendente) -> str:
+    receita = pendencia.tipo == TipoTransacao.RECEITA
+    if pendencia.faltando == CampoFaltando.VALOR:
+        return mensagens.pedir_valor(receita, pendencia.categoria)
+    if pendencia.faltando == CampoFaltando.TIPO:
+        return mensagens.pedir_tipo(pendencia.valor)
+    return mensagens.pedir_categoria(receita, pendencia.valor)
+
+
+def _manter_rascunho(telefone: str, pendencia: RegistroPendente) -> None:
+    sessao_assistente.salvar_pendencia(
+        telefone=telefone,
+        tipo=pendencia.tipo,
+        valor=pendencia.valor,
+        categoria=pendencia.categoria,
+        descricao=pendencia.descricao,
+        faltando=pendencia.faltando,
+    )
+
+
+def registrar_confirmado(
+    telefone: str, usuario_id: uuid.UUID, pendencia: RegistroPendente
+) -> str:
+    """Grava o lançamento confirmado. Se o banco falhar, avisa e guarda a pendência
+    para a pessoa tentar de novo: nada é perdido em silêncio (RF16)."""
+    tipo_bd = (
+        TipoTransacaoBD.ENTRADA
+        if pendencia.tipo == TipoTransacao.RECEITA
+        else TipoTransacaoBD.SAIDA
+    )
+    valor_decimal = Decimal(pendencia.valor) / Decimal(100)
+
+    try:
+        with SessaoLocal() as sessao_db:
+            servico_transacoes.registrar(
+                sessao=sessao_db,
+                usuario_id=usuario_id,
+                dados=TransacaoRegistroEntrada(
+                    tipo=tipo_bd,
+                    valor=valor_decimal,
+                    origem=OrigemTransacao.WHATSAPP_TEXTO,
+                    descricao=pendencia.descricao or pendencia.categoria,
+                ),
+            )
+    except servico_transacoes.TransacaoJaRegistrada:
+        pass
+    except Exception:
+        # Sem valor nem texto da mensagem no log (RNF05)
+        logger.exception("Falha ao registrar transação do assistente")
+        _manter_rascunho(telefone, pendencia)
+        return mensagens.falha_ao_salvar()
+
+    sessao_assistente.limpar_pendencia(telefone)
+    if pendencia.tipo == TipoTransacao.RECEITA:
+        return mensagens.confirmacao_sucesso_renda(pendencia.valor, pendencia.categoria)
+    return mensagens.confirmacao_sucesso_gasto(pendencia.valor, pendencia.categoria)
 
 
 async def enviar_mensagem(destinatario: str, texto: str):
