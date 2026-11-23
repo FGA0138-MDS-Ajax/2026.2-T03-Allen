@@ -28,6 +28,7 @@ from app.modulos.assistente.sessao import (
     normalizar_resposta,
     sessao_assistente,
 )
+from app.modulos.contas import servico as servico_contas
 from app.modulos.identidade.esquemas import normalizar_telefone
 from app.modulos.identidade.modelos import Usuario
 from app.modulos.identidade.seguranca import hash_telefone
@@ -347,6 +348,33 @@ def _manter_rascunho(telefone: str, pendencia: RegistroPendente) -> None:
     )
 
 
+# Categoria do assistente -> categoria do app (tblCategoria), para o gasto aparecer
+# por categoria no Extrato e no resumo (#138). Entradas não têm categoria no app.
+CATEGORIA_NO_APP = {
+    "Farmácia": "Saúde",
+    "Saúde": "Saúde",
+    "Alimentação": "Alimentação",
+    "Transporte": "Transporte",
+    "Moradia": "Moradia",
+    "Lazer": "Lazer",
+    "Outros": "Outros",
+}
+
+
+def _categoria_do_app(sessao_db, pendencia: RegistroPendente) -> int | None:
+    if pendencia.tipo != TipoTransacao.GASTO:
+        return None
+    nome = CATEGORIA_NO_APP.get(pendencia.categoria)
+    if nome is None:
+        return None
+    try:
+        return servico_contas.id_da_categoria(sessao_db, nome)
+    except Exception:
+        # A categoria é opcional: sem ela, o gasto é gravado do mesmo jeito
+        logger.warning("Categoria do assistente não encontrada no app")
+        return None
+
+
 def registrar_confirmado(
     telefone: str, usuario_id: uuid.UUID, pendencia: RegistroPendente
 ) -> str:
@@ -369,6 +397,7 @@ def registrar_confirmado(
                     valor=valor_decimal,
                     origem=OrigemTransacao(pendencia.origem),
                     descricao=pendencia.descricao or pendencia.categoria,
+                    categoria_id=_categoria_do_app(sessao_db, pendencia),
                 ),
             )
     except servico_transacoes.TransacaoJaRegistrada:
