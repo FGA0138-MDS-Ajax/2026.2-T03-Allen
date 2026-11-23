@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   parsearQrCodeNfce,
   parsearValorMonetario,
@@ -106,5 +106,93 @@ describe('Utilitário NFC-e (QR Code de Nota Fiscal)', () => {
     );
     expect(sugerirCategoriaPorEstabelecimento('')).toBe('outros');
     expect(sugerirCategoriaPorEstabelecimento('Loja Exemplo')).toBe('outros');
+  });
+});
+
+describe('NFS-e do padrão nacional (#122)', () => {
+  // município (7) · ambiente (1) · tipo de inscrição (1) · CPF/CNPJ (14) ·
+  // número (13) · AAMM (4) · código numérico (9) · DV (1)
+  const chave = ({
+    municipio = '5300108', // Brasília
+    tipoInscricao = '2',
+    inscricao = '12345678000195',
+    aamm = '2610',
+  } = {}) =>
+    `${municipio}2${tipoInscricao}${inscricao}0000000000123${aamm}1234567890`;
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const hojeEm23deNovembro = () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 10, 23, 10, 0));
+  };
+
+  it('monta chaves de 50 dígitos no teste', () => {
+    expect(chave()).toHaveLength(50);
+  });
+
+  it('lê o QR da Consulta Pública: UF, CNPJ e mês da emissão, sem valor', () => {
+    hojeEm23deNovembro();
+    const res = parsearQrCodeNfce(
+      `https://www.nfse.gov.br/ConsultaPublica/?tpc=1&chave=${chave()}`
+    );
+
+    expect(res).toMatchObject({
+      valido: true,
+      modelo: 'nfse',
+      chaveAcesso: chave(),
+      uf: 'DF',
+      cnpj: '12.345.678/0001-95',
+      estabelecimento: '',
+      data: '2026-10-01',
+      centavos: null,
+    });
+    expect(res.aviso).toMatch(/nota fiscal de serviço lida/i);
+  });
+
+  it('nota emitida no mês atual fica com a data de hoje', () => {
+    hojeEm23deNovembro();
+    const res = parsearQrCodeNfce(
+      `https://www.nfse.gov.br/consultapublica?chave=${chave({ aamm: '2611' })}`
+    );
+    expect(res.data).toBe('2026-11-23');
+  });
+
+  it('aceita a chave pura e o identificador "NFS" + chave', () => {
+    expect(parsearQrCodeNfce(chave()).modelo).toBe('nfse');
+    expect(parsearQrCodeNfce(`NFS${chave()}`).chaveAcesso).toBe(chave());
+  });
+
+  it('não mostra o CPF de prestador pessoa física', () => {
+    const res = parsearQrCodeNfce(
+      chave({ tipoInscricao: '1', inscricao: '00012345678909' })
+    );
+    expect(res.valido).toBe(true);
+    expect(res.cnpj).toBeUndefined();
+  });
+
+  it('50 dígitos sem a estrutura da chave não viram nota', () => {
+    expect(parsearQrCodeNfce(chave({ municipio: '9900000' })).valido).toBe(
+      false
+    );
+    expect(parsearQrCodeNfce(chave({ aamm: '2613' })).valido).toBe(false);
+  });
+
+  it('NFS-e de prefeitura fora do padrão nacional: aviso para digitar', () => {
+    const res = parsearQrCodeNfce(
+      'https://nfe.prefeitura.sp.gov.br/nfse/consulta?nf=123&verificacao=ABCD1234'
+    );
+    expect(res.valido).toBe(false);
+    expect(res.aviso).toMatch(/prefeitura/i);
+  });
+
+  it('NFC-e continua sendo lida como nota de compra', () => {
+    const res = parsearQrCodeNfce(
+      'https://www.fazenda.df.gov.br/nfce/qrcode?p=53261112345678000199650010000123451123456789|2|1|1|HASH'
+    );
+    expect(res.valido).toBe(true);
+    expect(res.modelo).not.toBe('nfse');
   });
 });

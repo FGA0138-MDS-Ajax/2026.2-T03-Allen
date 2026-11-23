@@ -1,9 +1,12 @@
 /**
- * Utilitário para leitura e interpretação de QR Codes de NFC-e (Nota Fiscal de Consumidor Eletrônica).
+ * Utilitário para leitura e interpretação de QR Codes de nota fiscal: NFC-e (Nota Fiscal
+ * de Consumidor Eletrônica, compras) e NFS-e do padrão nacional (serviços, #122).
  */
 
 export interface DadosNfce {
   valido: boolean;
+  /** nfce: nota de compra (chave de 44 dígitos); nfse: nota de serviço (50 dígitos) */
+  modelo?: 'nfce' | 'nfse';
   chaveAcesso?: string;
   uf?: string;
   estabelecimento: string;
@@ -153,20 +156,16 @@ function dataPadraoHoje(): string {
   return `${ano}-${mes}-${dia}`;
 }
 
-function extrairDadosDaChave44(
-  chave: string,
+/**
+ * Data aproximada a partir do ano/mês da chave: hoje, se a nota é do mês atual; senão,
+ * o dia 1º daquele mês (ou o dia informado na contingência).
+ */
+function dataPorAnoMes(
+  anoDoisDigitos: string,
+  mes: string,
   diaExplicito?: string
-): {
-  uf: string;
-  cnpj: string;
-  dataEstimada: string;
-} {
-  const codUf = chave.slice(0, 2);
-  const uf = CODIGOS_UF[codUf] || 'BR';
-  const ano = `20${chave.slice(2, 4)}`;
-  const mes = chave.slice(4, 6);
-  const cnpj = formatarCnpj(chave.slice(6, 20));
-
+): string {
+  const ano = `20${anoDoisDigitos}`;
   const hoje = new Date();
   const anoAtual = String(hoje.getFullYear());
   const mesAtual = String(hoje.getMonth() + 1).padStart(2, '0');
@@ -184,16 +183,96 @@ function extrairDadosDaChave44(
   }
 
   const mesValido = Number(mes) >= 1 && Number(mes) <= 12 ? mes : mesAtual;
+  return `${ano}-${mesValido}-${dia}`;
+}
 
+function extrairDadosDaChave44(
+  chave: string,
+  diaExplicito?: string
+): {
+  uf: string;
+  cnpj: string;
+  dataEstimada: string;
+} {
+  const codUf = chave.slice(0, 2);
   return {
-    uf,
-    cnpj,
-    dataEstimada: `${ano}-${mesValido}-${dia}`,
+    uf: CODIGOS_UF[codUf] || 'BR',
+    cnpj: formatarCnpj(chave.slice(6, 20)),
+    dataEstimada: dataPorAnoMes(
+      chave.slice(2, 4),
+      chave.slice(4, 6),
+      diaExplicito
+    ),
   };
 }
 
 /**
- * Interpreta o conteúdo lido de um QR Code de nota fiscal (NFC-e v1, v2, contingência ou JSON em dev).
+ * Chave de acesso da NFS-e do padrão nacional (50 dígitos):
+ * município IBGE (7) · ambiente gerador (1) · tipo de inscrição 1=CPF/2=CNPJ (1) ·
+ * CPF/CNPJ do prestador (14) · número da NFS-e (13) · ano e mês da emissão AAMM (4) ·
+ * código numérico (9) · dígito verificador (1).
+ * Devolve null se a estrutura não bate (não é uma chave de NFS-e).
+ */
+function extrairDadosDaChaveNfse(chave: string): {
+  uf: string;
+  cnpj?: string;
+  dataEstimada: string;
+} | null {
+  if (!/^\d{50}$/.test(chave)) return null;
+  const uf = CODIGOS_UF[chave.slice(0, 2)];
+  const ambiente = chave[7];
+  const tipoInscricao = chave[8];
+  const mes = Number(chave.slice(38, 40));
+  if (
+    !uf ||
+    (ambiente !== '1' && ambiente !== '2') ||
+    (tipoInscricao !== '1' && tipoInscricao !== '2') ||
+    mes < 1 ||
+    mes > 12
+  ) {
+    return null;
+  }
+  return {
+    uf,
+    // CPF de prestador pessoa física não é mostrado (é dado pessoal)
+    cnpj: tipoInscricao === '2' ? formatarCnpj(chave.slice(9, 23)) : undefined,
+    // AAMM nas posições 37 a 40
+    dataEstimada: dataPorAnoMes(chave.slice(36, 38), chave.slice(38, 40)),
+  };
+}
+
+const AVISO_NFSE =
+  'Nota fiscal de serviço lida! O valor não vem dentro do código: digite o valor total abaixo.';
+
+/** NFS-e de prefeitura fora do padrão nacional: cada cidade tem o seu formato. */
+const AVISO_NFSE_MUNICIPAL =
+  'Essa nota fiscal de serviço é de um sistema da prefeitura que o Vero ainda não consegue ler. Digite o valor abaixo.';
+
+function lerNfseNacional(texto: string): DadosNfce | null {
+  const semPrefixo = texto.replace(/NFS(?=\d{50})/g, '');
+  for (const candidata of semPrefixo.match(/\d{50}/g) ?? []) {
+    const dados = extrairDadosDaChaveNfse(candidata);
+    if (dados) {
+      return {
+        valido: true,
+        modelo: 'nfse',
+        chaveAcesso: candidata,
+        uf: dados.uf,
+        cnpj: dados.cnpj,
+        estabelecimento: '',
+        data: dados.dataEstimada,
+        centavos: null,
+        urlOriginal: texto,
+        aviso: AVISO_NFSE,
+      };
+    }
+  }
+  return null;
+}
+
+/**
+ * Interpreta o conteúdo lido de um QR Code de nota fiscal (NFC-e v1, v2, contingência,
+ * NFS-e nacional ou JSON em dev).
  */
 export function parsearQrCodeNfce(
   textoBruto: string,
@@ -254,6 +333,22 @@ export function parsearQrCodeNfce(
   }
 
   if (url) {
+    // NFS-e nacional: QR da Consulta Pública com a chave de 50 dígitos (#122)
+    const ehNfse = /nfs-?e/i.test(url.hostname + url.pathname);
+    if (ehNfse) {
+      const nfse = lerNfseNacional(texto);
+      if (nfse) return nfse;
+      return {
+        valido: false,
+        modelo: 'nfse',
+        estabelecimento: '',
+        data: hojeStr,
+        centavos: null,
+        urlOriginal: texto,
+        aviso: AVISO_NFSE_MUNICIPAL,
+      };
+    }
+
     const params = url.searchParams;
     const parametroP = params.get('p');
 
@@ -355,7 +450,12 @@ export function parsearQrCodeNfce(
     }
   }
 
-  // 3. Chave de acesso pura de 44 dígitos
+  // 3. Chave de acesso pura: 50 dígitos (NFS-e) ou 44 dígitos (NFC-e)
+  if (texto.length <= 60) {
+    const nfse = lerNfseNacional(texto.replace(/[\s.-]/g, ''));
+    if (nfse) return { ...nfse, urlOriginal: texto };
+  }
+
   const apenasDigitos = texto.replace(/\D/g, '');
   if (apenasDigitos.length === 44 && texto.length <= 54) {
     const { uf, cnpj, dataEstimada } = extrairDadosDaChave44(apenasDigitos);
