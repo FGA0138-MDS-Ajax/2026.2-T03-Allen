@@ -154,6 +154,15 @@
   color: var(--branco);
 }
 
+/* RF33: o filtro escolhido não muda só de cor (#141): o texto fica sublinhado
+   e a borda mais grossa. Um ✓ confundiria com o ícone da aba "Pagas" */
+.btnFiltroAtivo {
+  border-width: 3px;
+  text-decoration: underline;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 5px;
+}
+
 .btnFiltroAtivo:hover {
   background: var(--violeta-profundo);
   border-color: var(--violeta-profundo);
@@ -375,10 +384,14 @@
 }
 
 .btnSugestao {
+  /* Toque mínimo do projeto (#142): eram 28 px de altura */
+  min-height: var(--toque-minimo);
+  display: inline-flex;
+  align-items: center;
   background: #f1f5f9;
   border: 1px solid #cbd5e1;
-  border-radius: 16px;
-  padding: 4px 12px;
+  border-radius: 24px;
+  padding: 8px 16px;
   font-size: 15px;
   font-weight: 600;
   color: var(--ardosia);
@@ -518,6 +531,7 @@
 }
 
 .checkboxContainer {
+  min-height: var(--toque-minimo);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -534,8 +548,10 @@
 }
 
 .checkboxInput {
-  width: 22px;
-  height: 22px;
+  /* A caixa sozinha também precisa ser fácil de acertar (#142) */
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
   accent-color: var(--violeta-vero);
   cursor: pointer;
 }
@@ -589,7 +605,7 @@
 }
 
 .btnVisualizacao {
-  min-height: 40px;
+  min-height: var(--toque-minimo);
   padding: 6px 14px;
   border-radius: 8px;
   border: none;

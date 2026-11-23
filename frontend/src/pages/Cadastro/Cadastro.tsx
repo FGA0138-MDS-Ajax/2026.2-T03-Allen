@@ -13,6 +13,7 @@ import { cadastrarUsuario, ErroApi } from '../../servicos';
 import { formatarCelular, validarCelular } from '../../utils/telefone';
 import logoVero from '../../assets/logoVero';
 import styles from './Cadastro.module.css';
+import estilosBotao from '../../components/Botao/Botao.module.css';
 
 export const Cadastro = () => {
   const { navegar } = useNavegacao();
@@ -136,7 +137,7 @@ export const Cadastro = () => {
         </a>
       </header>
 
-      <div className={styles.layoutGrid}>
+      <main className={styles.layoutGrid}>
         {/* Painel Informativo de Desktop */}
         <aside className={styles.heroAside} aria-label="Apresentação do Vero">
           <span className={styles.heroBadge}>
@@ -144,9 +145,11 @@ export const Cadastro = () => {
             <span>Seu dinheiro em dia, sem complicação</span>
           </span>
 
-          <h1 className={styles.heroTitle}>
+          {/* Slogan, não título: o painel some abaixo de 900 px e o título da tela
+              é o do passo (#111) */}
+          <p className={styles.heroTitle}>
             Controlar o dinheiro não precisa ser coisa de especialista.
-          </h1>
+          </p>
 
           <p className={styles.heroDescription}>
             O Vero ajuda você a saber quanto ainda tem disponível no mês e avisa
@@ -199,7 +202,7 @@ export const Cadastro = () => {
           {passo === 1 && (
             <>
               <span className={styles.etapaIndicador}>Passo 1 de 3</span>
-              <h2 className={styles.titulo}>Criar sua conta no Vero</h2>
+              <h1 className={styles.titulo}>Criar sua conta no Vero</h1>
               <p className={styles.subtitulo}>
                 Digite seu nome ou apelido e o número do seu celular.
               </p>
@@ -255,7 +258,7 @@ export const Cadastro = () => {
           {passo === 2 && (
             <>
               <span className={styles.etapaIndicador}>Passo 2 de 3</span>
-              <h2 className={styles.titulo}>Crie seu PIN numérico</h2>
+              <h1 className={styles.titulo}>Crie seu PIN numérico</h1>
               <p className={styles.subtitulo}>
                 Escolha 4 números fáceis de lembrar para entrar no aplicativo.
               </p>
@@ -305,7 +308,7 @@ export const Cadastro = () => {
           {passo === 3 && (
             <>
               <span className={styles.etapaIndicador}>Passo 3 de 3</span>
-              <h2 className={styles.titulo}>Confirme seu PIN</h2>
+              <h1 className={styles.titulo}>Confirme seu PIN</h1>
               <p className={styles.subtitulo}>
                 Digite novamente os 4 números para confirmar.
               </p>
@@ -381,7 +384,7 @@ export const Cadastro = () => {
                 <IconCheck size={36} />
               </div>
 
-              <h2 className={styles.titulo}>Cadastro concluído!</h2>
+              <h1 className={styles.titulo}>Cadastro concluído!</h1>
               <p className={styles.subtitulo}>
                 Sua conta no Vero foi criada com sucesso. Agora você pode falar
                 com o assistente pelo WhatsApp ou acessar o aplicativo.
@@ -397,12 +400,14 @@ export const Cadastro = () => {
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
+                  // Link com cara de botão: botão dentro de link é dois controles num só (#143)
+                  className={`${estilosBotao.botao} ${estilosBotao.primary} ${estilosBotao.fullWidth}`}
                   style={{ textDecoration: 'none' }}
                 >
-                  <Botao variant="primary" fullWidth>
+                  <span aria-hidden="true" style={{ display: 'inline-flex' }}>
                     <IconWhatsApp size={22} />
-                    <span>Falar com o assistente no WhatsApp</span>
-                  </Botao>
+                  </span>
+                  <span>Falar com o assistente no WhatsApp</span>
                 </a>
 
                 <Botao
@@ -416,7 +421,7 @@ export const Cadastro = () => {
             </div>
           )}
         </section>
-      </div>
+      </main>
     </div>
   );
 };
