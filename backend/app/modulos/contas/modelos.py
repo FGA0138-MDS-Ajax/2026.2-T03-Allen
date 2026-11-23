@@ -7,11 +7,11 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy import (
     BigInteger,
-    String,
     Date,
     DateTime,
     ForeignKey,
     Numeric,
+    String,
     Text,
     false,
     func,
@@ -82,10 +82,6 @@ class Conta(Base):
 class Categoria(Base):
     __tablename__ = "tblCategoria"
 
-    id: Mapped[int] = mapped_column(
-        "idCategoria", BigInteger, primary_key=True
-    )
+    id: Mapped[int] = mapped_column("idCategoria", BigInteger, primary_key=True)
 
-    nome: Mapped[str] = mapped_column(
-        "noCategoria", String(255), nullable=False
-    )
+    nome: Mapped[str] = mapped_column("noCategoria", String(255), nullable=False)

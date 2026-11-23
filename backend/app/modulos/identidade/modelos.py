@@ -41,9 +41,7 @@ class Usuario(Base):
 
     # Número para o lembrete no WhatsApp (RF28). Opcional: quem se cadastrou antes da
     # migration dae0c2713ca6 só tem o hash, e o lembrete pula quem não tem número.
-    telefone: Mapped[str | None] = mapped_column(
-        "nuTelefone", String(255), unique=True
-    )
+    telefone: Mapped[str | None] = mapped_column("nuTelefone", String(255), unique=True)
 
     @property
     def tem_pin(self) -> bool:

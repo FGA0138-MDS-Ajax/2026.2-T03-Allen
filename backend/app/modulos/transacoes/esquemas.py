@@ -106,6 +106,7 @@ class TransacaoSaida(BaseModel):
     origem: OrigemTransacao
     criado_em: datetime
 
+
 class SaldoMesSaida(BaseModel):
     mes: str
     entradas: Decimal

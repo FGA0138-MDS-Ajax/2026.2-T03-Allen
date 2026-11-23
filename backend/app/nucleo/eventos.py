@@ -44,8 +44,7 @@ def publicar(usuario_id: uuid.UUID, tipo: TipoEvento, dados: dict) -> None:
 
 
 async def ouvir(
-        usuario_id: uuid.UUID,
-        inscrito: asyncio.Future[None] 
+    usuario_id: uuid.UUID, inscrito: asyncio.Future[None]
 ) -> AsyncIterator[str]:
     conexao = valkey_async.Valkey.from_url(
         settings.VALKEY_URL, decode_responses=True, socket_timeout=None
