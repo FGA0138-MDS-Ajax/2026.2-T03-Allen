@@ -1,5 +1,10 @@
+from datetime import UTC, datetime
+import uuid
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
+from valkey.commands.core import AsyncPubSubCommands
 
 from app.integracoes.correio import obter_email
 from app.modulos.identidade import recuperacao, servico
@@ -14,7 +19,7 @@ from app.modulos.identidade.esquemas import (
     UsuarioSaida,
 )
 from app.modulos.identidade.mensagens import Message
-from app.modulos.identidade.modelos import Usuario
+from app.modulos.identidade.modelos import Acompanhante, Usuario
 from app.modulos.identidade.seguranca import criar_token, usuario_atual
 from app.modulos.identidade.servico import Attempts
 from app.nucleo.banco import obter_sessao
@@ -181,3 +186,86 @@ def _recuperacao_indisponivel() -> HTTPException:
     return HTTPException(
         status.HTTP_503_SERVICE_UNAVAILABLE, Message.RECUPERACAO_INDISPONIVEL.message
     )
+
+
+def _verifica_existencia_usuario(
+    id_usuario_acompanhante: uuid.UUID,
+    sessao: Session = Depends(obter_sessao),
+    current_user: Usuario = Depends(usuario_atual),
+) -> bool:
+
+    existe = sessao.scalar(
+        select(Acompanhante).where(
+            Acompanhante.id_usuario_titular == current_user.id,
+            Acompanhante.id_usuario_acompanhante == id_usuario_acompanhante,
+            Acompanhante.ic_pode_editar.is_not(None),
+        )
+    )
+    if existe:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "já existe um convite ativo entre estes usuários."
+        )
+    return True
+
+
+def _gerar_convite(
+    id_usuario_acompanhante: uuid.UUID,
+    sessao: Session = Depends(obter_sessao),
+    current_user: Usuario = Depends(usuario_atual),
+) -> Acompanhante:
+    convite = Acompanhante(
+        id_usuario_titular=current_user.id,
+        id_usuario_acompanhante=id_usuario_acompanhante,
+        ic_pode_editar=True,
+    )
+    sessao.add(convite)
+    sessao.commit()
+    sessao.refresh(convite)
+    return convite
+
+
+@router.post(
+    "/convidar-acompanhante", response_model=dict, status_code=status.HTTP_201_CREATED
+)
+def convidar_acompanhante(
+    id_usuario_acompanhante: uuid.UUID,
+    sessao: Session = Depends(obter_sessao),
+    current_user: Usuario = Depends(usuario_atual),
+) -> dict[str, str] | None:
+    """pessoa convida familiar para ser acompanhante.
+    o familiar ou próximo recebe um convite e precisa aceitar explicitamente.
+    """
+    existe = _verifica_existencia_usuario(id_usuario_acompanhante, sessao, current_user)
+    if not existe:
+        convite = _gerar_convite(id_usuario_acompanhante, sessao, current_user)
+        return {
+            "status": "convite_enviado",
+            "convite_id": str(convite.id_usuario_acompanhante),
+            "mensagem": "Convite enviado à pessoa de confiança.",
+        }
+
+
+@router.post(
+    "/aceitar-convite/{convite_id}",
+    response_model=dict,
+    status_code=status.HTTP_200_OK,
+)
+def aceitar_convite(convite_id: uuid.UUID, sessao: Session = Depends(obter_sessao)):
+    """Quando a pessoa próxima aceita o convite explicitamente"""
+    convite = sessao.scalar(
+        select(Acompanhante).where(Acompanhante.id_usuario_acompanhante == convite_id)
+    )
+    if convite is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "convite não encontrado.")
+    if convite.id_usuario_acompanhante != ...:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, "sem permissão para aceitar o convite."
+        )
+
+        convite.ic_pode_editar = True
+        convite.dh_aceite = datetime.now(UTC)
+        sessao.commit()
+        return {
+            "status": "acesso_liberado",
+            "mensagem": "Seu acesso ao perfil foi liberado.",
+        }

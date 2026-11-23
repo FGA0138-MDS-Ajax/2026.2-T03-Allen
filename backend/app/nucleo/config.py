@@ -60,9 +60,9 @@ class Settings(BaseSettings):
     WHATSAPP_TOKEN: str = ""
 
     # WhatsApp / Evolution API
-    EVOLUTION_URL: str
-    AUTHENTICATION_API_KEY: str
-    INSTANCE_NAME: str
+    EVOLUTION_URL: str = ""
+    AUTHENTICATION_API_KEY: str = ""
+    INSTANCE_NAME: str = ""
 
     model_config = SettingsConfigDict(
         env_file=[
