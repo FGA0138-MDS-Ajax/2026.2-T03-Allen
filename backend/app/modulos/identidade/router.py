@@ -245,13 +245,9 @@ def convidar_acompanhante(
         }
 
 
-@router.post(
-    "/aceitar-convite/{convite_id}",
-    response_model=dict,
-    status_code=status.HTTP_200_OK,
-)
-def aceitar_convite(convite_id: uuid.UUID, sessao: Session = Depends(obter_sessao)):
-    """Quando a pessoa próxima aceita o convite explicitamente"""
+def _checar_id_convite(
+    convite_id: uuid.UUID, sessao: Session = Depends(obter_sessao)
+) -> Acompanhante:
     convite = sessao.scalar(
         select(Acompanhante).where(Acompanhante.id_usuario_acompanhante == convite_id)
     )
@@ -261,11 +257,22 @@ def aceitar_convite(convite_id: uuid.UUID, sessao: Session = Depends(obter_sessa
         raise HTTPException(
             status.HTTP_403_FORBIDDEN, "sem permissão para aceitar o convite."
         )
+    return convite
 
-        convite.ic_pode_editar = True
-        convite.dh_aceite = datetime.now(UTC)
-        sessao.commit()
-        return {
-            "status": "acesso_liberado",
-            "mensagem": "Seu acesso ao perfil foi liberado.",
-        }
+
+@router.post(
+    "/aceitar-convite/{convite_id}",
+    response_model=dict,
+    status_code=status.HTTP_200_OK,
+)
+def aceitar_convite(convite_id: uuid.UUID, sessao: Session = Depends(obter_sessao)):
+    """Quando a pessoa próxima aceita o convite explicitamente"""
+    convite = _checar_id_convite(convite_id, sessao)
+    convite.ic_pode_editar = True
+    convite.dh_aceite = datetime.now(UTC)
+    sessao.commit()
+
+    return {
+        "status": "acesso_liberado",
+        "mensagem": "Seu acesso ao perfil foi liberado.",
+    }
