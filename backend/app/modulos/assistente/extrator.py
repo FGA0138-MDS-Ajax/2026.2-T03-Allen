@@ -95,7 +95,17 @@ VERBOS_RECEITA = [
     "ganhou",
     "entrou",
     "deposito",
+    "vendi",
+    "vendeu",
 ]
+
+# Alguém deu ou pagou para a pessoa: é entrada, mesmo com "deu" ou "pagou" (#136)
+PADRAO_RECEBIDO_DE_ALGUEM = re.compile(
+    r"\bme\s+(?:deu|deram|pagou|pagaram|mandou|mandaram|passou|passaram|"
+    r"transferiu|transferiram|devolveu|devolveram|emprestou|emprestaram)\b"
+)
+
+CATEGORIAS_RECEITA = {"Aposentadoria", "Salário", "Renda Extra"}
 VERBOS_GASTO = [
     "gastei",
     "gastou",
@@ -252,7 +262,15 @@ def extrair_valor(texto: str) -> tuple[int | None, bool]:
     candidatos: list[tuple[int, int]] = []  # (valor, peso_prioridade)
     for m in matches:
         num_str = m.group(1)
-        if len(num_str) == 4 and num_str.startswith("20") and "r$" not in m.group(0):
+        # Parece um ano ("em 2025") só se forem 4 algarismos sem nada de dinheiro
+        # perto e houver outro número na frase: "20,5" e "gastei 2000" são valores
+        if (
+            re.fullmatch(r"20\d{2}", num_str)
+            and len(matches) > 1
+            and not re.search(
+                r"r\$|reais|real|conto", texto_limpo[m.start() : m.end() + 10]
+            )
+        ):
             continue
         v = string_para_centavos(num_str)
         if v is not None and v > 0:
@@ -269,7 +287,8 @@ def extrair_valor(texto: str) -> tuple[int | None, bool]:
             candidatos.append((v, peso))
 
     if not candidatos:
-        return None, False
+        # "trinta reais", "cento e vinte" (#135)
+        return valor_por_extenso(texto_lower), False
 
     if len(candidatos) > 1:
         if re.search(r"\b\d+.*?\be\s+\d+", texto_limpo):
@@ -286,6 +305,12 @@ def identificar_categoria(texto_normalizado: str, tipo: TipoTransacao) -> str:
     melhor_categoria = "Outros" if tipo == TipoTransacao.GASTO else "Outras Receitas"
 
     for categoria, sinonimos in CATEGORIAS.items():
+        # Gasto não cai em categoria de entrada, e vice-versa (#136)
+        de_receita = categoria in CATEGORIAS_RECEITA
+        if tipo == TipoTransacao.GASTO and de_receita:
+            continue
+        if tipo == TipoTransacao.RECEITA and not de_receita:
+            continue
         for palavra in todas_palavras:
             if len(palavra) < 3:
                 continue
@@ -323,6 +348,9 @@ def processar_texto_mensagem(texto: str) -> IntencaoMensagem:
 
     bool_receita = contem_palavra(texto_norm, VERBOS_RECEITA)
     bool_gasto = contem_palavra(texto_norm, VERBOS_GASTO)
+
+    if PADRAO_RECEBIDO_DE_ALGUEM.search(texto_norm):
+        bool_receita, bool_gasto = True, False
 
     if "pagamento" in texto_norm and bool_receita:
         bool_gasto = False
@@ -378,3 +406,91 @@ def identificar_tipo_resposta(texto: str) -> TipoTransacao:
     if receita and not gasto:
         return TipoTransacao.RECEITA
     return TipoTransacao.DESCONHECIDO
+
+
+# Valor por extenso (#135): muita gente escreve "trinta" em vez de "30"
+
+UNIDADES = {
+    "zero": 0,
+    "um": 1,
+    "uma": 1,
+    "dois": 2,
+    "duas": 2,
+    "tres": 3,
+    "quatro": 4,
+    "cinco": 5,
+    "seis": 6,
+    "sete": 7,
+    "oito": 8,
+    "nove": 9,
+    "dez": 10,
+    "onze": 11,
+    "doze": 12,
+    "treze": 13,
+    "catorze": 14,
+    "quatorze": 14,
+    "quinze": 15,
+    "dezesseis": 16,
+    "dezessete": 17,
+    "dezoito": 18,
+    "dezenove": 19,
+}
+DEZENAS = {
+    "vinte": 20,
+    "trinta": 30,
+    "quarenta": 40,
+    "cinquenta": 50,
+    "sessenta": 60,
+    "setenta": 70,
+    "oitenta": 80,
+    "noventa": 90,
+}
+CENTENAS = {
+    "cem": 100,
+    "cento": 100,
+    "duzentos": 200,
+    "duzentas": 200,
+    "trezentos": 300,
+    "quatrocentos": 400,
+    "quinhentos": 500,
+    "seiscentos": 600,
+    "setecentos": 700,
+    "oitocentos": 800,
+    "novecentos": 900,
+}
+PALAVRAS_DINHEIRO = {"reais", "real", "conto", "contos", "pila", "pilas"}
+# Sozinhas, são artigo ou quantidade ("comprei um remédio", "dois pães"), não valor
+AMBIGUAS = {"um", "uma", "dois", "duas"}
+
+
+def valor_por_extenso(texto: str) -> int | None:
+    """Lê o primeiro valor escrito por extenso, em centavos: "trinta" -> 3000,
+    "cento e vinte reais" -> 12000, "mil e quinhentos" -> 150000."""
+    palavras = re.findall(r"[a-z]+", normalizar_texto(texto))
+    i = 0
+    while i < len(palavras):
+        if palavras[i] not in UNIDADES | DEZENAS | CENTENAS and palavras[i] != "mil":
+            i += 1
+            continue
+        total, grupo, usadas, j = 0, 0, [], i
+        while j < len(palavras):
+            p = palavras[j]
+            if p in UNIDADES or p in DEZENAS or p in CENTENAS:
+                grupo += (UNIDADES | DEZENAS | CENTENAS)[p]
+            elif p == "mil":
+                total += (grupo or 1) * 1000
+                grupo = 0
+            elif p == "e" and usadas:
+                j += 1
+                continue
+            else:
+                break
+            usadas.append(p)
+            j += 1
+        valor = total + grupo
+        seguinte = palavras[j] if j < len(palavras) else ""
+        sozinha_ambigua = usadas == [usadas[0]] and usadas[0] in AMBIGUAS
+        if valor > 0 and (not sozinha_ambigua or seguinte in PALAVRAS_DINHEIRO):
+            return valor * 100
+        i = j
+    return None
