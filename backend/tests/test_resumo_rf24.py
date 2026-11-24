@@ -235,6 +235,16 @@ def test_falha_com_uma_pessoa_nao_para_as_outras(
         ("Quero o resumo", True),
         ("parar", None),
         ("gastei 35 na farmácia", None),
+        # #137: frase do jeito da pessoa, não só a exata
+        ("Parar resumo por favor", False),
+        ("nao quero mais receber resumo", False),
+        ("Chega de resumo!", False),
+        ("pode tirar o resumo", False),
+        ("quero voltar a receber o resumo", True),
+        ("manda o resumo de novo", True),
+        ("quero o resumo para segunda", True),
+        ("resumo", None),
+        ("o que é esse resumo que você mandou hoje de manhã cedo pra mim", None),
     ],
 )
 def test_reconhece_comando(texto, esperado):
@@ -281,3 +291,31 @@ def test_assistente_atende_parar_resumo_antes_de_tudo(
 def test_agenda_do_celery():
     agenda = {item["task"] for item in fila.conf.beat_schedule.values()}
     assert {"resumo.semanal", "resumo.mensal"} <= agenda
+
+
+def test_nao_quero_receber_resumo_nao_vira_entrada(
+    ambiente_assistente,  # noqa: F811
+    monkeypatch,
+):
+    """#137: antes, "receber" abria um lançamento de entrada pedindo valor."""
+    sessao, telefone, enviadas, _, enviar = ambiente_assistente
+    gravado = []
+    monkeypatch.setattr(
+        servico_resumo,
+        "SessaoLocal",
+        lambda: nullcontext(
+            type(
+                "S",
+                (),
+                {
+                    "get": lambda self, m, i: gravado.append(i),
+                    "commit": lambda self: None,
+                },
+            )()
+        ),
+    )
+
+    enviar("nao quero mais receber resumo")
+
+    assert "não vou mais mandar o resumo" in enviadas[-1]
+    assert sessao.obter_pendencia(telefone)[0] is None
