@@ -209,7 +209,10 @@
 }
 
 .linkVerTodas {
-  font-size: 14px;
+  /* Toque mínimo do projeto (#142) */
+  min-height: var(--toque-minimo);
+  padding: 0 8px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--violeta-vero);
   background: transparent;
@@ -391,6 +394,9 @@
 }
 
 .btnApagarGasto {
+  /* Era 30 × 30 px, ao lado do valor: fácil de tocar sem querer com tremor (#142) */
+  min-width: var(--toque-minimo);
+  min-height: var(--toque-minimo);
   background: transparent;
   border: none;
   color: var(--ardosia);
