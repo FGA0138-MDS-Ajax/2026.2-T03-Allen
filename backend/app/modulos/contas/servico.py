@@ -8,7 +8,11 @@ from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.modulos.contas.esquemas import ContaAutomaticaVencida, ContaCadastroEntrada
+from app.modulos.contas.esquemas import (
+    ContaAutomaticaVencida,
+    ContaAVencer,
+    ContaCadastroEntrada,
+)
 from app.modulos.contas.modelos import Conta
 from app.modulos.contas.parcelas import datas_das_parcelas, dividir_valor
 from app.modulos.contas.recorrencia import gerar_proxima_recorrencia
@@ -164,3 +168,20 @@ def pagar_conta_automatica(sessao: Session, conta_id: uuid.UUID) -> None:
     if conta is None:
         raise ContaNaoEncontrada
     registrar_pagamento(sessao, conta)
+
+
+def contas_em_aberto_entre(
+    sessao: Session, inicio: date, fim: date
+) -> list[ContaAVencer]:
+    """RF28 e RF29: contas não pagas que vencem entre as datas (inclusive), da que vence
+    primeiro para a última."""
+    comando = (
+        select(Conta)
+        .where(
+            Conta.pagamento_em.is_(None),
+            Conta.vencimento_em >= inicio,
+            Conta.vencimento_em <= fim,
+        )
+        .order_by(Conta.vencimento_em, Conta.criado_em)
+    )
+    return [ContaAVencer.model_validate(conta) for conta in sessao.scalars(comando)]
