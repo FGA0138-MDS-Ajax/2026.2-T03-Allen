@@ -272,6 +272,9 @@ def test_toda_rotina_agendada_aponta_para_uma_tarefa_registrada() -> None:
     """O Beat agenda pelo nome: nome errado e a rotina nunca roda."""
     from app.nucleo.tarefas import fila
 
+    # Carrega os módulos do `include`, como o worker faz ao subir. Sem isso o
+    # teste só via as tarefas que outro teste já tivesse importado
+    fila.loader.import_default_modules()
     registradas = set(fila.tasks.keys())
     for nome, agenda in fila.conf.beat_schedule.items():
         assert agenda["task"] in registradas, nome

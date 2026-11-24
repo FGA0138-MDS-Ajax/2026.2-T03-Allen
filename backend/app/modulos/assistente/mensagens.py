@@ -76,18 +76,23 @@ def _rotulo(tipo_receita: bool) -> str:
     return "essa entrada" if tipo_receita else "esse gasto"
 
 
-def pedir_valor(tipo_receita: bool, categoria: str, motivo: str | None = None) -> str:
+def pedir_valor(
+    tipo_receita: bool | None, categoria: str, motivo: str | None = None
+) -> str:
+    """`tipo_receita` None: ainda não se sabe se o dinheiro saiu ou entrou (foto)."""
     motivo = motivo or "Não consegui entender o valor na sua mensagem."
-    if categoria in {"Outros", "Outras Receitas"}:
-        complemento = ""
-    elif tipo_receita:
-        complemento = f" de {categoria}"
+    if tipo_receita is None:
+        pergunta = "Qual foi o valor?"
     else:
-        complemento = f" com {categoria}"
+        if not categoria or categoria in {"Outros", "Outras Receitas"}:
+            complemento = ""
+        elif tipo_receita:
+            complemento = f" de {categoria}"
+        else:
+            complemento = f" com {categoria}"
+        pergunta = f"Quanto foi {_rotulo(tipo_receita)}{complemento}?"
     return (
-        f"{motivo}\n\n"
-        f"Quanto foi {_rotulo(tipo_receita)}{complemento}? "
-        "Pode mandar só o número, por exemplo: *35* ou *12,50*"
+        f"{motivo}\n\n{pergunta} Pode mandar só o número, por exemplo: *35* ou *12,50*"
     )
 
 

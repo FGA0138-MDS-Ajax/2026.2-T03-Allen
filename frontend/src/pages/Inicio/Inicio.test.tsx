@@ -180,6 +180,52 @@ describe('Página Inicio (Dashboard do Vero com Gráfico e Origem do Saldo)', ()
     );
   });
 
+  it('conta nova, sem nada anotado, não diz que gastou tudo (#140)', async () => {
+    vi.mocked(servicos.listarContas).mockResolvedValue([]);
+    prepararApiFalsa([], {});
+    render(<Inicio />);
+
+    expect(
+      await screen.findByText(
+        'Você ainda não anotou nenhuma entrada ou gasto neste mês.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toHaveAttribute(
+      'aria-valuetext',
+      'Você já gastou 0% do dinheiro do mês'
+    );
+    expect(
+      screen.queryByText(/já gastou todo o saldo/i)
+    ).not.toBeInTheDocument();
+    // Sem meta, nada de "acima da meta"
+    expect(
+      screen.getByText('Você ainda não definiu uma meta.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/acima da meta/i)).not.toBeInTheDocument();
+  });
+
+  it('avisa por escrito a conta que vence hoje e a de amanhã (RF28, #139)', async () => {
+    const iso = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const hoje = new Date();
+    const amanha = new Date(hoje.getTime() + 24 * 60 * 60 * 1000);
+    vi.mocked(servicos.listarContas).mockResolvedValue([
+      { ...mockContas[0], id: 'h', descricao: 'Luz', vencimento_em: iso(hoje) },
+      {
+        ...mockContas[0],
+        id: 'a',
+        descricao: 'Água',
+        vencimento_em: iso(amanha),
+      },
+    ]);
+    render(<Inicio />);
+
+    expect(
+      await screen.findByText('Vence hoje! Lembre de pagar')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Vence amanhã')).toBeInTheDocument();
+  });
+
   it('apaga o gasto na API depois de confirmar', async () => {
     render(<Inicio />);
 

@@ -14,7 +14,12 @@ import {
   IconEdit,
   SeletorCategoria,
 } from '../../components';
-import { listarContas, excluirConta, ContaSaida } from '../../servicos';
+import {
+  listarContas,
+  excluirConta,
+  ContaSaida,
+  ErroApi,
+} from '../../servicos';
 import { Lancamento, useDadosDoMes } from '../../servicos/dadosDoMes';
 import { parsearValorMonetario } from '../../utils/nfce';
 import { useTempoReal } from '../../hooks/useTempoReal';
@@ -195,8 +200,18 @@ export const Extrato: React.FC = () => {
     if (!itemParaExcluir) return;
 
     if (itemParaExcluir.tipo === 'conta' && itemParaExcluir.contaId) {
-      setContas((ant) => ant.filter((c) => c.id !== itemParaExcluir.contaId));
-      await excluirConta(itemParaExcluir.contaId);
+      const contaId = itemParaExcluir.contaId;
+      try {
+        await excluirConta(contaId);
+      } catch (e) {
+        setErroAcao(
+          e instanceof ErroApi
+            ? e.detalhe
+            : 'Não foi possível apagar agora. Tente de novo em instantes.'
+        );
+        return;
+      }
+      setContas((ant) => ant.filter((c) => c.id !== contaId));
       setMensagemSucesso(
         `Conta "${itemParaExcluir.titulo}" apagada com sucesso do Vero.`
       );

@@ -134,34 +134,51 @@ def _normalizar(texto: str) -> str:
     return " ".join(t.split())
 
 
-COMANDOS_DESLIGAR = {
-    "parar resumo",
-    "parar resumos",
-    "parar o resumo",
-    "pare o resumo",
-    "cancelar resumo",
-    "cancelar o resumo",
-    "desligar resumo",
-    "nao quero resumo",
-    "nao quero mais resumo",
-    "sem resumo",
+# Palavras que, numa mensagem curta que fala de "resumo", mostram o que a pessoa
+# quer (#137). Não precisa ser a frase exata: "parar resumo por favor" também vale
+PARA_DESLIGAR = {
+    "parar",
+    "pare",
+    "cancelar",
+    "cancela",
+    "desligar",
+    "desliga",
+    "tirar",
+    "tira",
+    "chega",
+    "sem",
+    "nao",
+    "nunca",
 }
-COMANDOS_LIGAR = {
-    "voltar resumo",
-    "voltar o resumo",
-    "quero resumo",
-    "quero o resumo",
-    "ligar resumo",
-    "ativar resumo",
+PARA_LIGAR = {
+    "voltar",
+    "volta",
+    "quero",
+    "ligar",
+    "liga",
+    "ativar",
+    "ativa",
+    "receber",
+    "mandar",
+    "manda",
 }
+# Mensagens mais longas que isso são conversa, não comando
+MAX_PALAVRAS_COMANDO = 10
 
 
 def comando_resumo(texto: str) -> bool | None:
-    """False para desligar, True para ligar, None se a mensagem não é um comando."""
-    norm = _normalizar(texto)
-    if norm in COMANDOS_DESLIGAR:
+    """False para desligar, True para ligar, None se a mensagem não é um comando.
+
+    Negação ganha: "não quero mais receber resumo" desliga, mesmo tendo "quero" e
+    "receber"."""
+    palavras = _normalizar(texto).split()
+    if not {"resumo", "resumos"} & set(palavras):
+        return None
+    if len(palavras) > MAX_PALAVRAS_COMANDO:
+        return None
+    if PARA_DESLIGAR & set(palavras):
         return False
-    if norm in COMANDOS_LIGAR:
+    if PARA_LIGAR & set(palavras):
         return True
     return None
 
