@@ -1,26 +1,49 @@
-from fastapi import APIRouter, Request, BackgroundTasks, Header, HTTPException, status
-import httpx
-import re
+import logging
 import secrets
-from sqlalchemy import select
-from decimal import Decimal 
+from decimal import Decimal
 
-from app.nucleo.config import settings
-from app.modulos.assistente.extrator import TipoTransacao, eh_saudacao, processar_texto_mensagem
+import httpx
+from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Request, status
+from sqlalchemy import select
+
 from app.modulos.assistente import mensagens
+from app.modulos.assistente.audio import processar_audio_mensagem
+from app.modulos.assistente.extrator import (
+    TipoTransacao,
+    eh_saudacao,
+    processar_texto_mensagem,
+)
 from app.modulos.assistente.sessao import sessao_assistente
-from app.modulos.identidade.modelos import Usuario
 from app.modulos.identidade.esquemas import normalizar_telefone
+from app.modulos.identidade.modelos import Usuario
 from app.modulos.identidade.seguranca import hash_telefone
 from app.modulos.transacoes import servico as servico_transacoes
-from app.modulos.transacoes.esquemas import (
-    OrigemTransacao,
-    TipoTransacao as TipoTransacaoBD,
-    TransacaoRegistroEntrada
-)
+from app.modulos.transacoes.esquemas import OrigemTransacao, TransacaoRegistroEntrada
+from app.modulos.transacoes.esquemas import TipoTransacao as TipoTransacaoBD
 from app.nucleo.banco import SessaoLocal
+from app.nucleo.config import settings
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+def enfileirar_processamento_audio(
+    remetente: str,
+    data: dict,
+    background_tasks: BackgroundTasks,
+) -> None:
+    """Envia a transcrição de áudio para o worker Celery; em dev sem broker, usa BackgroundTasks."""
+    try:
+        from app.modulos.assistente.tarefas import processar_audio_tarefa
+
+        processar_audio_tarefa.delay(remetente, data)
+    except Exception as erro:
+        logger.warning(
+            "Fila Celery indisponível (%s); processando áudio em background local.",
+            type(erro).__name__,
+        )
+        background_tasks.add_task(processar_audio_mensagem, remetente, data)
+
 
 @router.post("/webhook/whatsapp")
 async def receber_mensagem(
@@ -31,7 +54,9 @@ async def receber_mensagem(
     payload = await request.json()
     chave_recebida = apikey or payload.get("apikey")
 
-    if not chave_recebida or not secrets.compare_digest(chave_recebida, settings.AUTHENTICATION_API_KEY):
+    if not chave_recebida or not secrets.compare_digest(
+        chave_recebida, settings.AUTHENTICATION_API_KEY
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Acesso não autorizado: API Key inválida ou ausente.",
@@ -47,21 +72,40 @@ async def receber_mensagem(
         remetente = key.get("remoteJid", "")
 
         # Ignora mensagens enviadas pelo próprio assistente
-        if not key.get("fromMe") and remetente and not remetente.endswith("@broadcast") and not remetente.endswith("@g.us"):
-
-            # Extrai o texto da mensagem
+        if (
+            not key.get("fromMe")
+            and remetente
+            and not remetente.endswith("@broadcast")
+            and not remetente.endswith("@g.us")
+        ):
+            # Extrai o texto ou áudio da mensagem
             message_content = data.get("message", {})
-            texto = (
-                message_content.get("conversation") or
-                message_content.get("extendedTextMessage", {}).get("text")
-            )
+            audio_msg = message_content.get("audioMessage")
+            texto = message_content.get("conversation") or message_content.get(
+                "extendedTextMessage", {}
+            ).get("text")
 
-            if texto:
-                print(f"\n[Whatsapp] Mensagem recebida via webhook.")
+            if audio_msg:
+                duracao = audio_msg.get("seconds")
+                if (
+                    isinstance(duracao, (int, float))
+                    and duracao > settings.AUDIO_MAX_DURACAO_SEGUNDOS
+                ):
+                    background_tasks.add_task(
+                        enviar_mensagem, remetente, mensagens.audio_muito_longo()
+                    )
+                else:
+                    background_tasks.add_task(
+                        enviar_mensagem, remetente, mensagens.audio_recebido()
+                    )
+                    enfileirar_processamento_audio(remetente, data, background_tasks)
+            elif texto:
+                print("\n[Whatsapp] Mensagem recebida via webhook.")
                 # Processa a resposta em background para responder ao webhook
                 background_tasks.add_task(processar_responder, remetente, texto)
 
     return {"status": "SUCCESS"}
+
 
 def buscar_usuario_telefone(telefone: str) -> Usuario | None:
     try:
@@ -74,7 +118,12 @@ def buscar_usuario_telefone(telefone: str) -> Usuario | None:
         print(f"[Aviso] Erro ao buscar usuário no banco: ({e}).")
         return None
 
-async def processar_responder(remetente: str, texto: str):
+
+async def processar_responder(
+    remetente: str,
+    texto: str,
+    origem: OrigemTransacao = OrigemTransacao.WHATSAPP_TEXTO,
+):
     telefone = remetente.split("@")[0] if "@" in remetente else remetente
 
     usuario = buscar_usuario_telefone(telefone)
@@ -85,10 +134,17 @@ async def processar_responder(remetente: str, texto: str):
 
     pendencia, expirou = sessao_assistente.obter_pendencia(telefone)
 
-    if pendencia is None and expirou is True and (sessao_assistente.resposta_sim(texto) or sessao_assistente.resposta_nao(texto)):
+    if (
+        pendencia is None
+        and expirou is True
+        and (
+            sessao_assistente.resposta_sim(texto)
+            or sessao_assistente.resposta_nao(texto)
+        )
+    ):
         await enviar_mensagem(remetente, mensagens.confirmacao_expirada())
         return
-    
+
     if pendencia:
         if sessao_assistente.resposta_sim(texto):
             sessao_assistente.limpar_pendencia(telefone)
@@ -110,7 +166,7 @@ async def processar_responder(remetente: str, texto: str):
                         dados=TransacaoRegistroEntrada(
                             tipo=tipo_bd,
                             valor=valor_decimal,
-                            origem=OrigemTransacao.WHATSAPP_TEXTO,
+                            origem=pendencia.origem,
                             descricao=pendencia.descricao or pendencia.categoria,
                         ),
                     )
@@ -118,9 +174,13 @@ async def processar_responder(remetente: str, texto: str):
                 print(f"[Erro] Falha ao registrar transação no banco: {e}")
 
             if pendencia.tipo == TipoTransacao.RECEITA:
-                resposta = mensagens.confirmacao_sucesso_renda(pendencia.valor, pendencia.categoria)
+                resposta = mensagens.confirmacao_sucesso_renda(
+                    pendencia.valor, pendencia.categoria
+                )
             else:
-                resposta = mensagens.confirmacao_sucesso_gasto(pendencia.valor, pendencia.categoria)
+                resposta = mensagens.confirmacao_sucesso_gasto(
+                    pendencia.valor, pendencia.categoria
+                )
             await enviar_mensagem(remetente, resposta)
             return
 
@@ -134,9 +194,7 @@ async def processar_responder(remetente: str, texto: str):
             )
 
             novo_valor = (
-                correcao.valor
-                if correcao.valor is not None
-                else pendencia.valor
+                correcao.valor if correcao.valor is not None else pendencia.valor
             )
 
             if correcao.valor is not None or nova_categoria != pendencia.categoria:
@@ -146,13 +204,14 @@ async def processar_responder(remetente: str, texto: str):
                     valor=novo_valor,
                     categoria=nova_categoria,
                     descricao=pendencia.descricao,
+                    origem=pendencia.origem,
                 )
 
                 if pendencia.tipo == TipoTransacao.RECEITA:
                     resposta = mensagens.confirmacao_renda(novo_valor, nova_categoria)
                 else:
                     resposta = mensagens.confirmacao_gasto(novo_valor, nova_categoria)
-                
+
                 await enviar_mensagem(remetente, resposta)
                 return
 
@@ -173,43 +232,48 @@ async def processar_responder(remetente: str, texto: str):
             resposta = mensagens.mensagem_nao_compreendida()
     else:
         sessao_assistente.salvar_pendencia(
-            telefone = telefone,
-            tipo = intencao.tipo,
-            valor = intencao.valor,
-            categoria = intencao.categoria,
-            descricao = intencao.descricao,
+            telefone=telefone,
+            tipo=intencao.tipo,
+            valor=intencao.valor,
+            categoria=intencao.categoria,
+            descricao=intencao.descricao,
+            origem=origem,
         )
         if intencao.tipo == TipoTransacao.RECEITA:
             resposta = mensagens.confirmacao_renda(intencao.valor, intencao.categoria)
         else:
             resposta = mensagens.confirmacao_gasto(intencao.valor, intencao.categoria)
-    
+
     await enviar_mensagem(remetente, resposta)
+
 
 async def enviar_mensagem(destinatario: str, texto: str):
     headers = {
         "apikey": settings.AUTHENTICATION_API_KEY,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     }
 
     numero = destinatario.split("@")[0] if "@" in destinatario else destinatario
 
-    body = {
-        "number": numero,
-        "text": texto
-    }
+    body = {"number": numero, "text": texto}
 
     # Tenta a URL configurada e alterna entre localhost e evolution-api para funcionar tanto localmente quanto no Docker
     urls = [f"{settings.EVOLUTION_URL}/message/sendText/{settings.INSTANCE_NAME}"]
     if "localhost" in settings.EVOLUTION_URL:
-        urls.append(f"{settings.EVOLUTION_URL.replace('localhost', 'evolution-api')}/message/sendText/{settings.INSTANCE_NAME}")
+        urls.append(
+            f"{settings.EVOLUTION_URL.replace('localhost', 'evolution-api')}/message/sendText/{settings.INSTANCE_NAME}"
+        )
     elif "evolution-api" in settings.EVOLUTION_URL:
-        urls.append(f"{settings.EVOLUTION_URL.replace('evolution-api', 'localhost')}/message/sendText/{settings.INSTANCE_NAME}")
+        urls.append(
+            f"{settings.EVOLUTION_URL.replace('evolution-api', 'localhost')}/message/sendText/{settings.INSTANCE_NAME}"
+        )
 
     async with httpx.AsyncClient() as client:
         for url in urls:
             try:
-                response = await client.post(url, json=body, headers=headers, timeout=10.0)
+                response = await client.post(
+                    url, json=body, headers=headers, timeout=10.0
+                )
                 response.raise_for_status()
                 print(f"[Whatsapp] Resposta enviada com sucesso via {url}.")
                 return

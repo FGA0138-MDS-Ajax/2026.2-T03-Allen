@@ -23,7 +23,10 @@ class Agenda(Enum):
 fila = Celery(
     "vero",
     broker=settings.VALKEY_URL,
-    include=["app.modulos.transacoes.tarefas"],
+    include=[
+        "app.modulos.transacoes.tarefas",
+        "app.modulos.assistente.tarefas",
+    ],
 )
 fila.conf.timezone = "America/Sao_Paulo"
 fila.conf.beat_schedule = {

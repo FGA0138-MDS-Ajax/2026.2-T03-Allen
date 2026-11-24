@@ -2,6 +2,7 @@ def formatar_moeda(centavos: int) -> str:
     reais = centavos / 100
     return f"R$ {reais:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
+
 def boas_vindas(nome: str | None = None) -> str:
     saudacao = f"Olá, {nome}!" if nome else "Olá!"
     return (
@@ -14,6 +15,7 @@ def boas_vindas(nome: str | None = None) -> str:
         "Pode me mandar agora mesmo se quiser registrar algo!"
     )
 
+
 def confirmacao_gasto(valor_centavos: int, categoria: str) -> str:
     valor = formatar_moeda(valor_centavos)
     return (
@@ -21,9 +23,11 @@ def confirmacao_gasto(valor_centavos: int, categoria: str) -> str:
         f"Posso anotar esse gasto? (Responda com *Sim* ou *Não*)"
     )
 
+
 def confirmacao_sucesso_gasto(valor_centavos: int, categoria: str) -> str:
     valor = formatar_moeda(valor_centavos)
     return f"Anotado! Já registrei o seu gasto de {valor} com {categoria}."
+
 
 def confirmacao_renda(valor_centavos: int, categoria: str) -> str:
     valor = formatar_moeda(valor_centavos)
@@ -32,15 +36,18 @@ def confirmacao_renda(valor_centavos: int, categoria: str) -> str:
         f"Posso anotar esse rendimento? (Responda com *Sim* ou *Não*)"
     )
 
+
 def confirmacao_sucesso_renda(valor_centavos: int, categoria: str) -> str:
     valor = formatar_moeda(valor_centavos)
     return f"Anotado! Já registrei a sua entrada de {valor} de {categoria}."
+
 
 def usuario_nao_encontrado() -> str:
     return (
         "Olá! Não encontrei o seu número cadastrado no Vero.\n\n"
         "Para começar a usar e cuidar do seu dinheiro, por favor, faça seu cadastro no nosso aplicativo."
     )
+
 
 def mensagem_nao_compreendida() -> str:
     return (
@@ -50,11 +57,31 @@ def mensagem_nao_compreendida() -> str:
         "👉 *Recebi 1500 da aposentadoria*"
     )
 
+
 def registro_cancelado() -> str:
     return "Tudo bem, não anotei nada. Quando quiser registrar, é só me mandar!"
+
 
 def confirmacao_expirada() -> str:
     return (
         "Como passei um tempinho sem resposta, acabei não anotando aquele valor por segurança.\n\n"
         "Se quiser registrar, pode me mandar novamente!"
+    )
+
+
+def audio_recebido() -> str:
+    return "Recebi seu áudio! Estou ouvindo para anotar..."
+
+
+def audio_muito_longo() -> str:
+    return (
+        "Esse áudio ficou um pouco longo (mais de 1 minuto).\n\n"
+        "Pode me mandar um áudio mais curto ou digitar o que gastou?"
+    )
+
+
+def audio_nao_compreendido() -> str:
+    return (
+        "Desculpe, não consegui entender bem o seu áudio.\n\n"
+        "Pode tentar gravar de novo em um lugar mais silencioso ou digitar o valor?"
     )

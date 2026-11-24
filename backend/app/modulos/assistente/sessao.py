@@ -2,10 +2,13 @@ import json
 import logging
 import re
 import unicodedata
+from dataclasses import asdict, dataclass
+from datetime import UTC, datetime, timedelta
+
 import valkey
-from dataclasses import dataclass, asdict
-from datetime import datetime, timedelta, timezone
+
 from app.modulos.assistente.extrator import TipoTransacao
+from app.modulos.transacoes.esquemas import OrigemTransacao
 from app.nucleo.config import settings
 
 logger = logging.getLogger(__name__)
@@ -15,15 +18,16 @@ TEMPO_EXPIRACAO_SEGUNDOS = 15 * 60
 EMOJIS_SIM = {"👍", "✅"}
 EMOJIS_NAO = {"👎", "❌"}
 
+
 def normalizar_resposta(texto: str) -> str:
     t = texto.lower().strip()
     t = re.sub(r"[!.,?;:\-_]", " ", t)
     t_sem_acento = "".join(
-        c for c in unicodedata.normalize("NFD", t)
-        if unicodedata.category(c) != "Mn"
+        c for c in unicodedata.normalize("NFD", t) if unicodedata.category(c) != "Mn"
     )
 
     return " ".join(t_sem_acento.split())
+
 
 @dataclass
 class RegistroPendente:
@@ -32,12 +36,16 @@ class RegistroPendente:
     categoria: str
     descricao: str
     criado: datetime
+    origem: OrigemTransacao = OrigemTransacao.WHATSAPP_TEXTO
+
 
 class GerenciadorSessao:
     def __init__(self):
         self._sessoes_memoria: dict[str, RegistroPendente] = {}
         try:
-            self._valkey = valkey.Valkey.from_url(settings.VALKEY_URL, decode_responses=True)
+            self._valkey = valkey.Valkey.from_url(
+                settings.VALKEY_URL, decode_responses=True
+            )
             self._valkey.ping()
         except Exception:
             self._valkey = None
@@ -45,14 +53,23 @@ class GerenciadorSessao:
     def _chave(self, telefone: str) -> str:
         return f"vero:sessao_assistente:{telefone}"
 
-    def salvar_pendencia(self, telefone: str, tipo: TipoTransacao, valor: int, categoria: str, descricao: str) -> None:
-        agora = datetime.now(timezone.utc)
+    def salvar_pendencia(
+        self,
+        telefone: str,
+        tipo: TipoTransacao,
+        valor: int,
+        categoria: str,
+        descricao: str,
+        origem: OrigemTransacao = OrigemTransacao.WHATSAPP_TEXTO,
+    ) -> None:
+        agora = datetime.now(UTC)
         pendencia = RegistroPendente(
             tipo=tipo,
             valor=valor,
             categoria=categoria,
             descricao=descricao,
             criado=agora,
+            origem=origem,
         )
 
         if self._valkey:
@@ -60,6 +77,7 @@ class GerenciadorSessao:
                 dados = asdict(pendencia)
                 dados["tipo"] = dados["tipo"].value
                 dados["criado"] = dados["criado"].isoformat()
+                dados["origem"] = dados["origem"].value
                 self._valkey.setex(
                     self._chave(telefone),
                     24 * 3600,
@@ -67,13 +85,15 @@ class GerenciadorSessao:
                 )
                 return
             except Exception as e:
-                logger.warning("Falha ao salvar sessão no Valkey (%s). Usando memória.", e)
+                logger.warning(
+                    "Falha ao salvar sessão no Valkey (%s). Usando memória.", e
+                )
 
         self._sessoes_memoria[telefone] = pendencia
 
     def obter_pendencia(self, telefone: str) -> tuple[RegistroPendente | None, bool]:
-        agora = datetime.now(timezone.utc)
-        
+        agora = datetime.now(UTC)
+
         if self._valkey:
             try:
                 conteudo = self._valkey.get(self._chave(telefone))
@@ -84,7 +104,7 @@ class GerenciadorSessao:
                     if agora - criado > timedelta(seconds=TEMPO_EXPIRACAO_SEGUNDOS):
                         self.limpar_pendencia(telefone)
                         return None, True
-                    
+
                     return (
                         RegistroPendente(
                             tipo=TipoTransacao(dados["tipo"]),
@@ -92,6 +112,11 @@ class GerenciadorSessao:
                             categoria=dados["categoria"],
                             descricao=dados["descricao"],
                             criado=datetime.fromisoformat(dados["criado"]),
+                            origem=OrigemTransacao(
+                                dados.get(
+                                    "origem", OrigemTransacao.WHATSAPP_TEXTO.value
+                                )
+                            ),
                         ),
                         False,
                     )
@@ -122,16 +147,33 @@ class GerenciadorSessao:
         texto_strip = texto.strip()
         if any(e in texto_strip for e in EMOJIS_SIM):
             return True
-        
+
         norm = normalizar_resposta(texto)
         if not norm:
             return False
 
         afirmativos = {
-            "sim", "s", "pode", "isso", "claro", "confirmo", "correto",
-            "pode ser", "anota", "ok", "okay", "blz", "beleza", "esta certo",
-            "ta certo", "com certeza", "anota ai", "pode sim", "sim pode",
-            "sim pode anotar", "sim anota",
+            "sim",
+            "s",
+            "pode",
+            "isso",
+            "claro",
+            "confirmo",
+            "correto",
+            "pode ser",
+            "anota",
+            "ok",
+            "okay",
+            "blz",
+            "beleza",
+            "esta certo",
+            "ta certo",
+            "com certeza",
+            "anota ai",
+            "pode sim",
+            "sim pode",
+            "sim pode anotar",
+            "sim anota",
         }
 
         if norm in afirmativos:
@@ -153,16 +195,26 @@ class GerenciadorSessao:
             return False
 
         negativos = {
-            "nao", "n", "cancela", "cancelar", "errei", "errado",
-            "espera", "parar", "deixa", "esquece", "nem pensar",
+            "nao",
+            "n",
+            "cancela",
+            "cancelar",
+            "errei",
+            "errado",
+            "espera",
+            "parar",
+            "deixa",
+            "esquece",
+            "nem pensar",
         }
-        
+
         if norm in negativos:
             return True
 
         if re.match(r"^(?:nao|n|cancela|cancelar|errei|errado)\b", norm):
             return True
-        
+
         return False
+
 
 sessao_assistente = GerenciadorSessao()
