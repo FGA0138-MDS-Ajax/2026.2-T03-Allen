@@ -292,10 +292,12 @@ export const Extrato: React.FC = () => {
       <main className={styles.conteudo}>
         {/* Cabeçalho */}
         <section className={styles.cabecalhoExtrato}>
-          <div className={styles.topoTitulo}>
+          <div className={styles.cabecalhoSecao}>
             <div>
-              <h1 className={styles.titulo}>Extrato de movimentações</h1>
-              <p className={styles.subtitulo}>
+              <h1 className={styles.tituloPrincipal}>
+                Extrato de movimentações
+              </h1>
+              <p className={styles.subtituloPrincipal}>
                 Veja todas as entradas, gastos e contas do mês em um só lugar.
               </p>
             </div>
@@ -318,7 +320,7 @@ export const Extrato: React.FC = () => {
           )}
 
           {/* Cards de Resumo */}
-          <div className={styles.gradeResumo}>
+          <div className={styles.gridResumo}>
             <div className={styles.cardResumo}>
               <span className={styles.rotuloResumo}>Entradas</span>
               <span className={`${styles.valorResumo} ${styles.valorPositivo}`}>
@@ -354,7 +356,7 @@ export const Extrato: React.FC = () => {
         <section className={styles.cardLista}>
           {/* Abas de Filtro */}
           <div
-            className={styles.filtros}
+            className={styles.filtrosContainer}
             role="tablist"
             aria-label="Filtrar lançamentos do extrato"
           >
@@ -401,23 +403,25 @@ export const Extrato: React.FC = () => {
 
           {/* Itens */}
           {itensFiltrados.length === 0 ? (
-            <div className={styles.listaVazia}>
+            <div className={styles.estadoVazio}>
               <p>Nenhuma movimentação encontrada neste filtro.</p>
             </div>
           ) : (
-            <div className={styles.listaItens}>
+            <div className={styles.listaMovimentacoes}>
               {itensFiltrados.map((item) => {
                 const ehEntrada = item.tipo === 'entrada';
 
                 return (
-                  <div key={item.id} className={styles.itemLinha}>
+                  <div key={item.id} className={styles.cardItem}>
                     <div className={styles.infoEsquerda}>
                       <div className={styles.iconeContainer} aria-hidden="true">
                         {obterIcone(item.categoria)}
                       </div>
                       <div>
-                        <div className={styles.tituloItem}>{item.titulo}</div>
-                        <div className={styles.subItem}>
+                        <div className={styles.descricaoItem}>
+                          {item.titulo}
+                        </div>
+                        <div className={styles.metaItem}>
                           <span>{item.dataTexto}</span>
                           <span className={styles.pontoSeparador}>•</span>
                           <span className={styles.tagTipo}>

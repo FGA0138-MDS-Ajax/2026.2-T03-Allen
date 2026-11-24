@@ -121,8 +121,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   padding: 4px 0;
-  font-size: 15px;
+  font-size: 16px;
+}
+
+/* O sinal (+, − ou =) fica sempre junto do valor */
+.origemLinha > :last-child {
+  white-space: nowrap;
+  text-align: right;
 }
 
 .origemSoma {
@@ -206,18 +213,29 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
 }
 
 .linkVerTodas {
-  /* Toque mínimo do projeto (#142) */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   min-height: var(--toque-minimo);
-  padding: 0 8px;
-  font-size: 15px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-family: var(--font-corpo);
+  font-size: 16px;
   font-weight: 700;
-  color: var(--violeta-vero);
-  background: transparent;
-  border: none;
+  white-space: nowrap;
+  color: var(--violeta-profundo);
+  background: var(--lavanda);
+  border: 2px solid transparent;
   cursor: pointer;
+}
+
+.linkVerTodas:hover {
+  border-color: var(--violeta-vero);
 }
 
 .linkVerTodas:hover {
@@ -232,19 +250,41 @@
 }
 
 .itemContaProxima {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'icone nome valor'
+    'icone aviso aviso';
   align-items: center;
+  column-gap: 12px;
+  row-gap: 4px;
   padding: 12px 14px;
   border-radius: 16px;
   background: var(--nevoa);
   border: 1px solid #e9e4f8;
 }
 
-.infoContaProxima {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.infoContaProxima,
+.textoContaProxima {
+  display: contents;
+}
+
+.iconeConta {
+  grid-area: icone;
+}
+
+.nomeContaProxima {
+  grid-area: nome;
+  font-size: 17px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.valorContaProxima {
+  grid-area: valor;
+  font-size: 17px;
+  color: var(--grafite-noturno);
+  white-space: nowrap;
 }
 
 .iconeConta {
@@ -260,12 +300,14 @@
 }
 
 .badgeUrgencia {
-  display: inline-block;
-  font-size: 12px;
+  grid-area: aviso;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  font-size: 15px;
   font-weight: 700;
-  padding: 2px 8px;
+  padding: 2px 10px;
   border-radius: 999px;
-  margin-top: 4px;
 }
 
 .badgeAtraso {
@@ -350,9 +392,10 @@
 }
 
 .itemGasto {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
+  column-gap: 12px;
   padding: 12px 14px;
   background: var(--nevoa);
   border-radius: 16px;
@@ -360,9 +403,17 @@
 }
 
 .infoGasto {
+  display: contents;
+}
+
+.textoGasto {
+  min-width: 0;
+}
+
+.acoesGasto {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .iconeGasto {
@@ -378,31 +429,33 @@
 }
 
 .nomeGasto {
-  font-size: 15px;
+  font-size: 17px;
+  overflow-wrap: break-word;
   font-weight: 700;
   color: var(--grafite-noturno);
 }
 
 .dataGasto {
-  font-size: 13px;
+  font-size: 16px;
   color: var(--ardosia);
 }
 
 .valorGasto {
   font-size: 17px;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .btnApagarGasto {
-  /* Era 30 × 30 px, ao lado do valor: fácil de tocar sem querer com tremor (#142) */
-  min-width: var(--toque-minimo);
-  min-height: var(--toque-minimo);
-  background: transparent;
-  border: none;
+  width: var(--toque-minimo);
+  height: var(--toque-minimo);
+  flex-shrink: 0;
+  background: var(--branco);
+  border: 2px solid #e9e4f8;
   color: var(--ardosia);
   cursor: pointer;
-  padding: 6px;
-  border-radius: 8px;
+  padding: 0;
+  border-radius: 12px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -412,4 +465,46 @@
 .btnApagarGasto:hover {
   background-color: #fee2e2;
   color: var(--erro-texto);
+}
+
+/* Celular estreito: valor em cima da lixeira para o nome ter espaço */
+@media (max-width: 420px) {
+  .card {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .itemContaProxima,
+  .itemGasto {
+    padding: 12px;
+    column-gap: 10px;
+  }
+
+  /* Valor desce para baixo do nome; a lixeira fica à direita */
+  .itemGasto {
+    grid-template-areas:
+      'icone texto apagar'
+      'icone valor apagar';
+    row-gap: 2px;
+  }
+
+  .iconeGasto {
+    grid-area: icone;
+  }
+
+  .textoGasto {
+    grid-area: texto;
+  }
+
+  .acoesGasto {
+    display: contents;
+  }
+
+  .valorGasto {
+    grid-area: valor;
+  }
+
+  .btnApagarGasto {
+    grid-area: apagar;
+  }
 }
