@@ -278,6 +278,27 @@ describe('Página de Contas a Pagar (RF25, RF30, RF32)', () => {
     });
   });
 
+  it('não diz "apagada" quando a API não apaga a conta (#133)', async () => {
+    vi.mocked(servicos.excluirConta).mockRejectedValueOnce(
+      new servicos.ErroApi(
+        409,
+        'Essa conta já virou um gasto no seu extrato. Para apagar, apague o gasto no Extrato primeiro.'
+      )
+    );
+
+    render(<Contas />);
+    fireEvent.click(
+      await screen.findByRole('button', { name: /Apagar conta Conta de Luz/i })
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Sim, apagar conta/i }));
+
+    expect(
+      await screen.findByText(/apague o gasto no Extrato primeiro/i)
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/apagada com sucesso/i)).not.toBeInTheDocument();
+    expect(screen.getByText('Conta de Luz')).toBeInTheDocument();
+  });
+
   it('permite marcar uma conta como paga e desfazer o pagamento (RF30)', async () => {
     vi.mocked(servicos.definirPagamentoConta).mockResolvedValueOnce({
       id: '1',
