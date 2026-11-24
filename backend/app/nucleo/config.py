@@ -1,10 +1,12 @@
 import secrets
 from enum import StrEnum
 from pathlib import Path
+
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent
+
 
 class Ambiente(StrEnum):
     """Valores do APP_ENV."""
@@ -13,11 +15,20 @@ class Ambiente(StrEnum):
     STAGING = "staging"
     PRODUCAO = "production"
 
+
 class AdaptadorEmail(StrEnum):
     """Valores do ENVIO_EMAIL."""
 
     FALSO = "falso"
     SMTP = "smtp"
+
+
+class AdaptadorTranscricao(StrEnum):
+    """Valores do TRANSCRICAO_AUDIO."""
+
+    FALSO = "falso"
+    WHISPER = "whisper"
+
 
 class Settings(BaseSettings):
     APP_NAME: str = "Vero"
@@ -48,6 +59,13 @@ class Settings(BaseSettings):
     AUTHENTICATION_API_KEY: str
     INSTANCE_NAME: str
 
+    # Transcrição de áudio (RF13 / RNF04)
+    TRANSCRICAO_AUDIO: AdaptadorTranscricao = AdaptadorTranscricao.WHISPER
+    WHISPER_MODELO: str = "small"
+    WHISPER_COMPUTE_TYPE: str = "int8"
+    WHISPER_IDIOMA: str = "pt"
+    AUDIO_MAX_DURACAO_SEGUNDOS: int = 60
+
     model_config = SettingsConfigDict(
         env_file=[
             BASE_DIR.parent.parent.parent / ".env",
@@ -70,11 +88,17 @@ class Settings(BaseSettings):
                 "ENVIO_EMAIL=falso só é permitido com APP_ENV=development. "
                 "Fora do desenvolvimento, use ENVIO_EMAIL=smtp."
             )
+        if self.TRANSCRICAO_AUDIO == AdaptadorTranscricao.FALSO:
+            raise ValueError(
+                "TRANSCRICAO_AUDIO=falso só é permitido com APP_ENV=development. "
+                "Fora do desenvolvimento, use TRANSCRICAO_AUDIO=whisper."
+            )
         if not self.CHAVE_CODIGO_RECUPERACAO:
             raise ValueError(
                 "Defina CHAVE_CODIGO_RECUPERACAO (diferente da SECRET_KEY) "
                 "fora do desenvolvimento."
             )
         return self
+
 
 settings = Settings()
