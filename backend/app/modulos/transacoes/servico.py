@@ -88,6 +88,22 @@ def listar(sessao: Session, usuario_id: uuid.UUID) -> list[Transacao]:
     return list(sessao.scalars(comando))
 
 
+def listar_do_periodo(
+    sessao: Session, usuario_id: uuid.UUID, inicio: date, fim: date
+) -> list[Transacao]:
+    """RF38: o que entrou e saiu entre as datas (inclusive), na ordem dos dias."""
+    comando = (
+        select(Transacao)
+        .where(
+            Transacao.usuario_id == usuario_id,
+            Transacao.data >= inicio,
+            Transacao.data <= fim,
+        )
+        .order_by(Transacao.data, Transacao.criado_em)
+    )
+    return list(sessao.scalars(comando))
+
+
 def editar(
     sessao: Session,
     usuario_id: uuid.UUID,

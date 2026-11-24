@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.modulos.contas.esquemas import ContaAutomaticaVencida, ContaCadastroEntrada
-from app.modulos.contas.modelos import Conta
+from app.modulos.contas.modelos import Categoria, Conta
 from app.modulos.contas.parcelas import datas_das_parcelas, dividir_valor
 from app.modulos.contas.recorrencia import gerar_proxima_recorrencia
 from app.modulos.contas.saldo import ESTRATEGIA_SALDO
@@ -164,3 +164,24 @@ def pagar_conta_automatica(sessao: Session, conta_id: uuid.UUID) -> None:
     if conta is None:
         raise ContaNaoEncontrada
     registrar_pagamento(sessao, conta)
+
+
+def contas_do_periodo(
+    sessao: Session, usuario_id: uuid.UUID, inicio: date, fim: date
+) -> list[Conta]:
+    """RF38: contas do usuário que vencem entre as datas (inclusive), pagas ou não."""
+    comando = (
+        select(Conta)
+        .where(
+            Conta.usuario_id == usuario_id,
+            Conta.vencimento_em >= inicio,
+            Conta.vencimento_em <= fim,
+        )
+        .order_by(Conta.vencimento_em, Conta.criado_em)
+    )
+    return list(sessao.scalars(comando))
+
+
+def nomes_das_categorias(sessao: Session) -> dict[int, str]:
+    """Nome de cada categoria pelo id, para mostrar ao lado dos registros."""
+    return {c.id: c.nome for c in sessao.scalars(select(Categoria))}
