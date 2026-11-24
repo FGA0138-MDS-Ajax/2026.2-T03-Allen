@@ -50,6 +50,39 @@ type FiltroStatus = 'todas' | 'a_vencer' | 'em_atraso' | 'paga';
 
 const SUGESTOES = ['Luz', 'Água', 'Aluguel', 'Internet', 'Telefone', 'Cartão'];
 
+// Limites da API para compra parcelada (RF37)
+const PARCELAS_MINIMO = 2;
+const PARCELAS_MAXIMO = 24;
+
+/** Nome para o leitor de tela: as parcelas da mesma compra têm o mesmo nome. */
+const nomeAcessivel = (conta: ContaSaida) => {
+  const nome = conta.descricao || 'sem descrição';
+  return conta.parcela && conta.total_parcelas
+    ? `${nome}, parcela ${conta.parcela} de ${conta.total_parcelas}`
+    : nome;
+};
+
+/** Texto da divisão, com a mesma regra da API: o centavo que sobra vai na 1ª. */
+const textoDivisao = (
+  centavos: number,
+  vezes: number,
+  formatar: (reais: number) => string
+) => {
+  const base = Math.floor(centavos / vezes);
+  const primeira = base + (centavos - base * vezes);
+  const divisao =
+    primeira === base
+      ? `${vezes} parcelas de ${formatar(base / 100)}`
+      : `1 parcela de ${formatar(primeira / 100)} e ${vezes - 1} de ${formatar(base / 100)}`;
+  return `O valor digitado é o total da compra: ${divisao}. A primeira vence no mês seguinte ao da compra.`;
+};
+
+/** Último dia do mês atual, em AAAA-MM-DD: o que vence até lá é "deste mês". */
+const fimDoMesAtual = () => {
+  const hoje = new Date();
+  return paraIso(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0));
+};
+
 const obterIconeConta = (descricao?: string | null) => {
   const d = (descricao || '').toLowerCase();
   if (
@@ -119,6 +152,9 @@ export const Contas: React.FC = () => {
   });
   const [salvando, setSalvando] = useState(false);
   const [recorrente, setRecorrente] = useState(false);
+  // Compra parcelada (RF37): não pode ser também conta fixa
+  const [parcelada, setParcelada] = useState(false);
+  const [numeroParcelas, setNumeroParcelas] = useState(PARCELAS_MINIMO);
   // Conta fixa: só dia e mês, sem ano (#120)
   const [diaFixo, setDiaFixo] = useState(() => new Date().getDate());
   const [mesFixo, setMesFixo] = useState(() => new Date().getMonth() + 1);
@@ -210,6 +246,7 @@ export const Contas: React.FC = () => {
         valor: centavosAtuais / 100,
         descricao: descricao.trim() || undefined,
         recorrente,
+        ...(parcelada ? { parcelas: numeroParcelas } : {}),
       });
 
       setMensagemSucesso('Conta cadastrada com sucesso!');
@@ -217,6 +254,8 @@ export const Contas: React.FC = () => {
       setValorDigitado('');
       setDescricao('');
       setRecorrente(false);
+      setParcelada(false);
+      setNumeroParcelas(PARCELAS_MINIMO);
       await carregarContas();
     } catch (e) {
       if (e instanceof ErroApi) {
@@ -277,10 +316,14 @@ export const Contas: React.FC = () => {
     let totalAtraso = 0;
     let totalPago = 0;
 
+    // "A vencer" é o que vence até o fim deste mês: as parcelas dos próximos meses
+    // não entram no dinheiro que a pessoa precisa separar agora (#134)
+    const fimDoMes = fimDoMesAtual();
     contas.forEach((c) => {
       const v = Number(c.valor);
-      if (c.status === 'a_vencer') totalAVencer += v;
-      else if (c.status === 'em_atraso') totalAtraso += v;
+      if (c.status === 'a_vencer') {
+        if (c.vencimento_em <= fimDoMes) totalAVencer += v;
+      } else if (c.status === 'em_atraso') totalAtraso += v;
       else if (c.status === 'paga') totalPago += v;
     });
 
@@ -330,7 +373,7 @@ export const Contas: React.FC = () => {
     <div className={styles.pageContainer}>
       <BarraNavegacao rotaAtiva="/contas" />
 
-      <main>
+      <main className={styles.conteudo}>
         <div className={styles.cabecalhoSecao}>
           <div
             style={{
@@ -373,7 +416,7 @@ export const Contas: React.FC = () => {
           aria-label="Resumo geral das contas"
         >
           <div className={styles.cardResumo}>
-            <span className={styles.rotuloResumo}>A Vencer</span>
+            <span className={styles.rotuloResumo}>A vencer este mês</span>
             <span className={`${styles.valorResumo} ${styles.destaqueAVencer}`}>
               {formatarMoeda(resumo.totalAVencer)}
             </span>
@@ -451,13 +494,66 @@ export const Contas: React.FC = () => {
                     type="checkbox"
                     className={styles.checkboxInput}
                     checked={recorrente}
-                    onChange={(e) => setRecorrente(e.target.checked)}
+                    onChange={(e) => {
+                      setRecorrente(e.target.checked);
+                      if (e.target.checked) setParcelada(false);
+                    }}
                   />
                   <span className={styles.checkboxTexto}>
                     🔁 Repetir todo mês (Conta fixa / recorrente)
                   </span>
                 </label>
+                <label className={styles.checkboxContainer}>
+                  <input
+                    type="checkbox"
+                    className={styles.checkboxInput}
+                    checked={parcelada}
+                    onChange={(e) => {
+                      setParcelada(e.target.checked);
+                      if (e.target.checked) setRecorrente(false);
+                    }}
+                  />
+                  <span className={styles.checkboxTexto}>
+                    💳 Compra parcelada (dividir em vezes)
+                  </span>
+                </label>
               </div>
+
+              {parcelada && (
+                <div>
+                  <label
+                    htmlFor="numero-parcelas"
+                    className={styles.rotuloResumo}
+                    style={{ display: 'block', marginBottom: 6 }}
+                  >
+                    Em quantas vezes?
+                  </label>
+                  <select
+                    id="numero-parcelas"
+                    className={styles.campoData}
+                    value={numeroParcelas}
+                    onChange={(e) => setNumeroParcelas(Number(e.target.value))}
+                  >
+                    {Array.from(
+                      { length: PARCELAS_MAXIMO - PARCELAS_MINIMO + 1 },
+                      (_, i) => i + PARCELAS_MINIMO
+                    ).map((n) => (
+                      <option key={n} value={n}>
+                        {n} vezes
+                      </option>
+                    ))}
+                  </select>
+                  <p className={styles.dicaCampo} aria-live="polite">
+                    {centavosAtuais > 0
+                      ? textoDivisao(
+                          centavosAtuais,
+                          numeroParcelas,
+                          formatarMoeda
+                        )
+                      : 'Digite acima o valor total da compra.'}
+                  </p>
+                </div>
+              )}
 
               {recorrente ? (
                 <fieldset className={styles.grupoDiaMes}>
@@ -514,7 +610,7 @@ export const Contas: React.FC = () => {
                     className={styles.rotuloResumo}
                     style={{ display: 'block', marginBottom: 6 }}
                   >
-                    Data de Vencimento
+                    {parcelada ? 'Data da compra' : 'Data de Vencimento'}
                   </label>
                   <input
                     id="data-vencimento"
@@ -774,6 +870,12 @@ export const Contas: React.FC = () => {
                                       🔁 Todo mês
                                     </span>
                                   )}
+                                  {conta.parcela && conta.total_parcelas && (
+                                    <span className={styles.badgeRecorrente}>
+                                      💳 Parcela {conta.parcela} de{' '}
+                                      {conta.total_parcelas}
+                                    </span>
+                                  )}
                                 </div>
                                 <span className={styles.dataVencimento}>
                                   Vencimento: <strong>{dataFormatada}</strong>
@@ -824,7 +926,7 @@ export const Contas: React.FC = () => {
                                       alternarPagamento(conta.id, true)
                                     }
                                     disabled={pendenteId === conta.id}
-                                    aria-label={`Marcar a conta ${conta.descricao || 'sem descrição'} como paga`}
+                                    aria-label={`Marcar a conta ${nomeAcessivel(conta)} como paga`}
                                   >
                                     <IconCheck size={18} aria-hidden="true" />
                                     <span>
@@ -841,7 +943,7 @@ export const Contas: React.FC = () => {
                                       alternarPagamento(conta.id, false)
                                     }
                                     disabled={pendenteId === conta.id}
-                                    aria-label={`Desfazer pagamento da conta ${conta.descricao || 'sem descrição'}`}
+                                    aria-label={`Desfazer pagamento da conta ${nomeAcessivel(conta)}`}
                                   >
                                     <IconArrowLeft
                                       size={16}
@@ -859,7 +961,7 @@ export const Contas: React.FC = () => {
                                   type="button"
                                   className={styles.btnExcluir}
                                   onClick={() => setContaParaExcluir(conta)}
-                                  aria-label={`Apagar conta ${conta.descricao || 'sem descrição'}`}
+                                  aria-label={`Apagar conta ${nomeAcessivel(conta)}`}
                                 >
                                   <IconTrash size={18} aria-hidden="true" />
                                 </button>

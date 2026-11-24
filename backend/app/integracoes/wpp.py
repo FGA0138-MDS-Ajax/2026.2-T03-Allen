@@ -1,7 +1,9 @@
 import logging
 
+import httpx
+
 from app.nucleo.config import AdaptadorWhatsApp, settings
-from app.nucleo.portas import PortaWhatsApp
+from app.nucleo.portas import FalhaEnvioWhatsApp, PortaWhatsApp
 
 logger = logging.getLogger(__name__)
 
@@ -18,17 +20,26 @@ class WhatsAppFalso:
 
 
 class WppApi:
+    """Envia pela Evolution API, o mesmo canal em que o assistente responde
+    (#152). Usado pelas mensagens que o Vero manda sozinho: lembrete (RF28) e
+    resumo (RF24)."""
+
     def enviar(self, destinatario: str, assunto: str, texto: str) -> None:
-        # TODO: integrar com api da whatsapp business
-        # exemplo aqui:
-        # import requests
-        # mensagem = {"to": destinatario, "body": texto}
-        # response = requests.post(
-        #     settings.WHATSAPP_API_URL,
-        #     json=mensagem,
-        #     headers={"Authorization": f"Bearer {settings.WHATSAPP_TOKEN}"})
-        # response.raise_for_status()
-        pass
+        numero = destinatario.split("@")[0]
+        url = f"{settings.EVOLUTION_URL}/message/sendText/{settings.INSTANCE_NAME}"
+        try:
+            resposta = httpx.post(
+                url,
+                json={"number": numero, "text": texto},
+                headers={"apikey": settings.AUTHENTICATION_API_KEY},
+                timeout=10.0,
+            )
+            resposta.raise_for_status()
+        except httpx.HTTPError as erro:
+            # Sem número nem texto no log (RNF05): quem chama registra a falha
+            raise FalhaEnvioWhatsApp(
+                f"Evolution API não aceitou a mensagem ({erro.__class__.__name__})"
+            ) from erro
 
 
 def obter_whatsapp() -> PortaWhatsApp:
