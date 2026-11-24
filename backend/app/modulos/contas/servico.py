@@ -13,7 +13,7 @@ from app.modulos.contas.esquemas import (
     ContaAVencer,
     ContaCadastroEntrada,
 )
-from app.modulos.contas.modelos import Conta
+from app.modulos.contas.modelos import Categoria, Conta
 from app.modulos.contas.parcelas import datas_das_parcelas, dividir_valor
 from app.modulos.contas.recorrencia import gerar_proxima_recorrencia
 from app.modulos.contas.saldo import ESTRATEGIA_SALDO
@@ -212,6 +212,8 @@ def contas_em_aberto_entre(
         .order_by(Conta.vencimento_em, Conta.criado_em)
     )
     return [ContaAVencer.model_validate(conta) for conta in sessao.scalars(comando)]
+
+
 def id_da_categoria(sessao: Session, nome: str) -> int | None:
     """Id da categoria com esse nome na tblCategoria, ou None se não existir."""
     return sessao.scalar(select(Categoria.id).where(Categoria.nome == nome))
