@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.integracoes.wpp import WhatsAppFalso, obter_whatsapp
+from app.modulos.contas import servico as servico_contas
 from app.modulos.contas.modelos import Conta
 from app.modulos.identidade.modelos import Usuario
 from app.modulos.transacoes import servico, tarefas
@@ -116,7 +117,7 @@ def test_busca_so_contas_de_hoje_nao_pagas(sessao: Session) -> None:
     _conta(sessao, maria, hoje, paga=True)
     _conta(sessao, maria, hoje + timedelta(days=1))
 
-    contas = tarefas._buscar_contas_vencendo_hoje(sessao, hoje)
+    contas = servico_contas.contas_em_aberto_entre(sessao, hoje, hoje)
 
     assert [c.id for c in contas if c.usuario_id == maria.id] == [de_hoje.id]
 

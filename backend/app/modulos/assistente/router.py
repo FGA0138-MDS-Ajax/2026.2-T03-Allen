@@ -1,13 +1,18 @@
+import base64
 import logging
 import secrets
+import time
 import uuid
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import httpx
 from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Request, status
 from sqlalchemy import select
 
+from app.integracoes.leitor_comprovante import obter_leitor_comprovante
 from app.modulos.assistente import mensagens
+from app.modulos.assistente.audio import processar_audio_mensagem
 from app.modulos.assistente.extrator import (
     IntencaoMensagem,
     TipoTransacao,
@@ -24,6 +29,7 @@ from app.modulos.assistente.sessao import (
     normalizar_resposta,
     sessao_assistente,
 )
+from app.modulos.contas import servico as servico_contas
 from app.modulos.identidade.esquemas import normalizar_telefone
 from app.modulos.identidade.modelos import Usuario
 from app.modulos.identidade.seguranca import hash_telefone
@@ -33,10 +39,28 @@ from app.modulos.transacoes.esquemas import OrigemTransacao, TransacaoRegistroEn
 from app.modulos.transacoes.esquemas import TipoTransacao as TipoTransacaoBD
 from app.nucleo.banco import SessaoLocal
 from app.nucleo.config import settings
-
-logger = logging.getLogger(__name__)
+from app.nucleo.portas import LeituraComprovante
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+def enfileirar_processamento_audio(
+    remetente: str,
+    data: dict,
+    background_tasks: BackgroundTasks,
+) -> None:
+    """Envia a transcrição de áudio para o worker Celery; em dev sem broker, usa BackgroundTasks."""
+    try:
+        from app.modulos.assistente.tarefas import processar_audio_tarefa
+
+        processar_audio_tarefa.delay(remetente, data)
+    except Exception as erro:
+        logger.warning(
+            "Fila Celery indisponível (%s); processando áudio em background local.",
+            type(erro).__name__,
+        )
+        background_tasks.add_task(processar_audio_mensagem, remetente, data)
 
 
 @router.post("/webhook/whatsapp")
@@ -72,16 +96,34 @@ async def receber_mensagem(
             and not remetente.endswith("@broadcast")
             and not remetente.endswith("@g.us")
         ):
-            # Extrai o texto da mensagem
+            # Extrai o texto ou áudio da mensagem
             message_content = data.get("message", {})
+            audio_msg = message_content.get("audioMessage")
             texto = message_content.get("conversation") or message_content.get(
                 "extendedTextMessage", {}
             ).get("text")
 
-            if texto:
+            if audio_msg:
+                duracao = audio_msg.get("seconds")
+                if (
+                    isinstance(duracao, (int, float))
+                    and duracao > settings.AUDIO_MAX_DURACAO_SEGUNDOS
+                ):
+                    background_tasks.add_task(
+                        enviar_mensagem, remetente, mensagens.audio_muito_longo()
+                    )
+                else:
+                    background_tasks.add_task(
+                        enviar_mensagem, remetente, mensagens.audio_recebido()
+                    )
+                    enfileirar_processamento_audio(remetente, data, background_tasks)
+            elif texto:
                 print("\n[Whatsapp] Mensagem recebida via webhook.")
                 # Processa a resposta em background para responder ao webhook
                 background_tasks.add_task(processar_responder, remetente, texto)
+            elif "imageMessage" in message_content:
+                # RF14: foto de comprovante, nota fiscal ou conta
+                background_tasks.add_task(processar_foto, remetente, data)
 
     return {"status": "SUCCESS"}
 
@@ -98,7 +140,11 @@ def buscar_usuario_telefone(telefone: str) -> Usuario | None:
         return None
 
 
-async def processar_responder(remetente: str, texto: str):
+async def processar_responder(
+    remetente: str,
+    texto: str,
+    origem: OrigemTransacao = OrigemTransacao.WHATSAPP_TEXTO,
+):
     telefone = remetente.split("@")[0] if "@" in remetente else remetente
 
     usuario = buscar_usuario_telefone(telefone)
@@ -159,6 +205,7 @@ async def processar_responder(remetente: str, texto: str):
                     valor=novo_valor,
                     categoria=nova_categoria,
                     descricao=pendencia.descricao,
+                    origem=pendencia.origem,
                 )
 
                 if pendencia.tipo == TipoTransacao.RECEITA:
@@ -176,11 +223,15 @@ async def processar_responder(remetente: str, texto: str):
         sessao_assistente.limpar_pendencia(telefone)
 
     intencao = processar_texto_mensagem(texto)
-    await enviar_mensagem(remetente, responder_intencao(telefone, usuario, intencao))
+    resposta = responder_intencao(telefone, usuario, intencao, origem)
+    await enviar_mensagem(remetente, resposta)
 
 
 def responder_intencao(
-    telefone: str, usuario: Usuario, intencao: IntencaoMensagem
+    telefone: str,
+    usuario: Usuario,
+    intencao: IntencaoMensagem,
+    origem: OrigemTransacao = OrigemTransacao.WHATSAPP_TEXTO,
 ) -> str:
     """Pede a confirmação (RF15) ou, se faltou algum dado, explica o motivo em
     linguagem simples e pede só o que falta (RF16)."""
@@ -191,6 +242,7 @@ def responder_intencao(
             intencao.valor,
             intencao.categoria,
             intencao.descricao,
+            origem,
         )
 
     if eh_saudacao(intencao.descricao):
@@ -212,6 +264,7 @@ def responder_intencao(
             categoria=intencao.categoria,
             descricao=intencao.descricao,
             faltando=CampoFaltando.VALOR,
+            origem=origem,
         )
         return mensagens.pedir_valor(
             intencao.tipo == TipoTransacao.RECEITA, intencao.categoria
@@ -226,6 +279,7 @@ def pedir_confirmacao(
     valor: int,
     categoria: str,
     descricao: str,
+    origem: OrigemTransacao = OrigemTransacao.WHATSAPP_TEXTO,
 ) -> str:
     sessao_assistente.salvar_pendencia(
         telefone=telefone,
@@ -233,6 +287,7 @@ def pedir_confirmacao(
         valor=valor,
         categoria=categoria,
         descricao=descricao,
+        origem=origem,
     )
     if tipo == TipoTransacao.RECEITA:
         return mensagens.confirmacao_renda(valor, categoria)
@@ -299,23 +354,29 @@ def completar_lancamento(telefone: str, pendencia: RegistroPendente, texto: str)
         categoria=categoria,
         descricao=pendencia.descricao or texto.strip(),
         criado=pendencia.criado,
+        origem=pendencia.origem,
     )
     falta = proximo_faltando(atualizada)
     if falta is None:
-        return pedir_confirmacao(telefone, tipo, valor, categoria, atualizada.descricao)
+        return pedir_confirmacao(
+            telefone, tipo, valor, categoria, atualizada.descricao, atualizada.origem
+        )
 
     atualizada.faltando = falta
     _manter_rascunho(telefone, atualizada)
     return _pergunta(atualizada)
 
 
-def _pergunta(pendencia: RegistroPendente) -> str:
+def _pergunta(pendencia: RegistroPendente, motivo: str | None = None) -> str:
     receita = pendencia.tipo == TipoTransacao.RECEITA
     if pendencia.faltando == CampoFaltando.VALOR:
-        return mensagens.pedir_valor(receita, pendencia.categoria)
+        desconhecido = pendencia.tipo == TipoTransacao.DESCONHECIDO
+        return mensagens.pedir_valor(
+            None if desconhecido else receita, pendencia.categoria, motivo
+        )
     if pendencia.faltando == CampoFaltando.TIPO:
-        return mensagens.pedir_tipo(pendencia.valor)
-    return mensagens.pedir_categoria(receita, pendencia.valor)
+        return mensagens.pedir_tipo(pendencia.valor, motivo)
+    return mensagens.pedir_categoria(receita, pendencia.valor, motivo)
 
 
 def _manter_rascunho(telefone: str, pendencia: RegistroPendente) -> None:
@@ -326,7 +387,35 @@ def _manter_rascunho(telefone: str, pendencia: RegistroPendente) -> None:
         categoria=pendencia.categoria,
         descricao=pendencia.descricao,
         faltando=pendencia.faltando,
+        origem=pendencia.origem,
     )
+
+
+# Categoria do assistente -> categoria do app (tblCategoria), para o gasto aparecer
+# por categoria no Extrato e no resumo (#138). Entradas não têm categoria no app.
+CATEGORIA_NO_APP = {
+    "Farmácia": "Saúde",
+    "Saúde": "Saúde",
+    "Alimentação": "Alimentação",
+    "Transporte": "Transporte",
+    "Moradia": "Moradia",
+    "Lazer": "Lazer",
+    "Outros": "Outros",
+}
+
+
+def _categoria_do_app(sessao_db, pendencia: RegistroPendente) -> int | None:
+    if pendencia.tipo != TipoTransacao.GASTO:
+        return None
+    nome = CATEGORIA_NO_APP.get(pendencia.categoria)
+    if nome is None:
+        return None
+    try:
+        return servico_contas.id_da_categoria(sessao_db, nome)
+    except Exception:
+        # A categoria é opcional: sem ela, o gasto é gravado do mesmo jeito
+        logger.warning("Categoria do assistente não encontrada no app")
+        return None
 
 
 def registrar_confirmado(
@@ -349,8 +438,9 @@ def registrar_confirmado(
                 dados=TransacaoRegistroEntrada(
                     tipo=tipo_bd,
                     valor=valor_decimal,
-                    origem=OrigemTransacao.WHATSAPP_TEXTO,
+                    origem=OrigemTransacao(pendencia.origem),
                     descricao=pendencia.descricao or pendencia.categoria,
+                    categoria_id=_categoria_do_app(sessao_db, pendencia),
                 ),
             )
     except servico_transacoes.TransacaoJaRegistrada:
@@ -365,6 +455,110 @@ def registrar_confirmado(
     if pendencia.tipo == TipoTransacao.RECEITA:
         return mensagens.confirmacao_sucesso_renda(pendencia.valor, pendencia.categoria)
     return mensagens.confirmacao_sucesso_gasto(pendencia.valor, pendencia.categoria)
+
+
+# RF14: fotos de comprovantes
+
+# Motivo dito à pessoa quando a foto não trouxe o dado (RF16)
+MOTIVOS_FOTO = {
+    CampoFaltando.VALOR: "Não consegui ler o valor na foto.",
+    CampoFaltando.TIPO: "Não consegui saber pela foto se o dinheiro saiu ou entrou.",
+    CampoFaltando.CATEGORIA: "Não consegui saber pela foto com o que foi.",
+}
+
+
+async def processar_foto(remetente: str, dados_mensagem: dict) -> None:
+    """Lê a foto e pede a confirmação (RF15). O que a foto não trouxe, o assistente
+    pede à pessoa (RF16). A imagem fica só na memória e é descartada no fim (LGPD)."""
+    telefone = remetente.split("@")[0] if "@" in remetente else remetente
+
+    usuario = buscar_usuario_telefone(telefone)
+    if not usuario:
+        await enviar_mensagem(remetente, mensagens.usuario_nao_encontrado())
+        return
+
+    # Uma foto nova substitui o que estava pendente, como uma mensagem de texto nova
+    sessao_assistente.limpar_pendencia(telefone)
+
+    imagem_msg = dados_mensagem.get("message", {}).get("imageMessage", {})
+    legenda = (imagem_msg.get("caption") or "").strip() or None
+    inicio = time.perf_counter()
+    leitura = LeituraComprovante()
+    try:
+        imagem, tipo_mime = await baixar_imagem(dados_mensagem)
+        leitura = await obter_leitor_comprovante().ler(imagem, tipo_mime, legenda)
+    except Exception as erro:
+        # Sem o conteúdo da foto no log (RNF05)
+        logger.warning("Foto não lida: %s", erro.__class__.__name__)
+    # RNF04: resposta em até 5 s. Medido desde a S4 (só o tempo, sem dados no log)
+    logger.info("Foto processada em %.2f s", time.perf_counter() - inicio)
+
+    await enviar_mensagem(remetente, responder_leitura(telefone, leitura, legenda))
+
+
+def responder_leitura(
+    telefone: str, leitura: LeituraComprovante, legenda: str | None = None
+) -> str:
+    tipo = TipoTransacao(leitura.tipo) if leitura.tipo else TipoTransacao.DESCONHECIDO
+    if not leitura.categoria and legenda:
+        # A legenda ("remédio", "mercado") diz com o que foi quando a foto não diz
+        pela_legenda = identificar_categoria(normalizar_texto(legenda), tipo)
+        if pela_legenda not in {"Outros", "Outras Receitas"}:
+            leitura.categoria = pela_legenda
+    pendencia = RegistroPendente(
+        tipo=tipo,
+        valor=leitura.valor,
+        categoria=leitura.categoria,
+        descricao=leitura.descricao,
+        criado=datetime.now(UTC),
+        origem=OrigemTransacao.WHATSAPP_FOTO,
+    )
+    falta = proximo_faltando(pendencia)
+    if falta is None:
+        return pedir_confirmacao(
+            telefone,
+            pendencia.tipo,
+            pendencia.valor,
+            pendencia.categoria,
+            pendencia.descricao,
+            pendencia.origem,
+        )
+
+    pendencia.faltando = falta
+    _manter_rascunho(telefone, pendencia)
+    return _pergunta(pendencia, MOTIVOS_FOTO[falta])
+
+
+async def baixar_imagem(dados_mensagem: dict) -> tuple[bytes, str]:
+    """Pega a foto da mensagem: no próprio webhook, se a Evolution API manda o base64
+    (WEBHOOK_BASE64=true), ou pedindo à Evolution API."""
+    imagem_msg = dados_mensagem.get("message", {}).get("imageMessage", {})
+    tipo_mime = (imagem_msg.get("mimetype") or "image/jpeg").split(";")[0].strip()
+
+    conteudo = dados_mensagem.get("message", {}).get("base64")
+    if not conteudo:
+        url = (
+            f"{settings.EVOLUTION_URL}/chat/getBase64FromMediaMessage/"
+            f"{settings.INSTANCE_NAME}"
+        )
+        corpo = {"message": {"key": dados_mensagem.get("key", {})}}
+        async with httpx.AsyncClient() as client:
+            resposta = await client.post(
+                url,
+                json=corpo,
+                headers={"apikey": settings.AUTHENTICATION_API_KEY},
+                timeout=5.0,
+            )
+            resposta.raise_for_status()
+            json_resposta = resposta.json()
+        conteudo = json_resposta.get("base64")
+        tipo_mime = json_resposta.get("mimetype") or tipo_mime
+
+    if not conteudo:
+        raise ValueError("Mensagem sem imagem")
+    if conteudo.startswith("data:"):
+        conteudo = conteudo.split(",", 1)[1]
+    return base64.b64decode(conteudo), tipo_mime
 
 
 async def enviar_mensagem(destinatario: str, texto: str):

@@ -44,7 +44,9 @@
 }
 
 .teclaAcao {
-  font-size: clamp(14px, 3.8vw, 16px);
+  gap: 4px;
+  font-size: 16px;
+  line-height: 1.1;
   background-color: var(--lavanda);
   color: var(--violeta-profundo);
   border-color: #c4b5fd;
@@ -53,4 +55,12 @@
 .teclaAcao:hover {
   background-color: #ddd6fe;
   border-color: var(--violeta-profundo);
+}
+
+/* Celular: ícone em cima do texto para "Apagar" caber sem encostar */
+@media (max-width: 420px) {
+  .teclaAcao {
+    flex-direction: column;
+    gap: 2px;
+  }
 }

@@ -11,3 +11,7 @@ valkey>=6.1
 rapidfuzz>=3.0.0
 celery[redis]>=5.5
 reportlab>=4.2
+faster-whisper>=1.1.0
+av<19
+anthropic>=2.13
+httpx>=0.28

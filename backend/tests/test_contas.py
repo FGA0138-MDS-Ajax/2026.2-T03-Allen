@@ -8,9 +8,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.modulos.contas.esquemas import vencimento_minimo
+from app.modulos.contas.esquemas import hoje_brasilia, vencimento_minimo
 from app.modulos.contas.mensagens import Message
 from app.modulos.contas.modelos import Conta
+from app.modulos.contas.recorrencia import proximo_vencimento
 
 
 @pytest.fixture(autouse=True)
@@ -80,7 +81,7 @@ def test_cadastro_sem_data_retorna_422(cliente_logado: TestClient) -> None:
 
 
 def test_conta_vencida_fica_em_atraso(cliente_logado: TestClient) -> None:
-    ontem = date.today() - timedelta(days=1)
+    ontem = hoje_brasilia() - timedelta(days=1)
     resposta = cliente_logado.post(
         "/api/v1/contas",
         json={"vencimento_em": ontem.isoformat(), "valor": "20.00"},
@@ -174,6 +175,46 @@ def test_recorrente_gera_proximo_mes_apos_pagamento(cliente_logado, sessao):
     fev = [conta for conta in contas if conta["vencimento_em"].startswith("2026-02")]
     assert len(fev) == 1
     assert fev[0]["vencimento_em"] == "2026-02-28"  # mudar de 31 -> 28
+
+
+def test_recorrente_dia_31_volta_depois_de_fevereiro(cliente_logado):
+    """#153: o 28 de fevereiro não pode virar o dia da conta para sempre."""
+    conta = cliente_logado.post(
+        "/api/v1/contas",
+        json={"vencimento_em": "2026-01-31", "valor": "100.00", "recorrente": True},
+    ).json()
+
+    vencimentos = [conta["vencimento_em"]]
+    for _ in range(4):
+        cliente_logado.patch(
+            f"/api/v1/contas/{conta['id']}/pagamento", json={"paga": True}
+        )
+        contas = cliente_logado.get("/api/v1/contas").json()
+        conta = next(c for c in contas if c["pagamento_em"] is None)
+        vencimentos.append(conta["vencimento_em"])
+
+    assert vencimentos == [
+        "2026-01-31",
+        "2026-02-28",
+        "2026-03-31",
+        "2026-04-30",
+        "2026-05-31",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("base", "dia", "esperado"),
+    [
+        (date(2026, 2, 28), 31, date(2026, 3, 31)),
+        (date(2026, 2, 28), 30, date(2026, 3, 30)),
+        (date(2028, 1, 29), 29, date(2028, 2, 29)),
+        (date(2026, 1, 30), 30, date(2026, 2, 28)),
+        (date(2026, 12, 31), 31, date(2027, 1, 31)),
+        (date(2026, 4, 30), None, date(2026, 5, 30)),
+    ],
+)
+def test_proximo_vencimento_usa_o_dia_escolhido(base, dia, esperado):
+    assert proximo_vencimento(base, dia) == esperado
 
 
 def test_recorrente_setembro(cliente_logado):

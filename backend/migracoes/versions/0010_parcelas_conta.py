@@ -20,8 +20,15 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.add_column("tblConta", sa.Column("nuParcela", sa.Integer(), nullable=True))
-    op.add_column("tblConta", sa.Column("nuTotalParcelas", sa.Integer(), nullable=True))
+    colunas = {
+        coluna["name"] for coluna in sa.inspect(op.get_bind()).get_columns("tblConta")
+    }
+    if "nuParcela" not in colunas:
+        op.add_column("tblConta", sa.Column("nuParcela", sa.Integer(), nullable=True))
+    if "nuTotalParcelas" not in colunas:
+        op.add_column(
+            "tblConta", sa.Column("nuTotalParcelas", sa.Integer(), nullable=True)
+        )
 
 
 def downgrade() -> None:

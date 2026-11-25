@@ -9,6 +9,7 @@ from enum import StrEnum
 import valkey
 
 from app.modulos.assistente.extrator import TipoTransacao
+from app.modulos.transacoes.esquemas import OrigemTransacao
 from app.nucleo.config import settings
 
 logger = logging.getLogger(__name__)
@@ -46,6 +47,7 @@ class RegistroPendente:
     categoria: str
     descricao: str
     criado: datetime
+    origem: OrigemTransacao = OrigemTransacao.WHATSAPP_TEXTO
     # Preenchido quando o lançamento está incompleto: o assistente pediu este dado
     # e a próxima mensagem completa o lançamento, em vez de começar outro (RF16)
     faltando: CampoFaltando | None = None
@@ -72,6 +74,7 @@ class GerenciadorSessao:
         valor: int | None,
         categoria: str,
         descricao: str,
+        origem: OrigemTransacao = OrigemTransacao.WHATSAPP_TEXTO,
         faltando: CampoFaltando | None = None,
     ) -> None:
         agora = datetime.now(UTC)
@@ -82,6 +85,7 @@ class GerenciadorSessao:
             descricao=descricao,
             criado=agora,
             faltando=faltando,
+            origem=origem,
         )
 
         if self._valkey:
@@ -89,6 +93,10 @@ class GerenciadorSessao:
                 dados = asdict(pendencia)
                 dados["tipo"] = dados["tipo"].value
                 dados["criado"] = dados["criado"].isoformat()
+                dados["origem"] = dados["origem"].value
+                dados["faltando"] = (
+                    dados["faltando"].value if dados["faltando"] is not None else None
+                )
                 self._valkey.setex(
                     self._chave(telefone),
                     24 * 3600,
@@ -126,6 +134,11 @@ class GerenciadorSessao:
                             descricao=dados["descricao"],
                             criado=criado,
                             faltando=CampoFaltando(faltando) if faltando else None,
+                            origem=OrigemTransacao(
+                                dados.get(
+                                    "origem", OrigemTransacao.WHATSAPP_TEXTO.value
+                                )
+                            ),
                         ),
                         False,
                     )

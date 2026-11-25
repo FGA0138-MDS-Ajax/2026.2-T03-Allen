@@ -69,25 +69,45 @@ def confirmacao_expirada() -> str:
     )
 
 
-# RF16: quando falta um dado, o assistente diz o motivo e pede só o que falta
+def audio_recebido() -> str:
+    return "Recebi seu áudio! Estou ouvindo para anotar..."
+
+
+def audio_muito_longo() -> str:
+    return (
+        "Esse áudio ficou um pouco longo (mais de 1 minuto).\n\n"
+        "Pode me mandar um áudio mais curto ou digitar o que gastou?"
+    )
+
+
+def audio_nao_compreendido() -> str:
+    return (
+        "Desculpe, não consegui entender bem o seu áudio.\n\n"
+        "Pode tentar gravar de novo em um lugar mais silencioso ou digitar o valor?"
+    )
 
 
 def _rotulo(tipo_receita: bool) -> str:
     return "essa entrada" if tipo_receita else "esse gasto"
 
 
-def pedir_valor(tipo_receita: bool, categoria: str, motivo: str | None = None) -> str:
+def pedir_valor(
+    tipo_receita: bool | None, categoria: str, motivo: str | None = None
+) -> str:
+    """`tipo_receita` None: ainda não se sabe se o dinheiro saiu ou entrou (foto)."""
     motivo = motivo or "Não consegui entender o valor na sua mensagem."
-    if categoria in {"Outros", "Outras Receitas"}:
-        complemento = ""
-    elif tipo_receita:
-        complemento = f" de {categoria}"
+    if tipo_receita is None:
+        pergunta = "Qual foi o valor?"
     else:
-        complemento = f" com {categoria}"
+        if not categoria or categoria in {"Outros", "Outras Receitas"}:
+            complemento = ""
+        elif tipo_receita:
+            complemento = f" de {categoria}"
+        else:
+            complemento = f" com {categoria}"
+        pergunta = f"Quanto foi {_rotulo(tipo_receita)}{complemento}?"
     return (
-        f"{motivo}\n\n"
-        f"Quanto foi {_rotulo(tipo_receita)}{complemento}? "
-        "Pode mandar só o número, por exemplo: *35* ou *12,50*"
+        f"{motivo}\n\n{pergunta} Pode mandar só o número, por exemplo: *35* ou *12,50*"
     )
 
 

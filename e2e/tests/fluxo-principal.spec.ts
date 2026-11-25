@@ -52,7 +52,9 @@ async function simularApi(page: Page) {
 
   const saldo = () => {
     const soma = (tipo: Transacao["tipo"]) =>
-      transacoes.filter((t) => t.tipo === tipo).reduce((s, t) => s + Number(t.valor), 0);
+      transacoes
+        .filter((t) => t.tipo === tipo)
+        .reduce((s, t) => s + Number(t.valor), 0);
     const entradas = soma("entrada");
     const gastos = soma("saida");
     return {
@@ -65,7 +67,11 @@ async function simularApi(page: Page) {
   };
 
   const json = (route: Route, corpo: unknown, status = 200) =>
-    route.fulfill({ status, contentType: "application/json", body: JSON.stringify(corpo) });
+    route.fulfill({
+      status,
+      contentType: "application/json",
+      body: JSON.stringify(corpo),
+    });
 
   await page.route("**/api/v1/**", async (route) => {
     const req = route.request();
@@ -74,13 +80,20 @@ async function simularApi(page: Page) {
 
     if (pathname === "/api/v1/auth/pin" && metodo === "POST") {
       const { pin } = req.postDataJSON() as { pin: string };
-      if (pin !== PIN) return json(route, { detail: "Celular ou PIN incorretos." }, 401);
-      return json(route, { access_token: TOKEN, token_type: "bearer", expira_em: 3600 });
+      if (pin !== PIN)
+        return json(route, { detail: "Celular ou PIN incorretos." }, 401);
+      return json(route, {
+        access_token: TOKEN,
+        token_type: "bearer",
+        expira_em: 3600,
+      });
     }
     if (pathname === "/api/v1/categorias") return json(route, CATEGORIAS);
-    if (pathname === "/api/v1/contas" && metodo === "GET") return json(route, []);
+    if (pathname === "/api/v1/contas" && metodo === "GET")
+      return json(route, []);
     if (pathname === "/api/v1/transacoes/saldo") return json(route, saldo());
-    if (pathname === "/api/v1/transacoes" && metodo === "GET") return json(route, transacoes);
+    if (pathname === "/api/v1/transacoes" && metodo === "GET")
+      return json(route, transacoes);
     if (pathname === "/api/v1/transacoes" && metodo === "POST") {
       const dados = req.postDataJSON() as Partial<Transacao>;
       const nova: Transacao = {
@@ -118,25 +131,57 @@ async function digitarNoTeclado(page: Page, digitos: string) {
 }
 
 async function semViolacoesGraves(page: Page) {
-  const { violations } = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
-  const graves = violations.filter((v) => v.impact === "critical" || v.impact === "serious");
-  expect(graves, graves.map((v) => `${v.id}: ${v.help}`).join("\n")).toEqual([]);
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+    .analyze();
+  const graves = violations.filter(
+    (v) => v.impact === "critical" || v.impact === "serious",
+  );
+  expect(graves, graves.map((v) => `${v.id}: ${v.help}`).join("\n")).toEqual(
+    [],
+  );
 }
 
 async function semRolagemHorizontal(page: Page) {
-  const largura = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  const largura = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth,
+  );
   expect(largura).toBeLessThanOrEqual(0);
 }
 
-/** Toda tela tem um título principal visível (#60). O cadastro no celular ainda não tem (#111). */
-async function temTituloPrincipal(page: Page, tela: string, largura: number) {
-  const titulo = page.getByRole("heading", { level: 1 });
-  if (tela === "/cadastro" && largura < 900) {
-    test.info().annotations.push({ type: "bug", description: "#111: /cadastro sem h1 abaixo de 900px" });
-    await expect(page.locator("main, body").first()).toBeVisible();
-    return;
-  }
-  await expect(titulo).toBeVisible();
+/** Toda tela tem um título principal visível (#60), inclusive o cadastro no celular (#111). */
+async function temTituloPrincipal(page: Page) {
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+}
+
+/** Uma só região principal: o leitor de tela anunciava duas (#143). */
+async function umaRegiaoPrincipal(page: Page) {
+  await expect(page.locator("main")).toHaveCount(1);
+}
+
+/** Alvos de toque grandes o bastante para quem tem tremor nas mãos (#142). */
+async function alvosDeToque(page: Page) {
+  const pequenos = await page
+    .locator("button, a[href], input, select, [role=tab], [role=radio]")
+    .evaluateAll((els) =>
+      els
+        .filter((e) => (e as HTMLElement).offsetParent !== null)
+        .map((e) => {
+          const r = e.getBoundingClientRect();
+          const nome = (
+            e.getAttribute("aria-label") ||
+            (e as HTMLElement).innerText ||
+            e.tagName
+          ).trim();
+          return {
+            nome: nome.slice(0, 30),
+            w: Math.round(r.width),
+            h: Math.round(r.height),
+          };
+        })
+        .filter((a) => a.w < 44 || a.h < 44),
+    );
+  expect(pequenos, JSON.stringify(pequenos)).toEqual([]);
 }
 
 function paraCentavos(texto: string): number {
@@ -149,7 +194,9 @@ test.beforeEach(async ({ page }) => {
   await simularApi(page);
 });
 
-test("login com PIN, saldo, gasto anotado e saldo atualizado", async ({ page }) => {
+test("login com PIN, saldo, gasto anotado e saldo atualizado", async ({
+  page,
+}) => {
   await test.step("login com PIN (RF01)", async () => {
     await page.goto("/entrar");
     await page.getByLabel(/número de celular/i).fill(CELULAR);
@@ -161,7 +208,9 @@ test("login com PIN, saldo, gasto anotado e saldo atualizado", async ({ page }) 
   await test.step("tour em áudio no primeiro acesso (RF05)", async () => {
     const tour = page.getByRole("dialog", { name: /boas-vindas ao vero/i });
     await expect(tour).toBeVisible();
-    await expect(tour.getByText(/vou explicar como usar o vero/i)).toBeVisible();
+    await expect(
+      tour.getByText(/vou explicar como usar o vero/i),
+    ).toBeVisible();
     await tour.getByRole("button", { name: /sair da explicação/i }).click();
     await expect(tour).toBeHidden();
   });
@@ -170,9 +219,13 @@ test("login com PIN, saldo, gasto anotado e saldo atualizado", async ({ page }) 
   let saldoInicial = 0;
   await test.step("saldo na tela inicial (RF19)", async () => {
     await expect(saldo).toContainText("R$");
-    await expect.poll(async () => paraCentavos(await saldo.innerText())).toBe(125000);
+    await expect
+      .poll(async () => paraCentavos(await saldo.innerText()))
+      .toBe(125000);
     saldoInicial = paraCentavos(await saldo.innerText());
-    await expect(page.getByRole("button", { name: /^ouvir/i }).first()).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /^ouvir/i }).first(),
+    ).toBeVisible();
   });
 
   await test.step("anotar gasto com teclado e categoria (RF08, RF09)", async () => {
@@ -183,13 +236,17 @@ test("login com PIN, saldo, gasto anotado e saldo atualizado", async ({ page }) 
     await expect(mercado).toHaveAttribute("aria-checked", "true");
     await semViolacoesGraves(page);
     await page.getByRole("button", { name: /salvar gasto/i }).click();
-    await expect(page.getByRole("dialog", { name: /tudo certo/i })).toBeVisible();
+    await expect(
+      page.getByRole("dialog", { name: /tudo certo/i }),
+    ).toBeVisible();
   });
 
   await test.step("saldo atualizado (RF19)", async () => {
     await page.getByRole("button", { name: /ir para a tela inicial/i }).click();
     await expect(page).toHaveURL(/\/inicio/);
-    await expect.poll(async () => paraCentavos(await saldo.innerText())).toBe(saldoInicial - 1250);
+    await expect
+      .poll(async () => paraCentavos(await saldo.innerText()))
+      .toBe(saldoInicial - 1250);
   });
 });
 
@@ -204,10 +261,14 @@ test("PIN errado mostra mensagem e não entra (RF01)", async ({ page }) => {
 
 // Acessibilidade (axe, WCAG 2.1 AA) e sem rolagem horizontal em todas as telas.
 for (const tela of [...TELAS_PUBLICAS, ...TELAS_LOGADAS]) {
-  test(`acessibilidade e layout de ${tela} (RNF01, RNF03)`, async ({ page }) => {
+  test(`acessibilidade e layout de ${tela} (RNF01, RNF03)`, async ({
+    page,
+  }) => {
     if (TELAS_LOGADAS.includes(tela)) await entrarDireto(page);
     await page.goto(tela);
-    await temTituloPrincipal(page, tela, page.viewportSize()?.width ?? 0);
+    await temTituloPrincipal(page);
+    await umaRegiaoPrincipal(page);
+    await alvosDeToque(page);
     await semViolacoesGraves(page);
     await semRolagemHorizontal(page);
   });
@@ -220,7 +281,7 @@ test.describe("zoom de 200% (RNF01, critério RF19.4)", () => {
     test(`${tela} sem rolagem horizontal`, async ({ page }) => {
       if (TELAS_LOGADAS.includes(tela)) await entrarDireto(page);
       await page.goto(tela);
-      await temTituloPrincipal(page, tela, 640);
+      await temTituloPrincipal(page);
       await semRolagemHorizontal(page);
     });
   }
