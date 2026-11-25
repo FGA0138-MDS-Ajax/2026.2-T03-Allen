@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, String, Text, func, text, true
+from sqlalchemy import DateTime, ForeignKey, String, Text, func, text, true
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.nucleo.banco import Base
@@ -48,3 +48,27 @@ class Usuario(Base):
     @property
     def tem_pin(self) -> bool:
         return self.hash_pin is not None
+
+
+class Acompanhante(Base):
+    """Relacionamento de convite entre o usuario e o acompanhante"""
+
+    __tablename__ = "tblAcompanhamento"
+
+    id_usuario_titular: Mapped[uuid.UUID] = mapped_column(
+        "idUsuarioTitular", ForeignKey("tblUsuario.idUsuario"), primary_key=True
+    )
+    id_usuario_acompanhante: Mapped[uuid.UUID] = mapped_column(
+        "idUsuarioAcompanhante", ForeignKey("tblUsuario.idUsuario"), primary_key=True
+    )
+    ic_pode_editar: Mapped[bool | None] = mapped_column("icPodeEditar")
+    dh_aceite: Mapped[datetime | None] = mapped_column(
+        "dhAceite", DateTime(timezone=True), nullable=True
+    )
+    dh_criacao: Mapped[datetime] = mapped_column(
+        "dhCriacao", DateTime(timezone=True), server_default=func.now()
+    )
+    status: Mapped[str] = mapped_column("noStatus", default="pendente", nullable=False)
+    dh_revogacao: Mapped[datetime | None] = mapped_column(
+        "dhRevogacao", DateTime(timezone=True), nullable=True
+    )
