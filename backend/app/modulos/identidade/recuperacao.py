@@ -2,10 +2,14 @@
 
 O código de 6 dígitos vai por e-mail e fica no Valkey só como hash, com validade.
 Ao trocar ou redefinir o PIN, a versão do token sobe e as sessões antigas caem.
+
+O pedido de código responde igual com ou sem conta (RNF05): os limites de pedidos
+contam por celular, e só quem tem conta recebe um código.
 """
 
 import hashlib
 import hmac
+import logging
 import secrets
 from datetime import timedelta
 from enum import Enum
@@ -18,6 +22,9 @@ from app.modulos.identidade import servico
 from app.modulos.identidade.modelos import Usuario
 from app.modulos.identidade.seguranca import gerar_hash, hash_telefone
 from app.nucleo.config import settings
+from app.nucleo.portas import FalhaEnvioEmail, PortaEmail
+
+logger = logging.getLogger(__name__)
 
 cliente = valkey.Valkey.from_url(settings.VALKEY_URL, decode_responses=True)
 
@@ -29,10 +36,6 @@ class Limites(Enum):
     TENTATIVAS_CODIGO = 5
     ESPERA_REENVIO = timedelta(seconds=60)
     PEDIDOS_POR_HORA = 5
-
-
-class CelularSemConta(Exception):
-    pass
 
 
 class EspereNovoCodigo(Exception):
@@ -53,24 +56,14 @@ class RecuperacaoIndisponivel(Exception):
     """O Valkey não respondeu."""
 
 
-def mascarar_email(email: str) -> str:
-    """joao@gmail.com -> j***@gmail.com"""
-    usuario, dominio = email.split("@", 1)
-    return f"{usuario[0]}***@{dominio}"
+def pedir_codigo(sessao: Session, telefone: str) -> tuple[Usuario, str] | None:
+    """Gera um código novo (o anterior deixa de valer). Quem chama envia o e-mail.
 
-
-def pedir_codigo(sessao: Session, telefone: str) -> tuple[Usuario, str]:
-    """Gera um código novo (o anterior deixa de valer). Quem chama envia o e-mail."""
-    usuario = sessao.scalar(
-        select(Usuario).where(Usuario.hash_telefone == hash_telefone(telefone))
-    )
-    if usuario is None:
-        raise CelularSemConta
-
-    chave_espera = _chave("espera", usuario)
-    chave_pedidos = _chave("pedidos", usuario)
-    chave_codigo = _chave("codigo", usuario)
-    codigo = f"{secrets.randbelow(10**6):06d}"
+    Devolve None quando o celular não tem conta; quem chama responde igual nos dois casos.
+    """
+    hash_tel = hash_telefone(telefone)
+    chave_espera = _chave("espera", hash_tel)
+    chave_pedidos = _chave("pedidos", hash_tel)
     try:
         espera = int(Limites.ESPERA_REENVIO.value.total_seconds())
         if not cliente.set(chave_espera, 1, nx=True, ex=espera):
@@ -83,6 +76,14 @@ def pedir_codigo(sessao: Session, telefone: str) -> tuple[Usuario, str]:
         if pedidos > Limites.PEDIDOS_POR_HORA.value:
             raise MuitosCodigos
 
+        usuario = sessao.scalar(
+            select(Usuario).where(Usuario.hash_telefone == hash_tel)
+        )
+        if usuario is None:
+            return None
+
+        codigo = f"{secrets.randbelow(10**6):06d}"
+        chave_codigo = _chave("codigo", usuario.id)
         pipe = cliente.pipeline()
         pipe.delete(chave_codigo)
         pipe.hset(chave_codigo, mapping={"hash": _hash(codigo), "tentativas": 0})
@@ -91,6 +92,25 @@ def pedir_codigo(sessao: Session, telefone: str) -> tuple[Usuario, str]:
     except valkey.ValkeyError:
         raise RecuperacaoIndisponivel from None
     return usuario, codigo
+
+
+def enviar_codigo(
+    email: PortaEmail, usuario: Usuario, telefone: str, assunto: str, texto: str
+) -> None:
+    """Roda em segundo plano, depois da resposta. Se o envio falhar, o código é
+    descartado e a espera é liberada, para a pessoa poder pedir outro na hora."""
+    try:
+        email.enviar(usuario.email, assunto, texto)
+    except FalhaEnvioEmail:
+        hash_tel = hash_telefone(telefone)
+        try:
+            pipe = cliente.pipeline()
+            pipe.delete(_chave("codigo", usuario.id))
+            pipe.delete(_chave("espera", hash_tel))
+            pipe.decr(_chave("pedidos", hash_tel))
+            pipe.execute()
+        except valkey.ValkeyError:
+            logger.warning("Não foi possível liberar um novo pedido de código.")
 
 
 def redefinir_pin(
@@ -105,7 +125,7 @@ def redefinir_pin(
     if usuario is None:
         raise CodigoErrado
 
-    chave = _chave("codigo", usuario)
+    chave = _chave("codigo", usuario.id)
     try:
         pipe = cliente.pipeline()
         pipe.hget(chave, "hash")
@@ -153,11 +173,13 @@ def _gravar_novo_pin(sessao: Session, usuario: Usuario, novo_pin: str) -> None:
     sessao.commit()
 
 
-def _chave(tipo: str, usuario: Usuario) -> str:
-    return f"vero:recuperacao:{tipo}:{usuario.id}"
+def _chave(tipo: str, identificador: object) -> str:
+    """O código fica pelo id do usuário; espera e pedidos, pelo hash do celular."""
+    return f"vero:recuperacao:{tipo}:{identificador}"
 
 
 def _hash(codigo: str) -> str:
+    # Chave própria, separada da SECRET_KEY que assina o token
     return hmac.new(
-        settings.SECRET_KEY.encode(), codigo.encode(), hashlib.sha256
+        settings.CHAVE_CODIGO_RECUPERACAO.encode(), codigo.encode(), hashlib.sha256
     ).hexdigest()

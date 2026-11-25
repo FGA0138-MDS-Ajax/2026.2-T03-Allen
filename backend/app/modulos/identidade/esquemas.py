@@ -12,6 +12,8 @@ def normalizar_telefone(valor: str) -> str:
     digitos = re.sub(r"\D", "", valor)
     if len(digitos) in (10, 11):
         digitos = "55" + digitos
+    if len(digitos) == 12 and digitos.startswith("55"):
+        digitos = digitos[:4] + "9" + digitos[4:]
     if not (len(digitos) in (12, 13) and digitos.startswith("55")):
         raise ValueError(Message.TELEFONE_INVALIDO.message)
     return digitos
@@ -64,7 +66,8 @@ class EsqueciPinEntrada(BaseModel):
 
 
 class EsqueciPinSaida(BaseModel):
-    enviado_para: str  # e-mail mascarado, ex.: j***@gmail.com
+    # Igual com ou sem conta, para não revelar quem usa o Vero (RNF05)
+    mensagem: str
     validade_minutos: int
 
 

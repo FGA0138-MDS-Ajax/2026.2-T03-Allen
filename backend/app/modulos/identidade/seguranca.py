@@ -30,7 +30,9 @@ def conferir_hash(valor: str, hash_salvo: str) -> bool:
 # Hash determinístico para telefone (HMAC-SHA256 com SECRET_KEY como pepper)
 # O mesmo telefone sempre gera o mesmo hash, permitindo buscas e unique constraint.
 def hash_telefone(valor: str) -> str:
-    return hmac.new(settings.SECRET_KEY.encode(), valor.encode(), hashlib.sha256).hexdigest()
+    return hmac.new(
+        settings.SECRET_KEY.encode(), valor.encode(), hashlib.sha256
+    ).hexdigest()
 
 
 # Conferido quando o celular não existe, para a resposta levar o mesmo tempo

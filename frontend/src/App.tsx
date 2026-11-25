@@ -41,9 +41,10 @@ export default function App() {
   return (
     <RouterProvider>
       <TourAudioProvider>
-        <main>
+        {/* Cada tela tem o seu <main>; aqui seria um segundo (#143) */}
+        <div>
           <ConteudoRotas />
-        </main>
+        </div>
       </TourAudioProvider>
     </RouterProvider>
   );

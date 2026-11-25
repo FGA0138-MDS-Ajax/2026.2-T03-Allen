@@ -1,4 +1,4 @@
-"""Entrada e saída do módulo de transações (RF17)."""
+"""Entrada e saída do módulo de transações (RF10, RF17, RF18)."""
 
 from datetime import date, datetime
 from decimal import Decimal
@@ -6,7 +6,13 @@ from enum import StrEnum
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, StringConstraints
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    StringConstraints,
+    field_validator,
+)
 
 from app.modulos.transacoes.mensagens import Message
 
@@ -31,6 +37,23 @@ class OrigemTransacao(StrEnum):
     QRCODE_NF = "qrcode_nf"
     EXTRATO = "extrato"
     CONTA = "conta"
+    # Gasto fixo lançado sozinho na data da conta (RF18); o app mostra "automático"
+    RECORRENTE = "recorrente"
+
+
+class MomentoAviso(StrEnum):
+    """Valores do noMomento da tblAviso."""
+
+    ANTECIPADO = "antecipado"  # RF29: dias antes do vencimento
+    NO_DIA = "no_dia"  # RF28: no dia do vencimento
+    ATRASADO = "atrasado"
+
+
+class CanalAviso(StrEnum):
+    """Valores do noCanal da tblAviso."""
+
+    APP = "app"
+    WHATSAPP = "whatsapp"
 
 
 def validar_valor(valor: Decimal) -> Decimal:
@@ -61,6 +84,31 @@ class TransacaoRegistroEntrada(BaseModel):
     chave_externa: str | None = None
 
 
+class TransacaoEdicaoEntrada(BaseModel):
+    """RF10: muda só os campos enviados. Descrição e categoria aceitam null para apagar;
+    valor e data, não."""
+
+    valor: Valor | None = None
+    data: date | None = None
+    descricao: Descricao | None = None
+    categoria_id: int | None = None
+
+    # Só roda para o campo enviado: o padrão None quer dizer "não mudar"
+    @field_validator("valor")
+    @classmethod
+    def _valor_nao_fica_em_branco(cls, valor: Decimal | None) -> Decimal:
+        if valor is None:
+            raise ValueError(Message.VALOR_EM_BRANCO.message)
+        return valor
+
+    @field_validator("data")
+    @classmethod
+    def _data_nao_fica_em_branco(cls, data: date | None) -> date:
+        if data is None:
+            raise ValueError(Message.DATA_EM_BRANCO.message)
+        return data
+
+
 class TransacaoSaida(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -72,3 +120,11 @@ class TransacaoSaida(BaseModel):
     categoria_id: int | None
     origem: OrigemTransacao
     criado_em: datetime
+
+
+class SaldoMesSaida(BaseModel):
+    mes: str
+    entradas: Decimal
+    gastos: Decimal
+    contas: Decimal
+    saldo: Decimal

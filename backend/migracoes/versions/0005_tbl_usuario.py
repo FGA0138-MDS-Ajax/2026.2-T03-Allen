@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 
+import sqlalchemy as sa
 from alembic import op
 
 revision: str = "0005"
@@ -20,7 +21,11 @@ ORIGENS = (
 
 
 def upgrade() -> None:
-    op.drop_column("tblUsuario", "hashUsuario")
+    colunas = {
+        coluna["name"] for coluna in sa.inspect(op.get_bind()).get_columns("tblUsuario")
+    }
+    if "hashUsuario" in colunas:
+        op.drop_column("tblUsuario", "hashUsuario")
     op.execute(
         'UPDATE "tblUsuario" SET "noEmail" = \'sem-email@vero.com\' WHERE "noEmail" IS NULL'
     )

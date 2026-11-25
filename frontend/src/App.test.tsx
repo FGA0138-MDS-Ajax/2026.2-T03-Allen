@@ -27,12 +27,12 @@ describe('App', () => {
   it('deve renderizar a tela de boas-vindas Vero quando não estiver autenticado', () => {
     vi.mocked(servicos.estaAutenticado).mockReturnValue(false);
     render(<App />);
-    expect(screen.getByText('Vero')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Vero' })).toBeInTheDocument();
     expect(
       screen.getByText('Suas finanças na palma da sua mão.')
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /fazer login/i })
+      screen.getByRole('button', { name: /^entrar$/i })
     ).toBeInTheDocument();
   });
 

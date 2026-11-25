@@ -6,7 +6,7 @@ export interface ConfirmacaoSucessoProps {
   aberta: boolean;
   mensagem: string;
   onIrParaInicio: () => void;
-  onDesfazer?: () => void;
+  onDesfazer?: () => void | Promise<void>;
   onContinuar?: () => void;
   textoContinuar?: string;
   segundosDesfazer?: number;
@@ -22,19 +22,40 @@ export const ConfirmacaoSucesso: React.FC<ConfirmacaoSucessoProps> = ({
   segundosDesfazer = 10,
 }) => {
   const [tempoRestante, setTempoRestante] = useState(segundosDesfazer);
+  const [interagindoDesfazer, setInteragindoDesfazer] = useState(false);
+  const [desfazendo, setDesfazendo] = useState(false);
   const tituloRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
-    if (!aberta) return;
+    if (!aberta) {
+      setInteragindoDesfazer(false);
+      setDesfazendo(false);
+      return;
+    }
     setTempoRestante(segundosDesfazer);
     tituloRef.current?.focus();
+  }, [aberta, segundosDesfazer]);
+
+  // WCAG 2.2.1: pausa a contagem enquanto o usuário interage com o botão Desfazer
+  useEffect(() => {
+    if (!aberta || !onDesfazer || interagindoDesfazer || desfazendo) return;
 
     const intervalo = setInterval(() => {
       setTempoRestante((ant) => Math.max(0, ant - 1));
     }, 1000);
 
     return () => clearInterval(intervalo);
-  }, [aberta, segundosDesfazer]);
+  }, [aberta, onDesfazer, interagindoDesfazer, desfazendo]);
+
+  const aoClicarDesfazer = async () => {
+    if (!onDesfazer || desfazendo) return;
+    setDesfazendo(true);
+    try {
+      await onDesfazer();
+    } finally {
+      setDesfazendo(false);
+    }
+  };
 
   if (!aberta) return null;
 
@@ -44,6 +65,7 @@ export const ConfirmacaoSucesso: React.FC<ConfirmacaoSucessoProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirmacao-titulo"
+      aria-describedby="confirmacao-mensagem"
     >
       <div className={styles.modal}>
         <div className={styles.iconeCirculo} aria-hidden="true">
@@ -59,7 +81,10 @@ export const ConfirmacaoSucesso: React.FC<ConfirmacaoSucessoProps> = ({
           Tudo certo!
         </h2>
 
-        <p className={styles.mensagem}>{mensagem}</p>
+        {/* Lida junto com o título quando o foco entra no diálogo (RF20 / #100) */}
+        <p id="confirmacao-mensagem" className={styles.mensagem}>
+          {mensagem}
+        </p>
 
         <div className={styles.acoes}>
           <button
@@ -74,9 +99,20 @@ export const ConfirmacaoSucesso: React.FC<ConfirmacaoSucessoProps> = ({
             <button
               type="button"
               className={styles.btnDesfazer}
-              onClick={onDesfazer}
+              onClick={aoClicarDesfazer}
+              disabled={desfazendo}
+              onMouseEnter={() => setInteragindoDesfazer(true)}
+              onMouseLeave={() => setInteragindoDesfazer(false)}
+              onFocus={() => setInteragindoDesfazer(true)}
+              onBlur={() => setInteragindoDesfazer(false)}
+              onTouchStart={() => setInteragindoDesfazer(true)}
+              onTouchEnd={() => setInteragindoDesfazer(false)}
             >
-              Desfazer ({tempoRestante}s)
+              {desfazendo
+                ? 'Desfazendo...'
+                : interagindoDesfazer
+                  ? `Desfazer (${tempoRestante}s · pausado)`
+                  : `Desfazer (${tempoRestante}s)`}
             </button>
           )}
 

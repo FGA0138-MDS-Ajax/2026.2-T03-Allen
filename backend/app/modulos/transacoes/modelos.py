@@ -8,9 +8,11 @@ from sqlalchemy import (
     BigInteger,
     Date,
     DateTime,
+    ForeignKey,
     Numeric,
     String,
     Text,
+    UniqueConstraint,
     func,
     text,
 )
@@ -37,10 +39,39 @@ class Transacao(Base):
     categoria_id: Mapped[int | None] = mapped_column("idCategoria", BigInteger)
     origem: Mapped[str] = mapped_column("noOrigem", String)
     chave_externa: Mapped[str | None] = mapped_column("coChaveExterna", Text)
+    # Conta que gerou o lançamento automático (RF18). Única: uma conta, um lançamento
+    conta_id: Mapped[uuid.UUID | None] = mapped_column("idConta", unique=True)
 
     criado_em: Mapped[datetime] = mapped_column(
         "dhCriacao", DateTime(timezone=True), server_default=func.now()
     )
     atualizado_em: Mapped[datetime] = mapped_column(
         "dhAtualizacao", DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class Aviso(Base):
+    """Lembrete de vencimento já enviado (RF28, RF29). A combinação conta + momento +
+    canal é única: é ela que impede mandar o mesmo aviso duas vezes."""
+
+    __tablename__ = "tblAviso"
+    __table_args__ = (
+        UniqueConstraint(
+            "idConta",
+            "noMomento",
+            "noCanal",
+            name="tblaviso_idconta_nomomento_nocanal_unique",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column("idAviso", BigInteger, primary_key=True)
+    conta_id: Mapped[uuid.UUID] = mapped_column(
+        "idConta", ForeignKey("tblConta.idConta")
+    )
+    # Texto com CHECK no banco; aqui validados por MomentoAviso e CanalAviso
+    momento: Mapped[str] = mapped_column("noMomento", String(255))
+    canal: Mapped[str] = mapped_column("noCanal", String(255))
+    mensagem: Mapped[str | None] = mapped_column("coMensagemWhatsApp", Text)
+    enviado_em: Mapped[datetime] = mapped_column(
+        "dhEnvio", DateTime, server_default=func.now()
     )

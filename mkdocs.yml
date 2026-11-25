@@ -55,6 +55,15 @@ nav:
           - Relatório: qualidade/sprint-2/relatorio.md
           - Validação dos critérios: qualidade/sprint-2/validacao-criterios.md
           - Frases do assistente: qualidade/sprint-2/frases-assistente.md
+      - Sprint 3:
+          - Relatório: qualidade/sprint-3/relatorio.md
+          - Validação dos critérios: qualidade/sprint-3/validacao-criterios.md
+          - Roteiro no celular: qualidade/sprint-3/roteiro-celular.md
+      - Sprint 4:
+          - Relatório: qualidade/sprint-4/relatorio.md
+          - Validação dos critérios: qualidade/sprint-4/validacao-criterios.md
+          - Persona de teste: qualidade/sprint-4/persona.md
+          - Roteiro do teste com usuário: qualidade/sprint-4/roteiro-teste-usuario.md
   - Testes:
       - Registro de testes: testes/README.md
       - PR 83 · RF05 tour em áudio: testes/pr-83-rf05-tour-audio.md

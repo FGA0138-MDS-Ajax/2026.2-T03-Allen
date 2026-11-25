@@ -16,7 +16,10 @@ class Message(Enum):
     )
     SESSAO_INVALIDA = "Sua sessão terminou. Entre de novo na sua conta."
     CODIGO_FORMATO = "O código tem 6 números."
-    CELULAR_SEM_CONTA = "Não encontramos uma conta com este celular. Confira o número."
+    CODIGO_ENVIADO = (
+        "Se houver uma conta com este celular, enviamos um código para o e-mail "
+        "cadastrado. Ele vale por {minutos} minutos."
+    )
     ESPERE_NOVO_CODIGO = "Espere {segundos} segundos para pedir outro código."
     MUITOS_CODIGOS = "Você pediu muitos códigos. Tente de novo daqui a uma hora."
     CODIGO_ERRADO = "Código errado ou vencido. Confira ou peça um novo código."
