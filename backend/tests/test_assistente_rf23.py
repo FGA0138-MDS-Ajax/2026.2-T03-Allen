@@ -33,9 +33,9 @@ def test_pergunta_saldo_retorna_disponivel_do_mes(
 
     enviar(pergunta)
 
-    mes_atual = datetime.now(
-        router_module.servico_transacoes.FUSO_BRASILIA
-    ).strftime("%Y-%m")
+    mes_atual = datetime.now(router_module.servico_transacoes.FUSO_BRASILIA).strftime(
+        "%Y-%m"
+    )
     resumir_mes.assert_called_once()
     assert resumir_mes.call_args.args[1:] == ("usuario-teste", mes_atual)
     assert enviadas == [mensagens.resposta_saldo(Decimal("1234.56"))]
@@ -76,3 +76,25 @@ def test_pergunta_saldo_preserva_lancamento_pendente(  # noqa: F811
     assert enviadas[-1] == "Você tem *R$ 50,00* disponíveis neste mês."
     assert pendencia_depois == pendencia_antes
     assert registrar.call_count == 0
+
+
+@pytest.mark.parametrize(
+    "frase",
+    [
+        "gastei 30 no mercado com o saldo do cartão",
+        "recebi 200, agora tenho dinheiro",
+        "paguei 50 do disponível",
+    ],
+)
+def test_mensagem_com_valor_nao_e_pergunta_de_saldo(
+    ambiente_assistente,  # noqa: F811
+    monkeypatch,
+    frase,
+):
+    _, _, _, _, enviar = ambiente_assistente
+    resumir_mes = Mock()
+    monkeypatch.setattr(router_module.servico_transacoes, "resumir_mes", resumir_mes)
+
+    enviar(frase)
+
+    resumir_mes.assert_not_called()
