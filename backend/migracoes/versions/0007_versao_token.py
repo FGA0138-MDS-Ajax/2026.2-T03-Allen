@@ -18,11 +18,19 @@ down_revision: str | None = "0006"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
+
 def upgrade() -> None:
-    op.add_column(
-        "tblUsuario",
-        sa.Column("nuVersaoToken", sa.Integer(), nullable=False, server_default="0"),
-    )
+    colunas = {
+        coluna["name"] for coluna in sa.inspect(op.get_bind()).get_columns("tblUsuario")
+    }
+    if "nuVersaoToken" not in colunas:
+        op.add_column(
+            "tblUsuario",
+            sa.Column(
+                "nuVersaoToken", sa.Integer(), nullable=False, server_default="0"
+            ),
+        )
+
 
 def downgrade() -> None:
     op.drop_column("tblUsuario", "nuVersaoToken")

@@ -5,6 +5,7 @@ from decimal import Decimal
 from enum import StrEnum
 from typing import Annotated
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from pydantic import (
     AfterValidator,
@@ -20,6 +21,20 @@ from app.modulos.contas.parcelas import CENTAVO, Parcelamento
 
 # vrSaldo é decimal(12,2): no máximo 10 dígitos antes da vírgula
 VALOR_MAXIMO = Decimal("9999999999.99")
+
+FUSO_BRASILIA = ZoneInfo("America/Sao_Paulo")
+
+
+def hoje_brasilia() -> date:
+    return datetime.now(FUSO_BRASILIA).date()
+
+
+def vencimento_minimo(hoje: date) -> date:
+    """Dia 1º do mês anterior (#121): a conta atrasada do mês passado ainda pode ser
+    cadastrada; uma data de anos atrás é erro de toque no seletor."""
+    if hoje.month == 1:
+        return date(hoje.year - 1, 12, 1)
+    return date(hoje.year, hoje.month - 1, 1)
 
 
 class StatusConta(StrEnum):
@@ -58,6 +73,18 @@ class ContaCadastroEntrada(BaseModel):
     recorrente: bool = False
     # RF37: número de parcelas da compra; vazio quando não é parcelada
     parcelas: int | None = None
+
+    @field_validator("vencimento_em")
+    @classmethod
+    def _validar_vencimento(cls, vencimento: date) -> date:
+        minimo = vencimento_minimo(hoje_brasilia())
+        if vencimento < minimo:
+            raise ValueError(
+                Message.VENCIMENTO_MUITO_ANTIGO.message.format(
+                    data=minimo.strftime("%d/%m/%Y")
+                )
+            )
+        return vencimento
 
     @field_validator("parcelas")
     @classmethod
@@ -124,3 +151,22 @@ class ContaAutomaticaVencida(BaseModel):
     categoria_id: int | None
     parcela: int | None
     total_parcelas: int | None
+
+
+class ContaAVencer(BaseModel):
+    """O que o lembrete de vencimento (RF28, RF29) precisa saber da conta em aberto.
+    Outros módulos recebem estes dados pelo serviço de contas, sem ler a tblConta."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    usuario_id: UUID
+    valor: Decimal
+    vencimento_em: date
+    descricao: str | None
+
+
+class CategoriaSaida(BaseModel):
+    id: int
+    codigo: str
+    nome: str

@@ -7,16 +7,19 @@ como o assistente do WhatsApp, registram chamando `registrar`.
 
 import uuid
 from datetime import date, datetime
+from decimal import Decimal
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, case, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.modulos.contas import servico as servico_contas
 from app.modulos.contas.esquemas import ContaAutomaticaVencida
+from app.modulos.contas.modelos import Categoria, Conta
 from app.modulos.transacoes.esquemas import (
     OrigemTransacao,
+    SaldoMesSaida,
     TipoTransacao,
     TransacaoEdicaoEntrada,
     TransacaoRegistroEntrada,
@@ -193,3 +196,87 @@ def _avisar_app(transacao: Transacao) -> None:
         eventos.TipoEvento.TRANSACAO_CRIADA,
         TransacaoSaida.model_validate(transacao).model_dump(mode="json"),
     )
+
+
+def resumir_mes(sessao: Session, usuario_id: uuid.UUID, mes: str) -> SaldoMesSaida:
+    ano, numero_mes = (int(parte) for parte in mes.split("-"))
+    inicio = date(ano, numero_mes, 1)
+    proximo_mes = (
+        date(ano + 1, 1, 1) if numero_mes == 12 else date(ano, numero_mes + 1, 1)
+    )
+
+    totais = sessao.execute(
+        select(
+            func.coalesce(
+                func.sum(
+                    case(
+                        (Transacao.tipo == TipoTransacao.ENTRADA, Transacao.valor),
+                        else_=Decimal("0.00"),
+                    )
+                ),
+                Decimal("0.00"),
+            ).label("entradas"),
+            func.coalesce(
+                func.sum(
+                    case(
+                        (
+                            and_(
+                                Transacao.tipo == TipoTransacao.SAIDA,
+                                Transacao.conta_id.is_(None),
+                            ),
+                            Transacao.valor,
+                        ),
+                        else_=Decimal("0.00"),
+                    )
+                ),
+                Decimal("0.00"),
+            ).label("gastos"),
+        ).where(
+            Transacao.usuario_id == usuario_id,
+            Transacao.data >= inicio,
+            Transacao.data < proximo_mes,
+        )
+    ).one()
+
+    contas = sessao.scalar(
+        select(func.coalesce(func.sum(Conta.valor), Decimal("0.00"))).where(
+            Conta.usuario_id == usuario_id,
+            Conta.vencimento_em >= inicio,
+            Conta.vencimento_em < proximo_mes,
+        )
+    )
+
+    return SaldoMesSaida(
+        mes=mes,
+        entradas=totais.entradas,
+        gastos=totais.gastos,
+        contas=contas,
+        saldo=totais.entradas - totais.gastos - contas,
+    )
+
+
+def gastos_do_periodo(
+    sessao: Session, usuario_id: uuid.UUID, inicio: date, fim: date
+) -> tuple[Decimal, list[tuple[str, Decimal]]]:
+    """RF24: total gasto entre as datas (inclusive) e o total por categoria, do maior
+    para o menor. Gastos sem categoria entram no total, mas não na lista."""
+    periodo = (
+        Transacao.usuario_id == usuario_id,
+        Transacao.tipo == TipoTransacao.SAIDA,
+        Transacao.data >= inicio,
+        Transacao.data <= fim,
+    )
+    total = sessao.scalar(
+        select(func.coalesce(func.sum(Transacao.valor), Decimal("0.00"))).where(
+            *periodo
+        )
+    )
+    soma = func.sum(Transacao.valor)
+    por_categoria = sessao.execute(
+        select(Categoria.nome, soma)
+        .join(Categoria, Categoria.id == Transacao.categoria_id)
+        .where(*periodo)
+        .group_by(Categoria.nome)
+        .order_by(soma.desc(), Categoria.nome)
+    ).all()
+    return total, [(nome, valor) for nome, valor in por_categoria]

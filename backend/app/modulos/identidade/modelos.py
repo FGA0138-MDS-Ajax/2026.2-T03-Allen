@@ -35,12 +35,15 @@ class Usuario(Base):
     whatsapp_ativo: Mapped[bool] = mapped_column(
         "icWhatsAppAtivo", server_default=true()
     )
+    # Resumo semanal e mensal no WhatsApp (RF24); desliga com "parar resumo"
+    resumo_ativo: Mapped[bool] = mapped_column("icResumoAtivo", server_default=true())
     criado_em: Mapped[datetime] = mapped_column(
         "dhCriacao", DateTime(timezone=True), server_default=func.now()
     )
 
-    # Preenchido temporariamente para resposta da API (não persistido)
-    telefone: str = ""
+    # Número para o lembrete no WhatsApp (RF28). Opcional: quem se cadastrou antes da
+    # migration dae0c2713ca6 só tem o hash, e o lembrete pula quem não tem número.
+    telefone: Mapped[str | None] = mapped_column("nuTelefone", String(255), unique=True)
 
     @property
     def tem_pin(self) -> bool:

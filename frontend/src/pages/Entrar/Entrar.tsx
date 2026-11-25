@@ -4,11 +4,11 @@ import {
   CampoTexto,
   TecladoNumerico,
   AlertaStatus,
-  IconVero,
 } from '../../components';
 import { useNavegacao } from '../../router';
 import { entrarComPin, ErroApi } from '../../servicos';
 import { formatarCelular, validarCelular } from '../../utils/telefone';
+import logoVero from '../../assets/logoVero';
 import styles from '../Cadastro/Cadastro.module.css';
 
 export const Entrar = () => {
@@ -114,8 +114,7 @@ export const Entrar = () => {
           }}
           aria-label="Vero - Início"
         >
-          <IconVero size={34} />
-          <span>Vero</span>
+          <img src={logoVero} alt="" className={styles.logoImagem} />
         </a>
 
         <Botao variant="secondary" onClick={() => navegar('/cadastro')}>
@@ -123,7 +122,7 @@ export const Entrar = () => {
         </Botao>
       </header>
 
-      <div style={{ maxWidth: '520px', margin: '0 auto', width: '100%' }}>
+      <main style={{ maxWidth: '520px', margin: '0 auto', width: '100%' }}>
         <section className={styles.card} aria-live="polite">
           <h1 className={styles.titulo}>Entrar no Vero</h1>
           <p className={styles.subtitulo}>
@@ -210,7 +209,7 @@ export const Entrar = () => {
             </Botao>
           </div>
         </section>
-      </div>
+      </main>
     </div>
   );
 };

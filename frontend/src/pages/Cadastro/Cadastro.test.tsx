@@ -34,9 +34,8 @@ describe('Página Cadastro (RF04 - Direcionamento ao WhatsApp)', () => {
       nome: 'Dona Maria',
       telefone: '61999998888',
       email: 'maria@email.com',
-      ativo: true,
-      criado_em: '2026-11-18T10:00:00',
-    } as any);
+      tem_pin: true,
+    });
 
     render(<Cadastro />);
 
@@ -69,7 +68,9 @@ describe('Página Cadastro (RF04 - Direcionamento ao WhatsApp)', () => {
     fireEvent.click(screen.getByRole('button', { name: '3' }));
     fireEvent.click(screen.getByRole('button', { name: '4' }));
 
-    fireEvent.click(screen.getByRole('button', { name: /confirmar e salvar/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /confirmar e salvar/i })
+    );
 
     // Tela de sucesso e direcionamento ao WhatsApp
     await waitFor(() => {

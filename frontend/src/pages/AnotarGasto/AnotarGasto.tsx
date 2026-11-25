@@ -136,7 +136,8 @@ export const AnotarGasto: React.FC = () => {
     const dados = parsearQrCodeNfce(textoLido);
     if (!dados.valido) {
       setErro(
-        'Esse QR Code não parece ser de uma nota fiscal (NFC-e). Você pode tentar outra foto ou digitar o valor abaixo.'
+        dados.aviso ??
+          'Esse QR Code não parece ser de uma nota fiscal. Você pode tentar outra foto ou digitar o valor abaixo.'
       );
       return;
     }
@@ -158,8 +159,13 @@ export const AnotarGasto: React.FC = () => {
     setNfcePendente({
       estabelecimento: dados.estabelecimento,
       infoCnpj:
-        dados.cnpj && dados.uf
-          ? `Nota identificada (${dados.uf} · CNPJ ${dados.cnpj})`
+        dados.uf && (dados.cnpj || dados.modelo === 'nfse')
+          ? `${dados.modelo === 'nfse' ? 'Nota de serviço' : 'Nota'} identificada (${[
+              dados.uf,
+              dados.cnpj && `CNPJ ${dados.cnpj}`,
+            ]
+              .filter(Boolean)
+              .join(' · ')})`
           : undefined,
       data: dados.data,
       valorTexto:

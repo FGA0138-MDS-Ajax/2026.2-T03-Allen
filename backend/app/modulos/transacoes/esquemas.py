@@ -41,6 +41,21 @@ class OrigemTransacao(StrEnum):
     RECORRENTE = "recorrente"
 
 
+class MomentoAviso(StrEnum):
+    """Valores do noMomento da tblAviso."""
+
+    ANTECIPADO = "antecipado"  # RF29: dias antes do vencimento
+    NO_DIA = "no_dia"  # RF28: no dia do vencimento
+    ATRASADO = "atrasado"
+
+
+class CanalAviso(StrEnum):
+    """Valores do noCanal da tblAviso."""
+
+    APP = "app"
+    WHATSAPP = "whatsapp"
+
+
 def validar_valor(valor: Decimal) -> Decimal:
     if valor <= 0:
         raise ValueError(Message.VALOR_INVALIDO.message)
@@ -105,3 +120,11 @@ class TransacaoSaida(BaseModel):
     categoria_id: int | None
     origem: OrigemTransacao
     criado_em: datetime
+
+
+class SaldoMesSaida(BaseModel):
+    mes: str
+    entradas: Decimal
+    gastos: Decimal
+    contas: Decimal
+    saldo: Decimal

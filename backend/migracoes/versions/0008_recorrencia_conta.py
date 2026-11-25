@@ -20,38 +20,44 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "tblConta",
-        sa.Column(
-            "icRecorrente", sa.Boolean(), nullable=False, server_default=sa.false()
-        ),
-    )
-    op.add_column(
-        "tblConta",
-        sa.Column(
-            "idContaOrigem",
-            sa.Uuid(),
-            sa.ForeignKey("tblConta.idConta", name="tblconta_idcontaorigem_foreign"),
-            nullable=True,
-        ),
-    )
-    
-TIPOS = ("entrada", "saida")
-ORIGENS = (
-    "manual",
-    "whatsapp_texto",
-    "whatsapp_audio",
-    "whatsapp_foto",
-    "qrcode_nf",
-    "extrato",
-    "conta",
-)
+    bind = op.get_bind()
+    inspetor = sa.inspect(bind)
+    colunas = {coluna["name"] for coluna in inspetor.get_columns("tblConta")}
+    if "icRecorrente" not in colunas:
+        op.add_column(
+            "tblConta",
+            sa.Column(
+                "icRecorrente", sa.Boolean(), nullable=False, server_default=sa.false()
+            ),
+        )
 
-def upgrade() -> None:
-    sa.Column("recorrente", sa.Boolean(), nullable=False, server_default=sa.false())
-    sa.Column(
-        "idContaOrigem", sa.Uuid(), sa.ForeignKey("tblConta.idConta"), nullable=True
+    chaves = inspetor.get_foreign_keys("tblConta")
+    tem_fk_origem = any(
+        chave["constrained_columns"] == ["idContaOrigem"]
+        and chave["referred_table"] == "tblConta"
+        for chave in chaves
     )
+    if "idContaOrigem" not in colunas:
+        op.add_column(
+            "tblConta",
+            sa.Column(
+                "idContaOrigem",
+                sa.Uuid(),
+                sa.ForeignKey(
+                    "tblConta.idConta", name="tblconta_idcontaorigem_foreign"
+                ),
+                nullable=True,
+            ),
+        )
+    elif not tem_fk_origem:
+        op.create_foreign_key(
+            "tblconta_idcontaorigem_foreign",
+            "tblConta",
+            "tblConta",
+            ["idContaOrigem"],
+            ["idConta"],
+        )
+
 
 def downgrade() -> None:
     op.drop_column("tblConta", "idContaOrigem")
