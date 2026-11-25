@@ -107,9 +107,7 @@ class AdaptadorWhisper:
         except AudioMuitoLongo:
             raise
         except Exception as erro:
-            logger.exception(
-                "Falha na transcrição de áudio: %s", type(erro).__name__
-            )
+            logger.exception("Falha na transcrição de áudio: %s", type(erro).__name__)
             raise FalhaTranscricao("Não foi possível transcrever o áudio.") from erro
         finally:
             # Descarta imediatamente o buffer de áudio da memória (LGPD)
