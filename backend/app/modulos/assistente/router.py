@@ -16,6 +16,7 @@ from app.modulos.assistente.audio import processar_audio_mensagem
 from app.modulos.assistente.extrator import (
     IntencaoMensagem,
     TipoTransacao,
+    eh_pergunta_saldo,
     eh_saudacao,
     extrair_valor,
     identificar_categoria,
@@ -157,6 +158,13 @@ async def processar_responder(
     resposta_resumo = servico_resumo.tratar_comando(usuario.id, texto)
     if resposta_resumo:
         await enviar_mensagem(remetente, resposta_resumo)
+        return
+
+    if eh_pergunta_saldo(texto):
+        mes = datetime.now(servico_transacoes.FUSO_BRASILIA).strftime("%Y-%m")
+        with SessaoLocal() as sessao_db:
+            saldo = servico_transacoes.resumir_mes(sessao_db, usuario.id, mes).saldo
+        await enviar_mensagem(remetente, mensagens.resposta_saldo(saldo))
         return
 
     pendencia, expirou = sessao_assistente.obter_pendencia(telefone)
