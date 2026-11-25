@@ -4,6 +4,7 @@ import re
 import unicodedata
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime, timedelta
+from enum import StrEnum
 
 import valkey
 
@@ -13,6 +14,15 @@ from app.nucleo.config import settings
 logger = logging.getLogger(__name__)
 
 TEMPO_EXPIRACAO_SEGUNDOS = 15 * 60
+
+
+class CampoFaltando(StrEnum):
+    """Dado que o assistente não conseguiu extrair e pediu à pessoa (RF16)."""
+
+    VALOR = "valor"
+    TIPO = "tipo"
+    CATEGORIA = "categoria"
+
 
 EMOJIS_SIM = {"👍", "✅"}
 EMOJIS_NAO = {"👎", "❌"}
@@ -31,10 +41,16 @@ def normalizar_resposta(texto: str) -> str:
 @dataclass
 class RegistroPendente:
     tipo: TipoTransacao
-    valor: int
+    # Em centavos. Vazio enquanto o assistente espera a pessoa dizer o valor (RF16)
+    valor: int | None
     categoria: str
     descricao: str
     criado: datetime
+    # Preenchido quando o lançamento está incompleto: o assistente pediu este dado
+    # e a próxima mensagem completa o lançamento, em vez de começar outro (RF16)
+    faltando: CampoFaltando | None = None
+    # Valor do enum noOrigem da tblTransacao: de onde veio o lançamento (texto, foto)
+    origem: str = "whatsapp_texto"
 
 
 class GerenciadorSessao:
@@ -55,9 +71,11 @@ class GerenciadorSessao:
         self,
         telefone: str,
         tipo: TipoTransacao,
-        valor: int,
+        valor: int | None,
         categoria: str,
         descricao: str,
+        faltando: CampoFaltando | None = None,
+        origem: str = "whatsapp_texto",
     ) -> None:
         agora = datetime.now(UTC)
         pendencia = RegistroPendente(
@@ -66,6 +84,8 @@ class GerenciadorSessao:
             categoria=categoria,
             descricao=descricao,
             criado=agora,
+            faltando=faltando,
+            origem=origem,
         )
 
         if self._valkey:
@@ -100,13 +120,17 @@ class GerenciadorSessao:
                         self.limpar_pendencia(telefone)
                         return None, True
 
+                    valor = dados.get("valor")
+                    faltando = dados.get("faltando")
                     return (
                         RegistroPendente(
                             tipo=TipoTransacao(dados["tipo"]),
-                            valor=int(dados["valor"]),
+                            valor=int(valor) if valor is not None else None,
                             categoria=dados["categoria"],
                             descricao=dados["descricao"],
-                            criado=datetime.fromisoformat(dados["criado"]),
+                            criado=criado,
+                            faltando=CampoFaltando(faltando) if faltando else None,
+                            origem=dados.get("origem", "whatsapp_texto"),
                         ),
                         False,
                     )

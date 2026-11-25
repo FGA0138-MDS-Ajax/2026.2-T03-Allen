@@ -20,6 +20,7 @@ import {
 import { useNavegacao } from '../../router';
 import { useTempoReal } from '../../hooks/useTempoReal';
 import { reaisPorExtenso } from '../../utils/valorPorExtenso';
+import { paraIso } from '../../utils/vencimento';
 import { listarContas, ContaSaida } from '../../servicos';
 import {
   useDadosDoMes,
@@ -92,12 +93,22 @@ export const Inicio: React.FC = () => {
   const gastosAnotados = resumo.gastos;
   const saldoDisponivelCentavos = resumo.saldo;
 
-  const fracao = fracaoDisponivel(saldoDisponivelCentavos, entradasFixas);
+  // Mês sem nenhuma entrada, gasto ou conta (ex.: conta recém-criada): não há o
+  // que comparar, e "você já gastou 100%" assustava quem não gastou nada (#140)
+  const mesSemMovimento =
+    entradasFixas === 0 &&
+    gastosAnotados === 0 &&
+    totalContasDoMesCentavos === 0;
+  const fracao = mesSemMovimento
+    ? 1
+    : fracaoDisponivel(saldoDisponivelCentavos, entradasFixas);
   const percentualGasto = Math.min(
     100,
     Math.max(0, Math.round((1 - fracao) * 100))
   );
   const nivel = nivelDisponivel(fracao);
+  const hojeIso = paraIso(new Date());
+  const amanhaIso = paraIso(new Date(Date.now() + 24 * 60 * 60 * 1000));
 
   // Pontos do gráfico de saldo dia a dia
   const pontos = useMemo(() => {
@@ -244,7 +255,9 @@ export const Inicio: React.FC = () => {
               </div>
 
               <p className={styles.textoStatusSaldo}>
-                {mensagemDisponivel(fracao)}
+                {mesSemMovimento
+                  ? 'Você ainda não anotou nenhuma entrada ou gasto neste mês.'
+                  : mensagemDisponivel(fracao)}
               </p>
 
               {/* Detalhamento didático: De onde sai esse saldo */}
@@ -346,15 +359,17 @@ export const Inicio: React.FC = () => {
                           <div className={styles.iconeConta} aria-hidden="true">
                             {obterIcone(conta.descricao || 'contas')}
                           </div>
-                          <div>
-                            <strong style={{ display: 'block', fontSize: 15 }}>
+                          <div className={styles.textoContaProxima}>
+                            <strong className={styles.nomeContaProxima}>
                               {conta.descricao || 'Conta a pagar'}
                             </strong>
                             <span
                               className={`${styles.badgeUrgencia} ${
                                 conta.status === 'em_atraso'
                                   ? styles.badgeAtraso
-                                  : styles.badgeAVencer
+                                  : conta.vencimento_em === hojeIso
+                                    ? styles.badgeHoje
+                                    : styles.badgeAVencer
                               }`}
                             >
                               {conta.status === 'em_atraso' ? (
@@ -377,18 +392,18 @@ export const Inicio: React.FC = () => {
                                       marginRight: 4,
                                     }}
                                   />
-                                  Vence em {dataFormatada}
+                                  {/* RF28 no app: o dia por escrito, não só a data (#139) */}
+                                  {conta.vencimento_em === hojeIso
+                                    ? 'Vence hoje! Lembre de pagar'
+                                    : conta.vencimento_em === amanhaIso
+                                      ? 'Vence amanhã'
+                                      : `Vence em ${dataFormatada}`}
                                 </>
                               )}
                             </span>
                           </div>
                         </div>
-                        <strong
-                          style={{
-                            fontSize: 17,
-                            color: 'var(--grafite-noturno)',
-                          }}
-                        >
+                        <strong className={styles.valorContaProxima}>
                           {formatarMoeda(Math.round(valorNum * 100))}
                         </strong>
                       </div>
@@ -458,11 +473,14 @@ export const Inicio: React.FC = () => {
                       Meta definida: {formatarMoeda(estado.meta)}
                     </div>
                   )}
-                  {saldoDisponivelCentavos >= estado.meta
-                    ? 'Seu saldo disponível está acima da meta do mês.'
-                    : `Faltam ${formatarMoeda(
-                        estado.meta - saldoDisponivelCentavos
-                      )} para você alcançar sua meta.`}
+                  {/* Sem meta, não há com o que comparar (#140) */}
+                  {estado.meta <= 0
+                    ? 'Você ainda não definiu uma meta.'
+                    : saldoDisponivelCentavos >= estado.meta
+                      ? 'Seu saldo disponível está acima da meta do mês.'
+                      : `Faltam ${formatarMoeda(
+                          estado.meta - saldoDisponivelCentavos
+                        )} para você alcançar sua meta.`}
                 </div>
               </form>
             </section>
@@ -527,20 +545,14 @@ export const Inicio: React.FC = () => {
                           <div className={styles.iconeGasto} aria-hidden="true">
                             {obterIcone(item.categoria)}
                           </div>
-                          <div>
+                          <div className={styles.textoGasto}>
                             <div className={styles.nomeGasto}>
                               {item.categoria}
                             </div>
                             <div className={styles.dataGasto}>{quando}</div>
                           </div>
                         </div>
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 10,
-                          }}
-                        >
+                        <div className={styles.acoesGasto}>
                           <strong
                             className={styles.valorGasto}
                             style={{

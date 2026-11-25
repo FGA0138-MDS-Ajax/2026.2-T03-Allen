@@ -4,12 +4,16 @@ import uuid
 from collections.abc import Collection
 from datetime import UTC, date, datetime
 
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.modulos.contas.esquemas import ContaAutomaticaVencida, ContaCadastroEntrada
-from app.modulos.contas.modelos import Conta
+from app.modulos.contas.esquemas import (
+    ContaAutomaticaVencida,
+    ContaAVencer,
+    ContaCadastroEntrada,
+)
+from app.modulos.contas.modelos import Categoria, Conta
 from app.modulos.contas.parcelas import datas_das_parcelas, dividir_valor
 from app.modulos.contas.recorrencia import gerar_proxima_recorrencia
 from app.modulos.contas.saldo import ESTRATEGIA_SALDO
@@ -80,6 +84,33 @@ def _parcelas_da_compra(
             start=1,
         )
     ]
+
+
+class ContaJaLancada(Exception):
+    """A conta já gerou uma transação (gasto fixo ou parcela lançada)."""
+
+
+def excluir(sessao: Session, usuario_id: uuid.UUID, conta_id: uuid.UUID) -> None:
+    """Apaga a conta (#133). Só a do próprio usuário. Os meses seguintes e as outras
+    parcelas que apontam para ela ficam de pé, sem o vínculo. Conta que já virou
+    gasto no extrato não é apagada: a pessoa apaga o gasto antes."""
+    conta = sessao.scalar(
+        select(Conta).where(Conta.id == conta_id, Conta.usuario_id == usuario_id)
+    )
+    if conta is None:
+        raise ContaNaoEncontrada
+    sessao.execute(
+        update(Conta)
+        .where(Conta.id_conta_origem == conta.id)
+        .values(id_conta_origem=None)
+    )
+    sessao.delete(conta)
+    try:
+        sessao.commit()
+    except IntegrityError:
+        # FK da tblTransacao.idConta: o lançamento automático já existe
+        sessao.rollback()
+        raise ContaJaLancada from None
 
 
 def listar(sessao: Session, usuario_id: uuid.UUID) -> list[Conta]:
@@ -164,3 +195,25 @@ def pagar_conta_automatica(sessao: Session, conta_id: uuid.UUID) -> None:
     if conta is None:
         raise ContaNaoEncontrada
     registrar_pagamento(sessao, conta)
+
+
+def contas_em_aberto_entre(
+    sessao: Session, inicio: date, fim: date
+) -> list[ContaAVencer]:
+    """RF28 e RF29: contas não pagas que vencem entre as datas (inclusive), da que vence
+    primeiro para a última."""
+    comando = (
+        select(Conta)
+        .where(
+            Conta.pagamento_em.is_(None),
+            Conta.vencimento_em >= inicio,
+            Conta.vencimento_em <= fim,
+        )
+        .order_by(Conta.vencimento_em, Conta.criado_em)
+    )
+    return [ContaAVencer.model_validate(conta) for conta in sessao.scalars(comando)]
+
+
+def id_da_categoria(sessao: Session, nome: str) -> int | None:
+    """Id da categoria com esse nome na tblCategoria, ou None se não existir."""
+    return sessao.scalar(select(Categoria.id).where(Categoria.nome == nome))

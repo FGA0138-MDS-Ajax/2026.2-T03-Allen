@@ -1,12 +1,13 @@
 """Testes de marcar e desfazer o pagamento de contas (RF30)."""
 
 import uuid
-from datetime import date, timedelta
+from datetime import timedelta
 from decimal import Decimal
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.modulos.contas.esquemas import hoje_brasilia
 from app.modulos.contas.modelos import Conta
 from app.modulos.contas.saldo import ESTRATEGIA_SALDO, SaldoInalterado
 from app.modulos.identidade.modelos import Usuario
@@ -19,7 +20,7 @@ def _cadastrar_conta(
     descricao: str | None = None,
 ) -> dict:
     dados = {
-        "vencimento_em": (date.today() + timedelta(days=dias)).isoformat(),
+        "vencimento_em": (hoje_brasilia() + timedelta(days=dias)).isoformat(),
         "valor": "150.00",
     }
     if descricao is not None:
@@ -131,7 +132,7 @@ def test_nao_altera_conta_de_outro_usuario(
     outro = _criar_outro_usuario(sessao)
     conta = Conta(
         usuario_id=outro.id,
-        vencimento_em=date.today() + timedelta(days=5),
+        vencimento_em=hoje_brasilia() + timedelta(days=5),
         valor=Decimal("30.00"),
     )
     sessao.add(conta)

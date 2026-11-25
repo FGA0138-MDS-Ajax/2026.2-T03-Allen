@@ -23,6 +23,10 @@ class Message(Enum):
     VALOR_MENOR_QUE_PARCELAS = (
         "O valor é pequeno demais para tantas parcelas. Diminua o número de parcelas."
     )
+    CONTA_JA_LANCADA = (
+        "Essa conta já virou um gasto no seu extrato. Para apagar, apague o gasto "
+        "no Extrato primeiro."
+    )
 
     def __init__(self, message: str):
         self.message = message

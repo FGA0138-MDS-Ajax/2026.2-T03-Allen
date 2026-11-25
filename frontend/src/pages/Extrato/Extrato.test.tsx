@@ -19,6 +19,15 @@ vi.mock('../../servicos', () => ({
   excluirConta: vi.fn(),
   estaAutenticado: vi.fn().mockReturnValue(true),
   limparSessao: vi.fn(),
+  ErroApi: class ErroApi extends Error {
+    status: number;
+    detalhe: string;
+    constructor(status: number, detalhe: string) {
+      super(detalhe);
+      this.status = status;
+      this.detalhe = detalhe;
+    }
+  },
 }));
 
 vi.mock('../../servicos/transacoes', async (original) => ({

@@ -16,8 +16,10 @@
 }
 
 .brandLogo {
+  min-height: var(--toque-minimo);
   display: inline-flex;
   align-items: center;
+  min-height: var(--toque-minimo);
   text-decoration: none;
 }
 
