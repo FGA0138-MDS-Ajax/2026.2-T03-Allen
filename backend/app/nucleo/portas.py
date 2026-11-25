@@ -17,6 +17,23 @@ class PortaEmail(Protocol):
         """Envia um e-mail de texto simples. Lança FalhaEnvioEmail se não conseguir."""
 
 
+class FalhaTranscricao(Exception):
+    """Não foi possível transcrever o áudio (formato inválido ou erro no motor)."""
+
+
+class AudioMuitoLongo(Exception):
+    """Áudio excede a duração máxima permitida (60 s, RNF04)."""
+
+
+class PortaTranscricao(Protocol):
+    def transcrever(self, audio_bytes: bytes, mime_type: str = "audio/ogg") -> str:
+        """Transcreve o áudio em memória para texto em português.
+
+        O chamador e a implementação devem descartar os bytes após o uso (LGPD).
+        Lança FalhaTranscricao ou AudioMuitoLongo em caso de erro.
+        """
+
+
 class FalhaEnvioWhatsApp(Exception):
     """A mensagem de WhatsApp não foi enviada."""
 

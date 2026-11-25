@@ -69,7 +69,22 @@ def confirmacao_expirada() -> str:
     )
 
 
-# RF16: quando falta um dado, o assistente diz o motivo e pede só o que falta
+def audio_recebido() -> str:
+    return "Recebi seu áudio! Estou ouvindo para anotar..."
+
+
+def audio_muito_longo() -> str:
+    return (
+        "Esse áudio ficou um pouco longo (mais de 1 minuto).\n\n"
+        "Pode me mandar um áudio mais curto ou digitar o que gastou?"
+    )
+
+
+def audio_nao_compreendido() -> str:
+    return (
+        "Desculpe, não consegui entender bem o seu áudio.\n\n"
+        "Pode tentar gravar de novo em um lugar mais silencioso ou digitar o valor?"
+    )
 
 
 def _rotulo(tipo_receita: bool) -> str:

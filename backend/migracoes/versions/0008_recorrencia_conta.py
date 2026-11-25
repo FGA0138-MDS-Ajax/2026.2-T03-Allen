@@ -20,21 +20,43 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "tblConta",
-        sa.Column(
-            "icRecorrente", sa.Boolean(), nullable=False, server_default=sa.false()
-        ),
+    bind = op.get_bind()
+    inspetor = sa.inspect(bind)
+    colunas = {coluna["name"] for coluna in inspetor.get_columns("tblConta")}
+    if "icRecorrente" not in colunas:
+        op.add_column(
+            "tblConta",
+            sa.Column(
+                "icRecorrente", sa.Boolean(), nullable=False, server_default=sa.false()
+            ),
+        )
+
+    chaves = inspetor.get_foreign_keys("tblConta")
+    tem_fk_origem = any(
+        chave["constrained_columns"] == ["idContaOrigem"]
+        and chave["referred_table"] == "tblConta"
+        for chave in chaves
     )
-    op.add_column(
-        "tblConta",
-        sa.Column(
-            "idContaOrigem",
-            sa.Uuid(),
-            sa.ForeignKey("tblConta.idConta", name="tblconta_idcontaorigem_foreign"),
-            nullable=True,
-        ),
-    )
+    if "idContaOrigem" not in colunas:
+        op.add_column(
+            "tblConta",
+            sa.Column(
+                "idContaOrigem",
+                sa.Uuid(),
+                sa.ForeignKey(
+                    "tblConta.idConta", name="tblconta_idcontaorigem_foreign"
+                ),
+                nullable=True,
+            ),
+        )
+    elif not tem_fk_origem:
+        op.create_foreign_key(
+            "tblconta_idcontaorigem_foreign",
+            "tblConta",
+            "tblConta",
+            ["idContaOrigem"],
+            ["idConta"],
+        )
 
 
 def downgrade() -> None:

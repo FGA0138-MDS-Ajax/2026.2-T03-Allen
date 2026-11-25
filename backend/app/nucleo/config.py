@@ -23,6 +23,13 @@ class AdaptadorEmail(StrEnum):
     SMTP = "smtp"
 
 
+class AdaptadorTranscricao(StrEnum):
+    """Valores do TRANSCRICAO_AUDIO."""
+
+    FALSO = "falso"
+    WHISPER = "whisper"
+
+
 class AdaptadorWhatsApp(StrEnum):
     """Valores do ENVIO_WHATSAPP."""
 
@@ -80,6 +87,13 @@ class Settings(BaseSettings):
     AUTHENTICATION_API_KEY: str
     INSTANCE_NAME: str
 
+    # Transcrição de áudio (RF13 / RNF04)
+    TRANSCRICAO_AUDIO: AdaptadorTranscricao = AdaptadorTranscricao.WHISPER
+    WHISPER_MODELO: str = "small"
+    WHISPER_COMPUTE_TYPE: str = "int8"
+    WHISPER_IDIOMA: str = "pt"
+    AUDIO_MAX_DURACAO_SEGUNDOS: int = 60
+
     model_config = SettingsConfigDict(
         env_file=[
             BASE_DIR.parent.parent.parent / ".env",
@@ -101,6 +115,11 @@ class Settings(BaseSettings):
             raise ValueError(
                 "ENVIO_EMAIL=falso só é permitido com APP_ENV=development. "
                 "Fora do desenvolvimento, use ENVIO_EMAIL=smtp."
+            )
+        if self.TRANSCRICAO_AUDIO == AdaptadorTranscricao.FALSO:
+            raise ValueError(
+                "TRANSCRICAO_AUDIO=falso só é permitido com APP_ENV=development. "
+                "Fora do desenvolvimento, use TRANSCRICAO_AUDIO=whisper."
             )
         if not self.CHAVE_CODIGO_RECUPERACAO:
             raise ValueError(

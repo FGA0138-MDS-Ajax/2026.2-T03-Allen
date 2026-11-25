@@ -12,6 +12,7 @@ from sqlalchemy import select
 
 from app.integracoes.leitor_comprovante import obter_leitor_comprovante
 from app.modulos.assistente import mensagens
+from app.modulos.assistente.audio import processar_audio_mensagem
 from app.modulos.assistente.extrator import (
     IntencaoMensagem,
     TipoTransacao,
@@ -40,9 +41,26 @@ from app.nucleo.banco import SessaoLocal
 from app.nucleo.config import settings
 from app.nucleo.portas import LeituraComprovante
 
+router = APIRouter()
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+
+def enfileirar_processamento_audio(
+    remetente: str,
+    data: dict,
+    background_tasks: BackgroundTasks,
+) -> None:
+    """Envia a transcrição de áudio para o worker Celery; em dev sem broker, usa BackgroundTasks."""
+    try:
+        from app.modulos.assistente.tarefas import processar_audio_tarefa
+
+        processar_audio_tarefa.delay(remetente, data)
+    except Exception as erro:
+        logger.warning(
+            "Fila Celery indisponível (%s); processando áudio em background local.",
+            type(erro).__name__,
+        )
+        background_tasks.add_task(processar_audio_mensagem, remetente, data)
 
 
 @router.post("/webhook/whatsapp")
@@ -78,13 +96,28 @@ async def receber_mensagem(
             and not remetente.endswith("@broadcast")
             and not remetente.endswith("@g.us")
         ):
-            # Extrai o texto da mensagem
+            # Extrai o texto ou áudio da mensagem
             message_content = data.get("message", {})
+            audio_msg = message_content.get("audioMessage")
             texto = message_content.get("conversation") or message_content.get(
                 "extendedTextMessage", {}
             ).get("text")
 
-            if texto:
+            if audio_msg:
+                duracao = audio_msg.get("seconds")
+                if (
+                    isinstance(duracao, (int, float))
+                    and duracao > settings.AUDIO_MAX_DURACAO_SEGUNDOS
+                ):
+                    background_tasks.add_task(
+                        enviar_mensagem, remetente, mensagens.audio_muito_longo()
+                    )
+                else:
+                    background_tasks.add_task(
+                        enviar_mensagem, remetente, mensagens.audio_recebido()
+                    )
+                    enfileirar_processamento_audio(remetente, data, background_tasks)
+            elif texto:
                 print("\n[Whatsapp] Mensagem recebida via webhook.")
                 # Processa a resposta em background para responder ao webhook
                 background_tasks.add_task(processar_responder, remetente, texto)
@@ -107,7 +140,11 @@ def buscar_usuario_telefone(telefone: str) -> Usuario | None:
         return None
 
 
-async def processar_responder(remetente: str, texto: str):
+async def processar_responder(
+    remetente: str,
+    texto: str,
+    origem: OrigemTransacao = OrigemTransacao.WHATSAPP_TEXTO,
+):
     telefone = remetente.split("@")[0] if "@" in remetente else remetente
 
     usuario = buscar_usuario_telefone(telefone)
@@ -186,11 +223,15 @@ async def processar_responder(remetente: str, texto: str):
         sessao_assistente.limpar_pendencia(telefone)
 
     intencao = processar_texto_mensagem(texto)
-    await enviar_mensagem(remetente, responder_intencao(telefone, usuario, intencao))
+    resposta = responder_intencao(telefone, usuario, intencao, origem)
+    await enviar_mensagem(remetente, resposta)
 
 
 def responder_intencao(
-    telefone: str, usuario: Usuario, intencao: IntencaoMensagem
+    telefone: str,
+    usuario: Usuario,
+    intencao: IntencaoMensagem,
+    origem: OrigemTransacao = OrigemTransacao.WHATSAPP_TEXTO,
 ) -> str:
     """Pede a confirmação (RF15) ou, se faltou algum dado, explica o motivo em
     linguagem simples e pede só o que falta (RF16)."""
@@ -201,6 +242,7 @@ def responder_intencao(
             intencao.valor,
             intencao.categoria,
             intencao.descricao,
+            origem,
         )
 
     if eh_saudacao(intencao.descricao):
@@ -222,6 +264,7 @@ def responder_intencao(
             categoria=intencao.categoria,
             descricao=intencao.descricao,
             faltando=CampoFaltando.VALOR,
+            origem=origem,
         )
         return mensagens.pedir_valor(
             intencao.tipo == TipoTransacao.RECEITA, intencao.categoria
@@ -236,7 +279,7 @@ def pedir_confirmacao(
     valor: int,
     categoria: str,
     descricao: str,
-    origem: str = OrigemTransacao.WHATSAPP_TEXTO,
+    origem: OrigemTransacao = OrigemTransacao.WHATSAPP_TEXTO,
 ) -> str:
     sessao_assistente.salvar_pendencia(
         telefone=telefone,

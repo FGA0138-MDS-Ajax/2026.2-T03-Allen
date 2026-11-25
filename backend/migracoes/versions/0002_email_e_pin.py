@@ -19,12 +19,26 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.add_column("tblUsuario", sa.Column("noEmail", sa.String(255), nullable=False))
-    op.create_unique_constraint("tblusuario_noemail_unique", "tblUsuario", ["noEmail"])
-    op.add_column("tblUsuario", sa.Column("hashPin", sa.Text(), nullable=True))
+    bind = op.get_bind()
+    inspetor = sa.inspect(bind)
+    colunas = {coluna["name"] for coluna in inspetor.get_columns("tblUsuario")}
+
+    if "noEmail" not in colunas:
+        op.add_column(
+            "tblUsuario", sa.Column("noEmail", sa.String(255), nullable=False)
+        )
+
+    unicas = inspetor.get_unique_constraints("tblUsuario")
+    if not any(constraint["column_names"] == ["noEmail"] for constraint in unicas):
+        op.create_unique_constraint(
+            "tblusuario_noemail_unique", "tblUsuario", ["noEmail"]
+        )
+
+    if "hashPin" not in colunas:
+        op.add_column("tblUsuario", sa.Column("hashPin", sa.Text(), nullable=True))
 
 
 def downgrade() -> None:
-    op.drop_column("tblUsuario", "hashPin")
-    op.drop_constraint("tblusuario_noemail_unique", "tblUsuario", type_="unique")
-    op.drop_column("tblUsuario", "noEmail")
+    # O schema pode existir antes do Alembic; não há como saber quais itens foram
+    # criados por esta migration sem arriscar remover colunas/constraints preexistentes.
+    pass
