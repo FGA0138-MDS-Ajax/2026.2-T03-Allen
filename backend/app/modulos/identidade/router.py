@@ -187,40 +187,13 @@ def _recuperacao_indisponivel() -> HTTPException:
     )
 
 
-def _verifica_existencia_usuario(
-    id_usuario_acompanhante: uuid.UUID,
-    sessao: Session = Depends(obter_sessao),
-    current_user: Usuario = Depends(usuario_atual),
-) -> bool:
-
-    existe = sessao.scalar(
-        select(Acompanhante).where(
-            Acompanhante.id_usuario_titular == current_user.id,
-            Acompanhante.id_usuario_acompanhante == id_usuario_acompanhante,
-            Acompanhante.ic_pode_editar.is_not(None),
-        )
-    )
-    if existe:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT, "já existe um convite ativo entre estes usuários."
-        )
-    return True
+STATUS_ATIVOS = ("pendente", "autorizado")
 
 
-def _gerar_convite(
-    id_usuario_acompanhante: uuid.UUID,
-    sessao: Session = Depends(obter_sessao),
-    current_user: Usuario = Depends(usuario_atual),
-) -> Acompanhante:
-    convite = Acompanhante(
-        id_usuario_titular=current_user.id,
-        id_usuario_acompanhante=id_usuario_acompanhante,
-        ic_pode_editar=True,
-    )
-    sessao.add(convite)
-    sessao.commit()
-    sessao.refresh(convite)
-    return convite
+def _buscar_convite(
+    sessao: Session, id_titular: uuid.UUID, id_acompanhante: uuid.UUID
+) -> Acompanhante | None:
+    return sessao.get(Acompanhante, (id_titular, id_acompanhante))
 
 
 @router.post(
@@ -230,49 +203,58 @@ def convidar_acompanhante(
     id_usuario_acompanhante: uuid.UUID,
     sessao: Session = Depends(obter_sessao),
     current_user: Usuario = Depends(usuario_atual),
-) -> dict[str, str] | None:
-    """pessoa convida familiar para ser acompanhante.
-    o familiar ou próximo recebe um convite e precisa aceitar explicitamente.
+) -> dict[str, str]:
+    """Pessoa convida familiar para ser acompanhante.
+
+    O familiar ou próximo recebe um convite e precisa aceitar explicitamente.
     """
-    existe = _verifica_existencia_usuario(id_usuario_acompanhante, sessao, current_user)
-    if not existe:
-        convite = _gerar_convite(id_usuario_acompanhante, sessao, current_user)
-        return {
-            "status": "convite_enviado",
-            "convite_id": str(convite.id_usuario_acompanhante),
-            "mensagem": "Convite enviado à pessoa de confiança.",
-        }
-
-
-def _checar_id_convite(
-    convite_id: uuid.UUID,
-    sessao: Session = Depends(obter_sessao),
-    current_user: Usuario = Depends(usuario_atual),
-) -> Acompanhante:
-    convite = sessao.scalar(
-        select(Acompanhante).where(Acompanhante.id_usuario_acompanhante == convite_id)
-    )
-    if convite is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Convite não encontrado.")
-    if convite.id_usuario_acompanhante != current_user.id:
+    if id_usuario_acompanhante == current_user.id:
         raise HTTPException(
-            status.HTTP_403_FORBIDDEN, "Sem permissão para aceitar o convite."
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "Não é possível convidar a si mesmo.",
         )
-    convite.status
-    return convite
+    if sessao.get(Usuario, id_usuario_acompanhante) is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuário não encontrado.")
+
+    convite = _buscar_convite(sessao, current_user.id, id_usuario_acompanhante)
+    if convite is not None and convite.status in STATUS_ATIVOS:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Já existe um convite ativo entre estes usuários."
+        )
+    if convite is None:
+        convite = Acompanhante(
+            id_usuario_titular=current_user.id,
+            id_usuario_acompanhante=id_usuario_acompanhante,
+        )
+        sessao.add(convite)
+    # Convite revogado antes: reaproveita a linha (a PK é o par de usuários)
+    convite.status = "pendente"
+    convite.ic_pode_editar = True
+    convite.dh_aceite = None
+    convite.dh_revogacao = None
+    sessao.commit()
+
+    return {
+        "status": "convite_enviado",
+        "convite_id": str(convite.id_usuario_acompanhante),
+        "mensagem": "Convite enviado à pessoa de confiança.",
+    }
 
 
 @router.post(
-    "/aceitar-convite/{convite_id}", response_model=dict, status_code=status.HTTP_200_OK
+    "/aceitar-convite/{id_usuario_titular}",
+    response_model=dict,
+    status_code=status.HTTP_200_OK,
 )
 def aceitar_convite(
-    convite_id: uuid.UUID,
+    id_usuario_titular: uuid.UUID,
     sessao: Session = Depends(obter_sessao),
     current_user: Usuario = Depends(usuario_atual),
-):
-    """Quando a pessoa próxima aceita o convite explicitamente"""
-    convite = _checar_id_convite(convite_id, sessao)
-    convite.ic_pode_editar = True
+) -> dict[str, str]:
+    """A pessoa convidada aceita explicitamente o convite do titular."""
+    convite = _buscar_convite(sessao, id_usuario_titular, current_user.id)
+    if convite is None or convite.status != "pendente":
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Convite não encontrado.")
     convite.dh_aceite = datetime.now(UTC)
     convite.status = "autorizado"
     sessao.commit()
@@ -283,22 +265,6 @@ def aceitar_convite(
     }
 
 
-def _checa_sem_tem_convite(
-    convite_id: uuid.UUID,
-    sessao: Session = Depends(obter_sessao),
-    current_user: Usuario = Depends(usuario_atual),
-) -> Acompanhante:
-    convite = sessao.scalar(
-        select(Acompanhante).where(
-            Acompanhante.id_usuario_acompanhante == convite_id,
-            Acompanhante.id_usuario_titular == current_user.id,
-        )
-    )
-    if convite is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Convite não encontrado.")
-    return convite
-
-
 @router.post(
     "/revogar-acesso/{convite_id}", response_model=dict, status_code=status.HTTP_200_OK
 )
@@ -307,9 +273,10 @@ def revogar_acesso(
     sessao: Session = Depends(obter_sessao),
     current_user: Usuario = Depends(usuario_atual),
 ) -> dict[str, str]:
-    """Usuario pode revogar o acesso do acompanhante antes solicitado"""
-    # TODO: um nova migration para popular status e dh_revogacao
-    convite = _checa_sem_tem_convite(convite_id, sessao, current_user)
+    """O titular revoga o acesso do acompanhante (convite_id = id do acompanhante)."""
+    convite = _buscar_convite(sessao, current_user.id, convite_id)
+    if convite is None or convite.status not in STATUS_ATIVOS:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Convite não encontrado.")
     convite.status = "revogado"
     convite.dh_revogacao = datetime.now(UTC)
     sessao.commit()

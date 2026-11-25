@@ -76,9 +76,9 @@ class Settings(BaseSettings):
     AI_TIMEOUT_SEGUNDOS: float = 8.0
 
     # WhatsApp / Evolution API
-    EVOLUTION_URL: str = ""
-    AUTHENTICATION_API_KEY: str = ""
-    INSTANCE_NAME: str = ""
+    EVOLUTION_URL: str
+    AUTHENTICATION_API_KEY: str
+    INSTANCE_NAME: str
 
     model_config = SettingsConfigDict(
         env_file=[
