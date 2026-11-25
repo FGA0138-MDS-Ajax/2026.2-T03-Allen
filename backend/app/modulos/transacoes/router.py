@@ -33,7 +33,8 @@ def registrar(
         return servico.registrar(sessao, usuario.id, dados)
     except servico.ReferenciaInexistente:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, Message.CATEGORIA_INEXISTENTE.message
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            Message.CATEGORIA_INEXISTENTE.message,
         ) from None
 
 
@@ -60,7 +61,7 @@ def obter_saldo_mes(
     ano = int(mes[:4])
     if not 1 <= ano <= 9998:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             "Mês inválido.",
         )
 
@@ -80,7 +81,7 @@ def editar(
         raise _nao_encontrada() from None
     except servico.ReferenciaInexistente:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             Message.CATEGORIA_INEXISTENTE.message,
         ) from None
 

@@ -52,7 +52,7 @@ def cadastrar(
         return servico.cadastrar(sessao, usuario.id, dados)
     except servico.CategoriaInexistente:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             Message.CATEGORIA_INEXISTENTE.message,
         ) from None
 

@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.modulos.contas.esquemas import vencimento_minimo
+from app.modulos.contas.esquemas import hoje_brasilia, vencimento_minimo
 from app.modulos.contas.mensagens import Message
 from app.modulos.contas.modelos import Conta
 from app.modulos.contas.recorrencia import proximo_vencimento
@@ -81,7 +81,7 @@ def test_cadastro_sem_data_retorna_422(cliente_logado: TestClient) -> None:
 
 
 def test_conta_vencida_fica_em_atraso(cliente_logado: TestClient) -> None:
-    ontem = date.today() - timedelta(days=1)
+    ontem = hoje_brasilia() - timedelta(days=1)
     resposta = cliente_logado.post(
         "/api/v1/contas",
         json={"vencimento_em": ontem.isoformat(), "valor": "20.00"},

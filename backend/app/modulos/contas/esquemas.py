@@ -153,6 +153,19 @@ class ContaAutomaticaVencida(BaseModel):
     total_parcelas: int | None
 
 
+class ContaAVencer(BaseModel):
+    """O que o lembrete de vencimento (RF28, RF29) precisa saber da conta em aberto.
+    Outros módulos recebem estes dados pelo serviço de contas, sem ler a tblConta."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    usuario_id: UUID
+    valor: Decimal
+    vencimento_em: date
+    descricao: str | None
+
+
 class CategoriaSaida(BaseModel):
     id: int
     codigo: str
