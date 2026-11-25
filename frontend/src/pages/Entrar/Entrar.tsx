@@ -122,7 +122,7 @@ export const Entrar = () => {
         </Botao>
       </header>
 
-      <div style={{ maxWidth: '520px', margin: '0 auto', width: '100%' }}>
+      <main style={{ maxWidth: '520px', margin: '0 auto', width: '100%' }}>
         <section className={styles.card} aria-live="polite">
           <h1 className={styles.titulo}>Entrar no Vero</h1>
           <p className={styles.subtitulo}>
@@ -209,7 +209,7 @@ export const Entrar = () => {
             </Botao>
           </div>
         </section>
-      </div>
+      </main>
     </div>
   );
 };
