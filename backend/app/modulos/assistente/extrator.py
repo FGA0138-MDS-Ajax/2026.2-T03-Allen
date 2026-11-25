@@ -186,6 +186,26 @@ def normalizar_texto(texto: str) -> str:
     )
 
 
+def eh_pergunta_saldo(texto: str) -> bool:
+    """Reconhece perguntas comuns sobre o saldo disponível do mês.
+
+    Mensagem com valor é lançamento ("gastei 30 com o saldo do cartão"), não pergunta.
+    """
+    valor, _ = extrair_valor(texto)
+    if valor is not None:
+        return False
+    texto_norm = normalizar_texto(texto)
+    return any(
+        re.search(padrao, texto_norm)
+        for padrao in (
+            r"\b(?:saldo|disponivel)\b",
+            r"\bquanto(?:\s+que)?\s+(?:(?:eu|ainda)\s+)?tenho\b",
+            r"\bquanto\s+(?:sobrou|resta)\b",
+            r"\b(?:tenho|tem)\s+dinheiro\b",
+        )
+    )
+
+
 def contem_palavra(texto_norm: str, palavras: list[str]) -> bool:
     padrao = r"\b(?:" + "|".join(re.escape(p) for p in palavras) + r")\b"
     return bool(re.search(padrao, texto_norm))

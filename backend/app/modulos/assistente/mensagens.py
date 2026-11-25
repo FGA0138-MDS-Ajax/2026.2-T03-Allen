@@ -1,6 +1,16 @@
+from decimal import Decimal
+
+
 def formatar_moeda(centavos: int) -> str:
     reais = centavos / 100
     return f"R$ {reais:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def resposta_saldo(saldo: Decimal) -> str:
+    valor = formatar_moeda(int(abs(saldo) * 100))
+    if saldo >= 0:
+        return f"Você tem *{valor}* disponíveis neste mês."
+    return f"Neste mês, faltam *{valor}* para cobrir suas despesas."
 
 
 def boas_vindas(nome: str | None = None) -> str:

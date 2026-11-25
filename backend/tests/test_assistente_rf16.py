@@ -78,7 +78,6 @@ def test_cancelar_durante_o_preenchimento(ambiente_assistente):  # noqa: F811
     [
         ("vou gastar 100 amanhã", mensagens.explicar_futuro()),
         ("gastei 35 na farmácia e 20 na padaria", mensagens.explicar_varios_valores()),
-        ("quanto eu tenho?", mensagens.mensagem_nao_compreendida()),
     ],
 )
 def test_recusa_explica_o_motivo(ambiente_assistente, frase, esperada):  # noqa: F811
